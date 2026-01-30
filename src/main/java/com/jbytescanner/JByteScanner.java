@@ -32,13 +32,21 @@ public class JByteScanner implements Callable<Integer> {
         System.out.println("   JByteScanner - Next Gen Static Analysis");
         System.out.println("==========================================");
 
-        // 1. Initialize Configuration
-        ConfigManager configManager = new ConfigManager();
-        // TODO: Support custom config path in ConfigManager if needed, for now it looks in CWD
-        configManager.init();
+        // 0. Determine Workspace Directory (.jbytescanner)
+        File targetFile = new File(targetPath);
+        File projectRoot = targetFile.isDirectory() ? targetFile : targetFile.getParentFile();
+        File workspaceDir = new File(projectRoot, ".jbytescanner");
         
-        System.out.println("Loaded Sources: " + configManager.getConfig().getSources().size());
-        System.out.println("Loaded Sinks: " + configManager.getConfig().getSinks().size());
+        if (!workspaceDir.exists()) {
+            boolean created = workspaceDir.mkdirs();
+            if (created) {
+                System.out.println("Initialized workspace at: " + workspaceDir.getAbsolutePath());
+            }
+        }
+
+        // 1. Initialize Configuration (Project Specific)
+        ConfigManager configManager = new ConfigManager();
+        configManager.init(workspaceDir);
 
         // 2. Load JARs
         JarLoader jarLoader = new JarLoader();
@@ -46,19 +54,16 @@ public class JByteScanner implements Callable<Integer> {
         
         System.out.println("------------------------------------------");
         System.out.println("Target: " + targetPath);
-        System.out.println("Found Archives:");
-        for (String jar : jars) {
-            System.out.println(" - " + jar);
-        }
+        System.out.println("Workspace: " + workspaceDir.getAbsolutePath());
+        System.out.println("Found Archives: " + jars.size());
         System.out.println("------------------------------------------");
 
         // 3. Phase 2: Asset Discovery
-        String projectName = new File(targetPath).getName();
         com.jbytescanner.engine.DiscoveryEngine discoveryEngine = 
-                new com.jbytescanner.engine.DiscoveryEngine(jars, projectName);
+                new com.jbytescanner.engine.DiscoveryEngine(jars, workspaceDir);
         discoveryEngine.run();
 
-        System.out.println("Phase 2 Complete. API list generated for project: " + projectName);
+        System.out.println("Phase 2 Complete. Results saved in workspace.");
         
         return 0;
     }

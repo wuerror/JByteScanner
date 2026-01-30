@@ -18,14 +18,27 @@ public class ConfigManager {
 
     private Config config;
 
-    public void init() {
-        File configFile = new File(System.getProperty("user.dir"), CONFIG_FILENAME);
+    /**
+     * Init config from a specific workspace directory (e.g., target/.jbytescanner/)
+     */
+    public void init(File workspaceDir) {
+        if (!workspaceDir.exists()) {
+            workspaceDir.mkdirs();
+        }
+
+        File configFile = new File(workspaceDir, CONFIG_FILENAME);
+        
+        // Strategy: 
+        // 1. Look in workspace/.jbytescanner/rules.yaml (Project specific)
+        // 2. If not found, create it from default template
+        
         if (!configFile.exists()) {
-            logger.info("{} not found. Creating default configuration...", CONFIG_FILENAME);
+            logger.info("Project-specific rules not found. Creating default at: {}", configFile.getAbsolutePath());
             extractDefaultConfig(configFile);
         } else {
-            logger.info("Found existing configuration: {}", configFile.getAbsolutePath());
+            logger.info("Loaded project-specific configuration: {}", configFile.getAbsolutePath());
         }
+        
         loadConfig(configFile);
     }
 
@@ -36,7 +49,6 @@ public class ConfigManager {
                 return;
             }
             Files.copy(in, destination.toPath(), StandardCopyOption.REPLACE_EXISTING);
-            logger.info("Created default {}", CONFIG_FILENAME);
         } catch (IOException e) {
             logger.error("Failed to extract default configuration", e);
         }
@@ -46,7 +58,8 @@ public class ConfigManager {
         ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
         try {
             this.config = mapper.readValue(configFile, Config.class);
-            logger.info("Configuration loaded successfully. Max depth: {}", config.getScanConfig().getMaxDepth());
+            logger.info("Configuration loaded. Sources: {}, Sinks: {}", 
+                    config.getSources().size(), config.getSinks().size());
         } catch (IOException e) {
             logger.error("Failed to parse configuration file", e);
             throw new RuntimeException("Configuration load failed", e);
