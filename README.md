@@ -87,8 +87,10 @@ graph TD
     
     DiscoveryEngine --> |"Soot (Structure)"| JARs[Target JARs]
     DiscoveryEngine --> |Extract| APIDict["api.txt (Route Dict)"]
+    DiscoveryEngine --> |Extract| ComponentDict["components.txt (SCA)"]
     
     TaintEngine --> |Input| APIDict
+    TaintEngine --> |Input| ComponentDict
     TaintEngine --> |"Soot (SPARK/Jimple)"| JARs
     TaintEngine --> |Analyze| Vulnerabilities[Vulnerabilities]
     
@@ -103,6 +105,7 @@ graph TD
 
 - [x] **Phase 1**: 项目骨架与配置管理系统 (Config/Loader)
 - [x] **Phase 2**: 资产发现引擎 (Spring Boot/Servlet API 提取 & Fat JAR 支持)
+- [ ] **Phase 2.5**: 组件指纹识别 (SCA) 与版本提取
 - [ ] **Phase 3**: 调用图构建 (CHA) 与基础数据流分析
 - [ ] **Phase 4**: 污点分析引擎 (Taint Analysis) 与内存优化
 - [ ] **Phase 5**: SARIF 报告生成与发布
