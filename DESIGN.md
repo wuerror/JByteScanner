@@ -13,22 +13,22 @@ The tool adopts a **"Dual-Engine Microkernel"** architecture, decoupling lightwe
 
 ```mermaid
 graph TD
-    User[User/Auditor] --> Launcher[Launcher (CLI)]
+    User[User/Auditor] --> Launcher["Launcher (CLI)"]
     Launcher --> ConfigMgr[Config Manager]
-    Launcher --> DiscoveryEngine[A. Asset Discovery Engine (Lightweight)]
-    Launcher --> TaintEngine[B. Taint Analysis Engine (Heavyweight)]
+    Launcher --> DiscoveryEngine["A. Asset Discovery Engine (Lightweight)"]
+    Launcher --> TaintEngine["B. Taint Analysis Engine (Heavyweight)"]
     
-    ConfigMgr --> |Load/Gen| Rules[Rules (yaml)]
+    ConfigMgr --> |Load/Gen| Rules["Rules (yaml)"]
     
-    DiscoveryEngine --> |Soot (Structure)| JARs[Target JARs]
-    DiscoveryEngine --> |Extract| APIDict[api.txt (Route Dict)]
+    DiscoveryEngine --> |"Soot (Structure)"| JARs[Target JARs]
+    DiscoveryEngine --> |Extract| APIDict["api.txt (Route Dict)"]
     
     TaintEngine --> |Input| APIDict
-    TaintEngine --> |Soot (SPARK/Jimple)| JARs
+    TaintEngine --> |"Soot (SPARK/Jimple)"| JARs
     TaintEngine --> |Analyze| Vulnerabilities[Vulnerabilities]
     
     Vulnerabilities --> ReportGen[Report Generator]
-    ReportGen --> |Export| SARIF[result.sarif]
+    ReportGen --> |Export| SARIF["result.sarif"]
 ```
 
 ### Core Modules
@@ -128,21 +128,21 @@ sequenceDiagram
 ```mermaid
 flowchart TD
     A[Start Analysis] --> B{Load Config}
-    B --> C[Initialize Soot (Whole Program)]
-    C --> D[Build Call Graph (CHA/SPARK)]
-    D --> E[Identify EntryPoints (from api.txt)]
-    E --> F[Initialize Worklist (Sources)]
+    B --> C["Initialize Soot (Whole Program)"]
+    C --> D["Build Call Graph (CHA/SPARK)"]
+    D --> E["Identify EntryPoints (from api.txt)"]
+    E --> F["Initialize Worklist (Sources)"]
     
     F --> G{Worklist Empty?}
     G -- Yes --> H[Generate Report]
-    G -- No --> I[Pop Method/Variable]
+    G -- No --> I["Pop Method/Variable"]
     
     I --> J[Intra-procedural Propagation]
     J --> K{Reaches Sink?}
     K -- Yes --> L[Record Vulnerability]
-    K -- No --> M[Find Callers/Callees]
+    K -- No --> M["Find Callers/Callees"]
     
-    M --> N[Map Taint to Args/Returns]
+    M --> N["Map Taint to Args/Returns"]
     N --> O[Push to Worklist]
     O --> G
 ```
