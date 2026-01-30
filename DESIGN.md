@@ -22,8 +22,10 @@ graph TD
     
     DiscoveryEngine --> |"Soot (Structure)"| JARs[Target JARs]
     DiscoveryEngine --> |Extract| APIDict["api.txt (Route Dict)"]
+    DiscoveryEngine --> |Extract| ComponentDict["components.txt (SCA)"]
     
     TaintEngine --> |Input| APIDict
+    TaintEngine --> |Input| ComponentDict
     TaintEngine --> |"Soot (SPARK/Jimple)"| JARs
     TaintEngine --> |Analyze| Vulnerabilities[Vulnerabilities]
     
@@ -47,10 +49,12 @@ graph TD
     *   **Technology**: Runs only Soot's `jb` (Jimple Body) phase. **Does not build a global Call Graph.**
     *   **Function**: Rapidly traverses class annotations and inheritance hierarchies to extract Controller/Servlet definitions, outputting `api.txt`.
     *   **Output Strategy**: Uses **Append Mode** for `api.txt`. Each scan session appends a header block `### Scan Session: [Timestamp] | Jars: [Count] ###` followed by the routes. This prevents data loss when scanning multiple projects sequentially.
+    *   **SCA Support (Planned)**: Will identify versions of third-party libraries (e.g., Fastjson, Log4j) to prune unnecessary taint analysis rules.
 
 4.  **Taint Engine (Heavyweight)**
     *   **Technology**: Builds Pointer Analysis and Call Graph using Soot's `SPARK` or `CHA`.
     *   **Strategy**: Uses **"Demand-Driven Analysis"**. Instead of analyzing the entire universe, it uses entry points from `api.txt` to build relevant call subgraphs, significantly reducing memory usage.
+    *   **Optimization**: Will utilize `components.txt` to skip analysis for safe library versions (e.g., skip Fastjson rules if version >= 1.2.83).
 
 5.  **Report Generator**
     *   **Goal**: Address Pain Point 5.
