@@ -8,8 +8,8 @@ import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
 
 import java.io.File;
-import java.util.List;
 import java.util.concurrent.Callable;
+import java.util.List;
 
 @Command(name = "JByteScanner", mixinStandardHelpOptions = true, version = "1.0",
         description = "Java Bytecode Security Scanner based on Soot")
@@ -48,22 +48,34 @@ public class JByteScanner implements Callable<Integer> {
         ConfigManager configManager = new ConfigManager();
         configManager.init(workspaceDir);
 
-        // 2. Load JARs
+        // 2. Load JARs (Now separated into App and Lib jars, with Promotion logic)
         JarLoader jarLoader = new JarLoader();
-        List<String> jars = jarLoader.loadJars(targetPath);
+        List<String> scanPackages = configManager.getConfig().getScanConfig().getScanPackages();
+        JarLoader.LoadedJars loadedJars = jarLoader.loadJars(targetPath, scanPackages);
         
         System.out.println("------------------------------------------");
         System.out.println("Target: " + targetPath);
         System.out.println("Workspace: " + workspaceDir.getAbsolutePath());
-        System.out.println("Found Archives: " + jars.size());
+        System.out.println("App Jars: " + loadedJars.appJars.size());
+        System.out.println("Lib Jars: " + loadedJars.libJars.size());
         System.out.println("------------------------------------------");
 
         // 3. Phase 2: Asset Discovery
+        String projectName = new File(targetPath).getName();
         com.jbytescanner.engine.DiscoveryEngine discoveryEngine = 
-                new com.jbytescanner.engine.DiscoveryEngine(jars, workspaceDir);
+                new com.jbytescanner.engine.DiscoveryEngine(loadedJars.appJars, loadedJars.libJars, workspaceDir);
         discoveryEngine.run();
 
-        System.out.println("Phase 2 Complete. Results saved in workspace.");
+        System.out.println("Phase 2 Complete. API list generated for project: " + projectName);
+        
+        System.out.println("------------------------------------------");
+        
+        // 4. Phase 3: Taint Analysis
+        com.jbytescanner.engine.TaintEngine taintEngine = 
+                new com.jbytescanner.engine.TaintEngine(loadedJars.appJars, loadedJars.libJars, workspaceDir, configManager);
+        taintEngine.run();
+        
+        System.out.println("Phase 3 Complete. Analysis finished.");
         
         return 0;
     }
