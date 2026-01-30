@@ -1,0 +1,19 @@
+config:
+  max_depth: 10
+  scan_packages: 
+    - "com.example"
+    - "org.example"
+
+sources:
+  - type: "annotation"
+    value: "org.springframework.web.bind.annotation.RequestParam"
+  - type: "method"
+    signature: "<javax.servlet.http.HttpServletRequest: java.lang.String getParameter(java.lang.String)>"
+
+sinks:
+  - type: "method"
+    vuln_type: "RCE"
+    signature: "<java.lang.Runtime: java.lang.Process exec(java.lang.String)>"
+  - type: "method"
+    vuln_type: "SQL_Injection"
+    signature: "<java.sql.Statement: java.sql.ResultSet executeQuery(java.lang.String)>"

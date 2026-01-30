@@ -1,0 +1,37 @@
+# Maven
+target/
+*.class
+*.jar
+*.war
+*.ear
+*.nar
+*.zip
+*.tar.gz
+*.rar
+
+# IDEs
+.idea/
+*.iml
+.vscode/
+*.classpath
+*.project
+*.settings/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# JByteScanner specific
+test_jars/
+api_*.txt
+api.txt
+rules.yaml
+# Keep default_rules in resources, but ignore local overrides if any
+!src/main/resources/default_rules.yaml
+
+# Temp files
+jbytescanner_libs_*/
