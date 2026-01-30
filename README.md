@@ -78,12 +78,22 @@ JByteScanner 采用双引擎架构：
 
 ```mermaid
 graph TD
-    Launcher --> DiscoveryEngine[A. 资产发现引擎 (已完成)]
-    Launcher --> TaintEngine[B. 污点分析引擎 (开发中)]
+    User[User/Auditor] --> Launcher["Launcher (CLI)"]
+    Launcher --> ConfigMgr[Config Manager]
+    Launcher --> DiscoveryEngine["A. Asset Discovery Engine (Lightweight)"]
+    Launcher --> TaintEngine["B. Taint Analysis Engine (Heavyweight)"]
     
-    DiscoveryEngine --> |API Extract| APIDict[api.txt]
+    ConfigMgr --> |Load/Gen| Rules["Rules (yaml)"]
+    
+    DiscoveryEngine --> |"Soot (Structure)"| JARs[Target JARs]
+    DiscoveryEngine --> |Extract| APIDict["api.txt (Route Dict)"]
+    
     TaintEngine --> |Input| APIDict
-    TaintEngine --> |Soot Analysis| Report[Vulnerabilities]
+    TaintEngine --> |"Soot (SPARK/Jimple)"| JARs
+    TaintEngine --> |Analyze| Vulnerabilities[Vulnerabilities]
+    
+    Vulnerabilities --> ReportGen[Report Generator]
+    ReportGen --> |Export| SARIF["result.sarif"]
 ```
 
 *   **Discovery Engine**: 只运行 Soot 的基础阶段，快速提取路由和类信息。
