@@ -43,13 +43,14 @@ graph TD
 2.  **Configuration Manager**
     *   **Improvement**: Replaces custom `.conf` formats with **YAML**.
     *   **Logic**: Checks for `rules.yaml` in the current directory on startup. If missing, extracts a default template from the JAR resources; otherwise, loads the existing one. This addresses user pain points regarding configuration persistence and editability.
+    *   **Project Workspace**: Prioritizes reading configuration from the project-specific workspace (`.jbytescanner/rules.yaml`), enabling isolated configurations per scan target.
 
 3.  **Discovery Engine (Lightweight)**
     *   **Goal**: Address Pain Point 1 (API Extraction) and Pain Point 4 (Memory Optimization).
     *   **Technology**: Runs only Soot's `jb` (Jimple Body) phase. **Does not build a global Call Graph.**
     *   **Function**: Rapidly traverses class annotations and inheritance hierarchies to extract Controller/Servlet definitions, outputting `api.txt`.
-    *   **Output Strategy**: Uses **Append Mode** for `api.txt`. Each scan session appends a header block `### Scan Session: [Timestamp] | Jars: [Count] ###` followed by the routes. This prevents data loss when scanning multiple projects sequentially.
-    *   **SCA Support (Planned)**: Will identify versions of third-party libraries (e.g., Fastjson, Log4j) to prune unnecessary taint analysis rules.
+    *   **Output Strategy**: Writes results to the project workspace (`.jbytescanner/api.txt`), preventing file conflicts between different projects.
+    *   **SCA Support (Planned Phase 2.5)**: Will identify versions of third-party libraries (e.g., Fastjson, Log4j) to prune unnecessary taint analysis rules.
 
 4.  **Taint Engine (Heavyweight)**
     *   **Technology**: Builds Pointer Analysis and Call Graph using Soot's `SPARK` or `CHA`.
