@@ -29,12 +29,14 @@
 - [x] **Optimization**: Implement Exclusion List for problematic libs (asm, cglib, etc.).
 - [x] Implement `ReachabilityAnalyzer`: Verify source-to-sink paths on the Call Graph.
 
-## Phase 4: Taint Analysis & Optimization [PENDING]
-- [ ] Implement `DataFlowAnalysis`: Forward taint propagation logic.
-- [ ] Integrate Sources/Sinks from `rules.yaml`.
-- [ ] Implement intra-procedural taint tracking (LocalDefs).
-- [ ] Implement inter-procedural taint tracking (CallGraph edges).
+## Phase 4: Taint Analysis & Optimization [COMPLETED]
+- [x] Implement `InterproceduralTaintAnalysis`: Forward taint propagation logic using CallGraph.
+- [x] Integrate Sources/Sinks from `rules.yaml`.
+- [x] Implement intra-procedural taint tracking (IdentityStmt + DefinitionStmt).
+- [x] Implement inter-procedural taint tracking (Map args to callee params).
+- [x] Verify detection of RCE and Deserialization vulnerabilities in `java-sec-code`.
 
-## Phase 5: Reporting & Delivery [PENDING]
-- [ ] Implement `SarifReporter`.
-- [ ] Package final release.
+## Phase 5: Reporting & Delivery [COMPLETED]
+- [x] Implement `SarifReporter` (JSON generation).
+- [x] Output `result.sarif` to project workspace.
+- [x] Package final release.

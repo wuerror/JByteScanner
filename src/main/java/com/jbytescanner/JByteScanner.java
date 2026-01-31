@@ -62,11 +62,15 @@ public class JByteScanner implements Callable<Integer> {
 
         // 3. Phase 2: Asset Discovery
         String projectName = new File(targetPath).getName();
-        com.jbytescanner.engine.DiscoveryEngine discoveryEngine = 
-                new com.jbytescanner.engine.DiscoveryEngine(loadedJars.appJars, loadedJars.libJars, workspaceDir);
-        discoveryEngine.run();
-
-        System.out.println("Phase 2 Complete. API list generated for project: " + projectName);
+        File apiFile = new File(workspaceDir, "api.txt");
+        if (!apiFile.exists()) {
+            com.jbytescanner.engine.DiscoveryEngine discoveryEngine = 
+                    new com.jbytescanner.engine.DiscoveryEngine(loadedJars.appJars, loadedJars.libJars, workspaceDir);
+            discoveryEngine.run();
+            System.out.println("Phase 2 Complete. API list generated for project: " + projectName);
+        } else {
+            System.out.println("Phase 2 Skipped. Using existing api.txt for project: " + projectName);
+        }
         
         System.out.println("------------------------------------------");
         

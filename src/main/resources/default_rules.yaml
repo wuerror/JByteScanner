@@ -1,19 +1,86 @@
 config:
-  max_depth: 10
+  max_depth: 15
   scan_packages: 
     - "com.example"
-    - "org.example"
+    - "org.joychou"
+    - "cn.service"
 
 sources:
+  # Spring MVC
   - type: "annotation"
     value: "org.springframework.web.bind.annotation.RequestParam"
+  - type: "annotation"
+    value: "org.springframework.web.bind.annotation.PathVariable"
+  - type: "annotation"
+    value: "org.springframework.web.bind.annotation.RequestBody"
+  # Servlet
   - type: "method"
     signature: "<javax.servlet.http.HttpServletRequest: java.lang.String getParameter(java.lang.String)>"
+  - type: "method"
+    signature: "<javax.servlet.http.HttpServletRequest: java.lang.String getHeader(java.lang.String)>"
 
 sinks:
+  # --- RCE ---
   - type: "method"
     vuln_type: "RCE"
     signature: "<java.lang.Runtime: java.lang.Process exec(java.lang.String)>"
   - type: "method"
+    vuln_type: "RCE"
+    signature: "<java.lang.Runtime: java.lang.Process exec(java.lang.String,java.lang.String[])>"
+  - type: "method"
+    vuln_type: "RCE"
+    signature: "<java.lang.ProcessBuilder: void <init>(java.lang.String[])>"
+  - type: "method"
+    vuln_type: "RCE"
+    signature: "<java.lang.ProcessBuilder: java.lang.ProcessBuilder command(java.lang.String[])>"
+
+  # --- SQL Injection ---
+  - type: "method"
     vuln_type: "SQL_Injection"
     signature: "<java.sql.Statement: java.sql.ResultSet executeQuery(java.lang.String)>"
+  - type: "method"
+    vuln_type: "SQL_Injection"
+    signature: "<java.sql.Statement: int executeUpdate(java.lang.String)>"
+  - type: "method"
+    vuln_type: "SQL_Injection"
+    signature: "<java.sql.Statement: boolean execute(java.lang.String)>"
+  # JDBC Template
+  - type: "method"
+    vuln_type: "SQL_Injection"
+    signature: "<org.springframework.jdbc.core.JdbcTemplate: void execute(java.lang.String)>"
+
+  # --- Deserialization ---
+  # Native
+  - type: "method"
+    vuln_type: "Deserialization"
+    signature: "<java.io.ObjectInputStream: java.lang.Object readObject()>"
+  # SnakeYAML
+  - type: "method"
+    vuln_type: "Deserialization"
+    signature: "<org.yaml.snakeyaml.Yaml: java.lang.Object load(java.lang.String)>"
+  - type: "method"
+    vuln_type: "Deserialization"
+    signature: "<org.yaml.snakeyaml.Yaml: java.lang.Object load(java.io.InputStream)>"
+  # XStream
+  - type: "method"
+    vuln_type: "Deserialization"
+    signature: "<com.thoughtworks.xstream.XStream: java.lang.Object fromXML(java.lang.String)>"
+
+  # --- SSRF ---
+  - type: "method"
+    vuln_type: "SSRF"
+    signature: "<java.net.URL: java.io.InputStream openStream()>"
+  - type: "method"
+    vuln_type: "SSRF"
+    signature: "<java.net.URL: java.net.URLConnection openConnection()>"
+  - type: "method"
+    vuln_type: "SSRF"
+    signature: "<org.apache.http.impl.client.CloseableHttpClient: org.apache.http.client.methods.CloseableHttpResponse execute(org.apache.http.client.methods.HttpUriRequest)>"
+
+  # --- File Access (Path Traversal) ---
+  - type: "method"
+    vuln_type: "Path_Traversal"
+    signature: "<java.io.FileInputStream: void <init>(java.lang.String)>"
+  - type: "method"
+    vuln_type: "Path_Traversal"
+    signature: "<java.io.FileOutputStream: void <init>(java.lang.String)>"

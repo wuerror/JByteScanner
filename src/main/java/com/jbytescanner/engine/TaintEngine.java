@@ -1,13 +1,19 @@
 package com.jbytescanner.engine;
 
+import com.jbytescanner.analysis.InterproceduralTaintAnalysis;
+import com.jbytescanner.analysis.RuleManager;
 import com.jbytescanner.config.ConfigManager;
 import com.jbytescanner.core.SootManager;
 import com.jbytescanner.graph.CallGraphBuilder;
 import com.jbytescanner.graph.EntryPointGenerator;
-import com.jbytescanner.graph.ReachabilityAnalyzer;
 import com.jbytescanner.model.ApiRoute;
+import com.jbytescanner.model.Vulnerability;
+import com.jbytescanner.report.SarifReporter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import soot.Scene;
+import soot.SootClass;
+import soot.SootMethod;
 import soot.jimple.toolkits.callgraph.CallGraph;
 
 import java.io.File;
@@ -33,19 +39,16 @@ public class TaintEngine {
     public void run() {
         logger.info("Starting Taint Engine...");
 
-        // 1. Init Soot in Whole Program Mode
+        // 1. Init Soot
         SootManager.initSoot(appJars, libJars, true); 
 
-        // 2. Load Entry Points from api.txt
-        List<ApiRoute> entryPoints = loadEntryPoints();
-        if (entryPoints.isEmpty()) {
-            logger.warn("No entry points found in api.txt. Skipping analysis.");
-            return;
-        }
+        // 2. Load Entry Points
+        List<ApiRoute> routes = loadEntryPoints();
+        if (routes.isEmpty()) return;
 
-        // 3. Generate Dummy Main
+        // 3. Generate Dummy Main (Still needed for CallGraph construction)
         EntryPointGenerator entryPointGenerator = new EntryPointGenerator();
-        entryPointGenerator.generateDummyMain(entryPoints);
+        entryPointGenerator.generateDummyMain(routes);
 
         // 4. Build Call Graph
         CallGraphBuilder cgBuilder = new CallGraphBuilder();
@@ -53,10 +56,46 @@ public class TaintEngine {
         
         logger.info("Call Graph built. Edge count: {}", cg.size());
 
-        // 5. Basic Reachability Analysis (Phase 3 Demo)
-        // Hardcoded check for Runtime.exec to validate java-sec-code RCE detection
-        ReachabilityAnalyzer analyzer = new ReachabilityAnalyzer(cg);
-        analyzer.findPathToSink("java.lang.Process exec(java.lang.String)");
+        // 5. Run Taint Analysis
+        logger.info("Running Inter-procedural Taint Analysis...");
+        RuleManager ruleManager = new RuleManager(configManager.getConfig());
+        InterproceduralTaintAnalysis taintAnalysis = new InterproceduralTaintAnalysis(cg, ruleManager);
+        
+        // Resolve actual SootMethods for entry points
+        List<SootMethod> analysisRoots = resolveMethods(routes);
+        List<Vulnerability> vulnerabilities = taintAnalysis.run(analysisRoots);
+        
+        // 6. Generate Report
+        if (!vulnerabilities.isEmpty()) {
+            SarifReporter reporter = new SarifReporter(workspaceDir);
+            reporter.generate(vulnerabilities);
+        } else {
+            logger.info("No vulnerabilities found. Skipping report generation.");
+        }
+    }
+
+    private List<SootMethod> resolveMethods(List<ApiRoute> routes) {
+        List<SootMethod> methods = new ArrayList<>();
+        for (ApiRoute route : routes) {
+            try {
+                SootClass sc = Scene.v().getSootClass(route.getClassName());
+                if (!sc.isPhantom()) {
+                    // Fuzzy match method name as in EntryPointGenerator
+                    String sig = route.getMethodSig();
+                    String methodName = sig.split(" ")[sig.split(" ").length - 1].split("\\(")[0];
+                    
+                    for (SootMethod sm : sc.getMethods()) {
+                        if (sm.getName().equals(methodName)) {
+                            methods.add(sm);
+                            break; 
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                // ignore
+            }
+        }
+        return methods;
     }
 
     private List<ApiRoute> loadEntryPoints() {
