@@ -1,42 +1,31 @@
 # Development Progress
 
-## Phase 1: Skeleton & Configuration [COMPLETED]
-- [x] Set up Maven project structure.
-- [x] Add dependencies (Soot, Picocli, Jackson, etc.).
-- [x] Implement `ConfigManager` and `rules.yaml` handling.
-- [x] Implement `JarLoader` for recursive scanning.
-- [x] Implement Main CLI entry point.
+## Phase 1-5 [COMPLETED]
+*All initial development, asset discovery, basic taint analysis, and reporting phases are complete.*
 
-## Phase 2: Asset Discovery Engine [COMPLETED]
-- [x] Configure Soot `Scene` setup (Fixed classpath issues).
-- [x] Implement `RouteExtractor`.
-- [x] Implement Spring Boot Annotation Parser.
-- [x] Implement Servlet/Web.xml Parser (Basic Servlet Annotation support).
-- [x] Generate `api.txt` in project-specific workspace (`.jbytescanner`).
-- [x] Implement **Fat JAR Support**: Auto-extract `BOOT-INF/classes` and `lib`.
-- [x] Implement **Smart Jar Promotion**: Identify business jars in `BOOT-INF/lib` based on `scan_packages` config.
+---
 
-## Phase 2.5: Component Fingerprinting (SCA) [PENDING]
-- [ ] Implement `ComponentIdentifier`.
-- [ ] Extract version info from `pom.properties` or `MANIFEST.MF`.
-- [ ] Output results to `components.txt`.
+## Phase 6: Performance & Stability [TODO]
 
-## Phase 3: Call Graph & Basic Data Flow [COMPLETED]
-- [x] Implement `TaintEngine` skeleton.
-- [x] Implement `EntryPointGenerator`: Create dummy main method calling all API routes.
-- [x] Implement `CallGraphBuilder`: Configure Soot for Whole-Program analysis (CHA mode).
-- [x] **Optimization**: Split ClassPath into `process-dir` (App) and `classpath` (Lib) to prevent Soot crashing on third-party libs.
-- [x] **Optimization**: Implement Exclusion List for problematic libs (asm, cglib, etc.).
-- [x] Implement `ReachabilityAnalyzer`: Verify source-to-sink paths on the Call Graph.
+This phase focuses on fixing core performance bottlenecks and stability issues encountered when scanning large, real-world projects.
 
-## Phase 4: Taint Analysis & Optimization [COMPLETED]
-- [x] Implement `InterproceduralTaintAnalysis`: Forward taint propagation logic using CallGraph.
-- [x] Integrate Sources/Sinks from `rules.yaml`.
-- [x] Implement intra-procedural taint tracking (IdentityStmt + DefinitionStmt).
-- [x] Implement inter-procedural taint tracking (Map args to callee params).
-- [x] Verify detection of RCE and Deserialization vulnerabilities in `java-sec-code`.
+- [ ] **Phase 6.1: Refactor `AnalysisState`**: Replace the inefficient string-based memoization key with a structured `AnalysisState` object to reduce memory overhead and CPU usage.
+- [ ] **Phase 6.2: Implement Backward Reachability Pruning**: Pre-compute all methods that can possibly reach a Sink and prune analysis paths that cannot. This is expected to provide a significant speed-up.
+- [ ] **Phase 6.3: Implement Strict Dependency Isolation**: Use Soot's `include` options to create a strict "allow-list" for analysis based on `scan_packages`. This will prevent crashes and slowdowns caused by problematic third-party libraries shaded within application JARs.
 
-## Phase 5: Reporting & Delivery [COMPLETED]
-- [x] Implement `SarifReporter` (JSON generation).
-- [x] Output `result.sarif` to project workspace.
-- [x] Package final release.
+---
+
+## Phase 7: Advanced Analysis [TODO]
+
+This phase evolves the engine to use more sophisticated analysis techniques for better performance and precision.
+
+- [ ] **Phase 7.1: Method Summary Generation**
+  - [ ] Create a reusable `SummarizingIntraproceduralAnalysis` class capable of generating a `MethodSummary` for any given method.
+  - [ ] Integrate the summary generation logic into the main analysis loop to populate the `SummaryManager`. (Application of summaries will be deferred).
+- [ ] **Phase 7.2: Worklist Engine & Summary Application**
+  - [ ] Refactor the core recursive analysis engine to a more powerful worklist-based, fixed-point iteration algorithm.
+  - [ ] Implement the logic to effectively **apply** the cached method summaries within the new worklist engine.
+
+---
+
+*Older phases have been consolidated for clarity.*
