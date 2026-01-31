@@ -5,27 +5,34 @@
 
 ---
 
-## Phase 6: Performance & Stability [TODO]
+## Phase 6: Performance, Stability & Precision [TODO]
 
-This phase focuses on fixing core performance bottlenecks and stability issues encountered when scanning large, real-world projects.
+This phase focuses on fixing core performance bottlenecks, stability issues, and introducing basic precision improvements. **Priority order is based on expert recommendation.**
 
-- [ ] **Phase 6.1: Refactor `AnalysisState`**: Replace the inefficient string-based memoization key with a structured `AnalysisState` object to reduce memory overhead and CPU usage.
-- [ ] **Phase 6.2: Implement Backward Reachability Pruning**: Pre-compute all methods that can possibly reach a Sink and prune analysis paths that cannot. This is expected to provide a significant speed-up.
-- [ ] **Phase 6.3: Implement Strict Dependency Isolation**: Use Soot's `include` options to create a strict "allow-list" for analysis based on `scan_packages`. This will prevent crashes and slowdowns caused by problematic third-party libraries shaded within application JARs.
+- [ ] **(High Priority) Phase 6.2: Implement Backward Reachability Pruning**: Pre-compute all methods that can possibly reach a Sink and prune analysis paths that cannot. Add statistics logging to verify pruning effectiveness.
+- [ ] **(High Priority) Phase 6.3: Implement Strict Dependency Isolation**: Harden Soot configuration with an `include` list, CHA-only call graph, and other safety options to prevent crashes on third-party libraries.
+- [ ] **(High Priority) Phase 6.1: Refactor `AnalysisState`**: Replace the string-based memoization key with a performant, structured `AnalysisState` object, paying attention to hashing strategies.
+- [ ] **(Medium Priority) Phase 6.5: Basic Precision Enhancements**: Implement simple path-sensitivity (e.g., null checks) and field-sensitivity to reduce false positives.
 
 ---
 
-## Phase 7: Advanced Analysis [TODO]
+## Phase 7: Advanced Analysis Engine [TODO]
 
-This phase evolves the engine to use more sophisticated analysis techniques for better performance and precision.
+This phase evolves the engine to use more sophisticated analysis techniques for better performance.
 
 - [ ] **Phase 7.1: Method Summary Generation**
-  - [ ] Create a reusable `SummarizingIntraproceduralAnalysis` class capable of generating a `MethodSummary` for any given method.
-  - [ ] Integrate the summary generation logic into the main analysis loop to populate the `SummaryManager`. (Application of summaries will be deferred).
+  - [ ] Create a reusable `SummarizingIntraproceduralAnalysis` class to **generate** a `MethodSummary` for any given method.
+  - [ ] Integrate this summary generation logic into the main analysis loop to populate the cache.
 - [ ] **Phase 7.2: Worklist Engine & Summary Application**
-  - [ ] Refactor the core recursive analysis engine to a more powerful worklist-based, fixed-point iteration algorithm.
+  - [ ] (Major Task) Refactor the core recursive engine to a more powerful worklist-based, fixed-point iteration algorithm.
   - [ ] Implement the logic to effectively **apply** the cached method summaries within the new worklist engine.
 
 ---
 
+## Phase 8: CI/CD & Enterprise Features [TODO]
+
+- [ ] **Incremental Analysis**: Support scanning only changed files and their dependencies in a CI/CD pipeline.
+- [ ] **Parallel Analysis**: Utilize multiple cores to speed up analysis.
+
+---
 *Older phases have been consolidated for clarity.*
