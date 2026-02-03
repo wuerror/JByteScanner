@@ -83,6 +83,9 @@ sinks:
     signature: "<com.zaxxer.hikari.HikariDataSource: void setJdbcUrl(java.lang.String)>"
   - type: "method"
     vuln_type: "JDBC_RCE"
+    signature: "<com.zaxxer.hikari.HikariConfig: void setJdbcUrl(java.lang.String)>"
+  - type: "method"
+    vuln_type: "JDBC_RCE"
     signature: "<org.apache.commons.dbcp2.BasicDataSource: void setUrl(java.lang.String)>"
 
   # --- SQL Injection ---
