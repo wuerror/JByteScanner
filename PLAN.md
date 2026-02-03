@@ -16,6 +16,7 @@ This plan ensures the project can be seamlessly continued by other AI agents or 
     *   Write Annotation Parsers for Spring (`@RestController`, `@RequestMapping`) and Servlet (`@WebServlet`).
     *   Implement **Fat JAR Support**: Auto-extract `BOOT-INF/classes` and `BOOT-INF/lib` to temp workspace.
     *   Implement **Project Workspace**: Create `.jbytescanner` folder for isolated configs and results.
+    *   **[NEW] API Filtering**: Implement CLI support (`-m api`, `--filter-annotation`) to filter APIs based on recursive annotation matching (name or value).
 *   **Deliverable**: Running the tool generates `api.txt` containing a complete list of API routes found in the JARs.
 
 ## Phase 2.5: Component Fingerprinting (SCA) [PLANNED]

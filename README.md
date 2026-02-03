@@ -31,15 +31,42 @@ mvn clean package -DskipTests
 
 使用 `java -jar` 命令运行工具，指定目标 Jar 包或包含多个 Jar 包的目录。
 
+**基础用法：**
+
 ```bash
-# 扫描单个 Jar
+# 扫描单个 Jar (执行完整扫描: 资产发现 + 漏洞分析)
 java -jar target/JByteScanner-1.0-SNAPSHOT-shaded.jar /path/to/app.jar
 
 # 扫描整个目录
 java -jar target/JByteScanner-1.0-SNAPSHOT-shaded.jar /path/to/microservices/
 ```
 
+**高级用法：API 过滤与独立提取模式**
+
+JByteScanner 支持仅提取 API 列表，并允许通过注解关键词进行筛选（适用于提取特定类型的接口，如匿名访问接口、鉴权接口等）。
+
+```bash
+# 模式：仅提取 API (不进行漏洞分析)
+# 输出：仅生成 api.txt
+java -jar target/JByteScanner-1.0-SNAPSHOT-shaded.jar /path/to/app.jar -m api
+
+# 模式：筛选特定 API (支持模糊匹配注解名或属性值)
+# 场景：提取所有带有 "Anonymous" (匿名) 或 "PreAuthorize" (预授权) 相关注解的 API
+java -jar target/JByteScanner-1.0-SNAPSHOT-shaded.jar /path/to/app.jar -m api --filter-annotation Anonymous --filter-annotation PreAuthorize
+
+# 模式：筛选并立即扫描 (针对筛选出的 API 进行漏洞检测)
+java -jar target/JByteScanner-1.0-SNAPSHOT-shaded.jar /path/to/app.jar -m scan --filter-annotation roleValidator
+```
+
+**参数说明：**
+
+*   `-m, --mode`: 运行模式。
+    *   `scan` (默认): 完整流程。如果 `api.txt` 已存在且无过滤参数，直接使用；否则重新生成。
+    *   `api`: 仅执行资产发现，强制重新生成 `api.txt` 并退出。
+*   `--filter-annotation`: 过滤关键词。匹配类或方法上的**注解名称**或**注解属性值**（支持递归匹配嵌套注解）。
+
 ### 3. 查看结果
+
 
 运行结束后，当前目录下会生成 API 路由字典文件：
 

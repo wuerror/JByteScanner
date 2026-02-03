@@ -26,6 +26,12 @@ public class RouteExtractor {
     private static final String CLASS_HTTP_SERVLET = "javax.servlet.http.HttpServlet";
     private static final String ANN_WEB_SERVLET = "javax.servlet.annotation.WebServlet";
 
+    private final List<String> filterAnnotations;
+
+    public RouteExtractor(List<String> filterAnnotations) {
+        this.filterAnnotations = filterAnnotations;
+    }
+
     public List<ApiRoute> extract() {
         List<ApiRoute> routes = new ArrayList<>();
         
@@ -63,6 +69,14 @@ public class RouteExtractor {
 
     private List<ApiRoute> extractServletRoutes(SootClass sc) {
         List<ApiRoute> routes = new ArrayList<>();
+        
+        // Filter Check (Servlet is class-level mostly)
+        if (filterAnnotations != null && !filterAnnotations.isEmpty()) {
+            if (!AnnotationHelper.hasAnnotationContaining(sc, filterAnnotations)) {
+                return routes; // Skip if class doesn't have the annotation
+            }
+        }
+
         AnnotationTag webServlet = AnnotationHelper.getAnnotation(sc, ANN_WEB_SERVLET);
         List<String> paths = new ArrayList<>();
         
@@ -87,6 +101,12 @@ public class RouteExtractor {
     private List<ApiRoute> extractSpringRoutes(SootClass sc) {
         List<ApiRoute> routes = new ArrayList<>();
         
+        // Check Class Level Annotations for filter
+        boolean classMatchesFilter = false;
+        if (filterAnnotations != null && !filterAnnotations.isEmpty()) {
+            classMatchesFilter = AnnotationHelper.hasAnnotationContaining(sc, filterAnnotations);
+        }
+
         // Class-level path
         List<String> classPaths = new ArrayList<>();
         AnnotationTag classMapping = AnnotationHelper.getAnnotation(sc, ANN_REQUEST_MAPPING);
@@ -98,6 +118,15 @@ public class RouteExtractor {
 
         // Method-level paths
         for (SootMethod sm : sc.getMethods()) {
+            
+            // Filter Check: If filter is active, either Class OR Method must match
+            if (filterAnnotations != null && !filterAnnotations.isEmpty()) {
+                boolean methodMatchesFilter = AnnotationHelper.hasAnnotationContaining(sm, filterAnnotations);
+                if (!classMatchesFilter && !methodMatchesFilter) {
+                    continue; // Skip this method
+                }
+            }
+
             String httpMethod = null;
             List<String> methodPaths = new ArrayList<>();
             

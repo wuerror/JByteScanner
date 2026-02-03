@@ -21,6 +21,12 @@ public class JByteScanner implements Callable<Integer> {
     @Option(names = {"-c", "--config"}, description = "Path to custom configuration file (optional)")
     private String configPath;
 
+    @Option(names = {"--filter-annotation"}, description = "Filter APIs by annotation keyword (e.g. 'Anonymous')")
+    private List<String> filterAnnotations;
+
+    @Option(names = {"-m", "--mode"}, defaultValue = "scan", description = "Execution mode: 'api' (Asset Discovery only) or 'scan' (Full Vulnerability Scan)")
+    private String mode;
+
     public static void main(String[] args) {
         int exitCode = new CommandLine(new JByteScanner()).execute(args);
         System.exit(exitCode);
@@ -63,13 +69,34 @@ public class JByteScanner implements Callable<Integer> {
         // 3. Phase 2: Asset Discovery
         String projectName = new File(targetPath).getName();
         File apiFile = new File(workspaceDir, "api.txt");
-        if (!apiFile.exists()) {
+        
+        // Force scan if filter is provided OR api.txt is missing
+        // If mode is API, we always run discovery (unless explicitly cached? No, explicit mode usually implies execution)
+        // Actually, if user runs -m api, they likely want to see the output, so we should run it.
+        // But if they run -m scan, we only run discovery if needed.
+        
+        boolean isApiMode = "api".equalsIgnoreCase(mode);
+        boolean isScanMode = "scan".equalsIgnoreCase(mode);
+        
+        if (!isApiMode && !isScanMode) {
+            System.err.println("Invalid mode: " + mode + ". Use 'api' or 'scan'.");
+            return 1;
+        }
+
+        boolean forceDiscovery = (filterAnnotations != null && !filterAnnotations.isEmpty()) || isApiMode;
+        
+        if (!apiFile.exists() || forceDiscovery) {
             com.jbytescanner.engine.DiscoveryEngine discoveryEngine = 
-                    new com.jbytescanner.engine.DiscoveryEngine(loadedJars.appJars, loadedJars.libJars, workspaceDir);
+                    new com.jbytescanner.engine.DiscoveryEngine(loadedJars.appJars, loadedJars.libJars, workspaceDir, filterAnnotations);
             discoveryEngine.run();
             System.out.println("Phase 2 Complete. API list generated for project: " + projectName);
         } else {
             System.out.println("Phase 2 Skipped. Using existing api.txt for project: " + projectName);
+        }
+        
+        if (isApiMode) {
+            System.out.println("Mode 'api' finished. Exiting.");
+            return 0;
         }
         
         System.out.println("------------------------------------------");

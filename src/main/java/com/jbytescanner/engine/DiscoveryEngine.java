@@ -19,11 +19,13 @@ public class DiscoveryEngine {
     private final List<String> appJars;
     private final List<String> libJars;
     private final File workspaceDir;
+    private final List<String> filterAnnotations;
 
-    public DiscoveryEngine(List<String> appJars, List<String> libJars, File workspaceDir) {
+    public DiscoveryEngine(List<String> appJars, List<String> libJars, File workspaceDir, List<String> filterAnnotations) {
         this.appJars = appJars;
         this.libJars = libJars;
         this.workspaceDir = workspaceDir;
+        this.filterAnnotations = filterAnnotations;
     }
 
     public void run() {
@@ -33,10 +35,11 @@ public class DiscoveryEngine {
         SootManager.initSoot(appJars, libJars, false);
         
         // 2. Extract Routes
-        RouteExtractor extractor = new RouteExtractor();
+        RouteExtractor extractor = new RouteExtractor(filterAnnotations);
         List<ApiRoute> routes = extractor.extract();
         
         logger.info("Found {} API Routes.", routes.size());
+
         
         // 3. Write Output
         writeApiTxt(routes);
