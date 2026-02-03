@@ -13,12 +13,13 @@ import soot.toolkits.scalar.FlowSet;
 import soot.toolkits.scalar.ForwardFlowAnalysis;
 
 import java.util.*;
+import java.util.BitSet;
 
 public class InterproceduralTaintAnalysis {
     private static final Logger logger = LoggerFactory.getLogger(InterproceduralTaintAnalysis.class);
     private final CallGraph cg;
     private final RuleManager ruleManager;
-    private final Set<String> visitedStates = new HashSet<>(); 
+    private final Set<AnalysisState> visitedStates = new HashSet<>(); 
     private final List<Vulnerability> vulnerabilities = new ArrayList<>();
     private Set<SootMethod> reachableMethods;
     private int prunedCount = 0;
@@ -61,12 +62,23 @@ public class InterproceduralTaintAnalysis {
             return;
         }
 
-        String stateKey = method.getSignature() + initialTaint.toString();
+        // Calculate tainted parameter indices for efficient state caching
+        BitSet taintedIndices = new BitSet();
+        if (method.hasActiveBody()) {
+            List<Local> params = method.getActiveBody().getParameterLocals();
+            for (int i = 0; i < params.size(); i++) {
+                if (initialTaint.contains(params.get(i))) {
+                    taintedIndices.set(i);
+                }
+            }
+        }
 
-        if (visitedStates.contains(stateKey)) return;
-        visitedStates.add(stateKey);
+        AnalysisState state = new AnalysisState(method, taintedIndices);
+
+        if (visitedStates.contains(state)) return;
+        visitedStates.add(state);
         
-        if (callStack.size() > 15) return; 
+        if (callStack.size() > 15) return;
         
         callStack.add(method.getSignature());
         logger.debug("Analyzing: {} | Tainted: {}", method.getSignature(), initialTaint);

@@ -88,6 +88,48 @@ public class SootManager {
         logger.info("Initializing Soot... AppJars: {}, LibJars: {}", appJars.size(), libJars.size());
         Scene.v().loadNecessaryClasses();
         logger.info("Soot loaded {} classes.", Scene.v().getClasses().size());
+        
+        // 5. Post-Load: Force Downgrade for Leakage Classes (Double Safety)
+        // Even with process_dir isolation, some shading jars (Fat Jars) might contain third-party classes 
+        // in the "Application" scope. We must forcibly downgrade them if they don't match the whitelist.
+        if (wholeProgram && scanPackages != null && !scanPackages.isEmpty()) {
+            enforceStrictIsolation(scanPackages);
+        }
+    }
+    
+    private static void enforceStrictIsolation(List<String> scanPackages) {
+        logger.info("Enforcing strict class-level isolation based on whitelist: {}", scanPackages);
+        int downgraded = 0;
+        int kept = 0;
+        
+        // Use a copy to avoid concurrent modification issues during iteration
+        for (SootClass sc : new ArrayList<>(Scene.v().getApplicationClasses())) {
+            if (sc.isPhantom()) continue;
+            
+            boolean isWhitelisted = false;
+            for (String pkg : scanPackages) {
+                if (sc.getName().startsWith(pkg)) {
+                    isWhitelisted = true;
+                    break;
+                }
+            }
+            
+            if (!isWhitelisted) {
+                // Downgrade to Library Class
+                sc.setLibraryClass();
+                
+                // CRITICAL: Release body to save memory and prevent analysis
+                for (SootMethod m : sc.getMethods()) {
+                    if (m.hasActiveBody()) {
+                        m.releaseActiveBody();
+                    }
+                }
+                downgraded++;
+            } else {
+                kept++;
+            }
+        }
+        logger.info("Class Isolation Result: {} classes kept as Application, {} classes downgraded to Library.", kept, downgraded);
     }
     
     // Overload for backward compatibility / discovery mode
