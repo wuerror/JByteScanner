@@ -17,70 +17,29 @@ public class ReachabilityAnalyzer {
         this.cg = cg;
     }
 
-    public void findPathToSink(String sinkSignature) {
-        logger.info("Searching for paths to sink: {}", sinkSignature);
+    public Set<SootMethod> computeBackwardReachability(Set<SootMethod> sinks) {
+        logger.info("Starting Backward Reachability Analysis from {} sinks...", sinks.size());
         
-        // Find sink method
-        // In real impl, we match against list of sinks from rules.yaml
-        // Here we just do a string contains check on signature for demo
+        Set<SootMethod> reachableMethods = new HashSet<>(sinks);
+        Queue<SootMethod> queue = new LinkedList<>(sinks);
         
-        // BFS from EntryPoints
-        Queue<List<Edge>> queue = new LinkedList<>();
-        Set<SootMethod> visited = new HashSet<>();
-        
-        // Find dummy main
-        Iterator<Edge> edges = cg.iterator();
-        while (edges.hasNext()) {
-            Edge e = edges.next();
-            if (e.src().getName().equals("main") && 
-                e.src().getDeclaringClass().getName().equals("com.jbytescanner.DummyMain")) {
-                List<Edge> path = new ArrayList<>();
-                path.add(e);
-                queue.add(path);
-                visited.add(e.src());
-            }
-        }
-
-        int pathsFound = 0;
-        int maxPaths = 5; // Limit output
-
-        while (!queue.isEmpty() && pathsFound < maxPaths) {
-            List<Edge> currentPath = queue.poll();
-            Edge lastEdge = currentPath.get(currentPath.size() - 1);
-            SootMethod currentMethod = lastEdge.tgt();
-
-            // Check if sink
-            if (currentMethod.getSignature().contains(sinkSignature)) {
-                logger.warn("!!! FOUND PATH TO SINK !!!");
-                printPath(currentPath);
-                pathsFound++;
-                continue;
-            }
-
-            if (currentPath.size() > 10) continue; // Depth limit
-            if (visited.contains(currentMethod)) continue;
-            visited.add(currentMethod);
-
-            Iterator<Edge> outEdges = cg.edgesOutOf(currentMethod);
-            while (outEdges.hasNext()) {
-                Edge out = outEdges.next();
-                List<Edge> newPath = new ArrayList<>(currentPath);
-                newPath.add(out);
-                queue.add(newPath);
+        while (!queue.isEmpty()) {
+            SootMethod current = queue.poll();
+            
+            Iterator<Edge> sources = cg.edgesInto(current);
+            while (sources.hasNext()) {
+                Edge edge = sources.next();
+                SootMethod caller = edge.src();
+                
+                if (caller != null && !reachableMethods.contains(caller)) {
+                    reachableMethods.add(caller);
+                    queue.add(caller);
+                }
             }
         }
         
-        if (pathsFound == 0) {
-            logger.info("No paths found to {}", sinkSignature);
-        }
+        logger.info("Backward Reachability Analysis Complete. {} methods can reach sinks.", reachableMethods.size());
+        return reachableMethods;
     }
 
-    private void printPath(List<Edge> path) {
-        StringBuilder sb = new StringBuilder();
-        sb.append("\n[Trace]\n");
-        for (Edge e : path) {
-            sb.append("  -> ").append(e.tgt().getSignature()).append("\n");
-        }
-        logger.warn(sb.toString());
-    }
 }

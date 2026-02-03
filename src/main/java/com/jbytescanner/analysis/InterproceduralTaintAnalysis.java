@@ -20,10 +20,17 @@ public class InterproceduralTaintAnalysis {
     private final RuleManager ruleManager;
     private final Set<String> visitedStates = new HashSet<>(); 
     private final List<Vulnerability> vulnerabilities = new ArrayList<>();
+    private Set<SootMethod> reachableMethods;
+    private int prunedCount = 0;
 
     public InterproceduralTaintAnalysis(CallGraph cg, RuleManager ruleManager) {
+        this(cg, ruleManager, null);
+    }
+
+    public InterproceduralTaintAnalysis(CallGraph cg, RuleManager ruleManager, Set<SootMethod> reachableMethods) {
         this.cg = cg;
         this.ruleManager = ruleManager;
+        this.reachableMethods = reachableMethods;
     }
 
     public List<Vulnerability> run(List<SootMethod> entryPoints) {
@@ -41,11 +48,21 @@ public class InterproceduralTaintAnalysis {
             analyzeMethod(ep, initialTaint, new ArrayList<>());
         }
         
+        if (reachableMethods != null) {
+            logger.info("Analysis finished. Total pruned method calls: {}", prunedCount);
+        }
         return vulnerabilities;
     }
 
     private void analyzeMethod(SootMethod method, FlowSet<Value> initialTaint, List<String> callStack) {
+        // Pruning Check
+        if (reachableMethods != null && !reachableMethods.contains(method)) {
+            prunedCount++;
+            return;
+        }
+
         String stateKey = method.getSignature() + initialTaint.toString();
+
         if (visitedStates.contains(stateKey)) return;
         visitedStates.add(stateKey);
         

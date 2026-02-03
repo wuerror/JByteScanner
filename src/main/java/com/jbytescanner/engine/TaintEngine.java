@@ -5,6 +5,7 @@ import com.jbytescanner.analysis.RuleManager;
 import com.jbytescanner.config.ConfigManager;
 import com.jbytescanner.core.SootManager;
 import com.jbytescanner.graph.CallGraphBuilder;
+import com.jbytescanner.graph.ReachabilityAnalyzer;
 import com.jbytescanner.graph.EntryPointGenerator;
 import com.jbytescanner.model.ApiRoute;
 import com.jbytescanner.model.Vulnerability;
@@ -15,12 +16,16 @@ import soot.Scene;
 import soot.SootClass;
 import soot.SootMethod;
 import soot.jimple.toolkits.callgraph.CallGraph;
+import soot.jimple.toolkits.callgraph.Edge;
 
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 
 public class TaintEngine {
     private static final Logger logger = LoggerFactory.getLogger(TaintEngine.class);
@@ -59,7 +64,25 @@ public class TaintEngine {
         // 5. Run Taint Analysis
         logger.info("Running Inter-procedural Taint Analysis...");
         RuleManager ruleManager = new RuleManager(configManager.getConfig());
-        InterproceduralTaintAnalysis taintAnalysis = new InterproceduralTaintAnalysis(cg, ruleManager);
+        
+        // 5.1 Optimization: Backward Reachability Pruning
+        logger.info("Performing Backward Reachability Analysis for pruning...");
+        Set<SootMethod> sinks = new HashSet<>();
+        Iterator<Edge> edges = cg.iterator();
+        while (edges.hasNext()) {
+            Edge e = edges.next();
+            SootMethod tgt = e.tgt();
+            if (ruleManager.isSink(tgt)) {
+                sinks.add(tgt);
+            }
+        }
+        logger.info("Identified {} unique sink methods in CallGraph.", sinks.size());
+        
+        ReachabilityAnalyzer reachabilityAnalyzer = new ReachabilityAnalyzer(cg);
+        Set<SootMethod> reachableMethods = reachabilityAnalyzer.computeBackwardReachability(sinks);
+        
+        // 5.2 Execute Analysis
+        InterproceduralTaintAnalysis taintAnalysis = new InterproceduralTaintAnalysis(cg, ruleManager, reachableMethods);
         
         // Resolve actual SootMethods for entry points
         List<SootMethod> analysisRoots = resolveMethods(routes);
@@ -73,6 +96,7 @@ public class TaintEngine {
             logger.info("No vulnerabilities found. Skipping report generation.");
         }
     }
+
 
     private List<SootMethod> resolveMethods(List<ApiRoute> routes) {
         List<SootMethod> methods = new ArrayList<>();
