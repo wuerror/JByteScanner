@@ -38,7 +38,7 @@
 
 *   **问题**: Soot 对“重打包（Shaded）”在业务 JAR 中的第三方库（如 BouncyCastle）兼容性差，导致崩溃或卡死。
 *   **方案 (Soot 配置加固)**:
-    1.  **Soot 级白名单**: 修改 `SootManager.java`，利用 `Options.v().set_include(scanPackages)` 强制 Soot **仅为业务包生成方法体**。
+    1.  **Soot 级白名单**: 修改 `SootManager.java`，利用 `Options.v().set_include(scanPackages)` 强制 Soot **仅为业务包生成方法体**非业务包的类仅保留类型签名。
     2.  **禁用慢速分析**: 明确禁用 SPARK 指针分析 (`cg.spark`, `enabled:false`)，启用快速的 CHA (`cg.cha`, `enabled:true`)。
     3.  **增加安全阈值**: 考虑为 Soot 的单个转换阶段设置超时 (`set_max_transformation_seconds`)，防止无限循环。
 
