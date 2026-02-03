@@ -10,7 +10,7 @@
 This phase focuses on fixing core performance bottlenecks, stability issues, and introducing basic precision improvements. **Priority order is based on expert recommendation.**
 
 - [x] **(High Priority) Phase 6.2: Implement Backward Reachability Pruning**: Pre-compute all methods that can possibly reach a Sink and prune analysis paths that cannot. Add statistics logging to verify pruning effectiveness.
-- [ ] **(High Priority) Phase 6.3: Implement Strict Dependency Isolation**: Harden Soot configuration with an `include` list, CHA-only call graph, and other safety options to prevent crashes on third-party libraries.
+- [x] **(High Priority) Phase 6.3: Implement Strict Dependency Isolation**: Refactored `JarLoader` to strictly separate Target Jars (via `scan_packages`) vs Library Jars. This ensures Soot only generates bodies for relevant code, preventing crashes on complex libraries like `com.itextpdf`.
 - [ ] **(High Priority) Phase 6.1: Refactor `AnalysisState`**: Replace the string-based memoization key with a performant, structured `AnalysisState` object, paying attention to hashing strategies.
 - [ ] **(Medium Priority) Phase 6.5: Basic Precision Enhancements**: Implement simple path-sensitivity (e.g., null checks) and field-sensitivity to reduce false positives.
 

@@ -12,4 +12,11 @@ public class ScanConfig {
 
     @JsonProperty("scan_packages")
     private List<String> scanPackages = new ArrayList<>();
+
+    public List<String> getScanPackages() {
+        if (scanPackages == null) {
+            scanPackages = new ArrayList<>();
+        }
+        return scanPackages;
+    }
 }

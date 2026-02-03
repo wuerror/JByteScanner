@@ -2,6 +2,8 @@ package com.jbytescanner;
 
 import com.jbytescanner.config.ConfigManager;
 import com.jbytescanner.core.JarLoader;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
@@ -14,6 +16,7 @@ import java.util.List;
 @Command(name = "JByteScanner", mixinStandardHelpOptions = true, version = "1.0",
         description = "Java Bytecode Security Scanner based on Soot")
 public class JByteScanner implements Callable<Integer> {
+    private static final Logger logger = LoggerFactory.getLogger(JByteScanner.class);
 
     @Parameters(index = "0", description = "Target directory or JAR file to scan")
     private String targetPath;
@@ -57,12 +60,41 @@ public class JByteScanner implements Callable<Integer> {
         // 2. Load JARs (Now separated into App and Lib jars, with Promotion logic)
         JarLoader jarLoader = new JarLoader();
         List<String> scanPackages = configManager.getConfig().getScanConfig().getScanPackages();
+        
+        // Load raw jars first
         JarLoader.LoadedJars loadedJars = jarLoader.loadJars(targetPath, scanPackages);
+        
+        // 2.5 Smart Package Inference (If no scan_packages defined)
+        if (scanPackages == null || scanPackages.isEmpty()) {
+            logger.info("No scan_packages defined in rules.yaml. Attempting to infer base package...");
+            
+            // Infer from ALL app jars initially identified
+            List<String> initialAppJars = new java.util.ArrayList<>(loadedJars.targetAppJars);
+            initialAppJars.addAll(loadedJars.depAppJars);
+            
+            String inferredPackage = jarLoader.inferBasePackage(initialAppJars);
+            
+            if (inferredPackage != null) {
+                logger.info("Inferred Base Package: {}", inferredPackage);
+                configManager.updateScanPackage(inferredPackage);
+                // Reload scanPackages variable
+                scanPackages = configManager.getConfig().getScanConfig().getScanPackages();
+                
+                // CRITICAL: Re-run loadJars to correctly classify Target vs Lib based on new package
+                // This ensures strict isolation works correctly
+                logger.info("Re-classifying JARs based on inferred package...");
+                loadedJars = jarLoader.loadJars(targetPath, scanPackages);
+                
+            } else {
+                logger.warn("Could not infer base package. Analysis will cover ALL application classes (slower).");
+            }
+        }
         
         System.out.println("------------------------------------------");
         System.out.println("Target: " + targetPath);
         System.out.println("Workspace: " + workspaceDir.getAbsolutePath());
-        System.out.println("App Jars: " + loadedJars.appJars.size());
+        System.out.println("Target App Jars (Analysis Scope): " + loadedJars.targetAppJars.size());
+        System.out.println("Dependency App Jars: " + loadedJars.depAppJars.size());
         System.out.println("Lib Jars: " + loadedJars.libJars.size());
         System.out.println("------------------------------------------");
 
@@ -87,7 +119,7 @@ public class JByteScanner implements Callable<Integer> {
         
         if (!apiFile.exists() || forceDiscovery) {
             com.jbytescanner.engine.DiscoveryEngine discoveryEngine = 
-                    new com.jbytescanner.engine.DiscoveryEngine(loadedJars.appJars, loadedJars.libJars, workspaceDir, filterAnnotations);
+                    new com.jbytescanner.engine.DiscoveryEngine(loadedJars.targetAppJars, loadedJars.depAppJars, loadedJars.libJars, workspaceDir, filterAnnotations);
             discoveryEngine.run();
             System.out.println("Phase 2 Complete. API list generated for project: " + projectName);
         } else {
@@ -103,7 +135,7 @@ public class JByteScanner implements Callable<Integer> {
         
         // 4. Phase 3: Taint Analysis
         com.jbytescanner.engine.TaintEngine taintEngine = 
-                new com.jbytescanner.engine.TaintEngine(loadedJars.appJars, loadedJars.libJars, workspaceDir, configManager);
+                new com.jbytescanner.engine.TaintEngine(loadedJars.targetAppJars, loadedJars.depAppJars, loadedJars.libJars, workspaceDir, configManager);
         taintEngine.run();
         
         System.out.println("Phase 3 Complete. Analysis finished.");

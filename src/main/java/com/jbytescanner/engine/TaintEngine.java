@@ -29,13 +29,15 @@ import java.util.Set;
 
 public class TaintEngine {
     private static final Logger logger = LoggerFactory.getLogger(TaintEngine.class);
-    private final List<String> appJars;
+    private final List<String> targetAppJars;
+    private final List<String> depAppJars; // Not used in process_dir but used in classpath
     private final List<String> libJars;
     private final File workspaceDir;
     private final ConfigManager configManager;
 
-    public TaintEngine(List<String> appJars, List<String> libJars, File workspaceDir, ConfigManager configManager) {
-        this.appJars = appJars;
+    public TaintEngine(List<String> targetAppJars, List<String> depAppJars, List<String> libJars, File workspaceDir, ConfigManager configManager) {
+        this.targetAppJars = targetAppJars;
+        this.depAppJars = depAppJars;
         this.libJars = libJars;
         this.workspaceDir = workspaceDir;
         this.configManager = configManager;
@@ -44,8 +46,14 @@ public class TaintEngine {
     public void run() {
         logger.info("Starting Taint Engine...");
 
-        // 1. Init Soot
-        SootManager.initSoot(appJars, libJars, true); 
+        // 1. Init Soot with Strict Isolation
+        // Only targetAppJars go into process_dir
+        // depAppJars and libJars go into classpath
+        List<String> combinedLibs = new ArrayList<>(libJars);
+        if (depAppJars != null) combinedLibs.addAll(depAppJars);
+        
+        List<String> scanPackages = configManager.getConfig().getScanConfig().getScanPackages();
+        SootManager.initSoot(targetAppJars, combinedLibs, true, scanPackages); 
 
         // 2. Load Entry Points
         List<ApiRoute> routes = loadEntryPoints();
@@ -72,7 +80,7 @@ public class TaintEngine {
         while (edges.hasNext()) {
             Edge e = edges.next();
             SootMethod tgt = e.tgt();
-            if (ruleManager.isSink(tgt)) {
+            if (tgt != null && ruleManager.isSink(tgt)) {
                 sinks.add(tgt);
             }
         }

@@ -23,8 +23,8 @@ public class CallGraphBuilder {
         Options.v().setPhaseOption("cg.spark", "enabled:false");
         Options.v().setPhaseOption("cg.cha", "enabled:true");
         
-        // Exclude library packages from analysis to speed up WPO
-        configureExclusions();
+        // Exclusions are now handled globally in SootManager.initSoot
+        // configureExclusions(); 
 
         logger.info("Running Soot Packs (wjtp)... This may take a while.");
         PackManager.v().runPacks();

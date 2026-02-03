@@ -18,6 +18,8 @@ public class ConfigManager {
 
     private Config config;
 
+    private File configFile; // Keep track of the file location
+
     /**
      * Init config from a specific workspace directory (e.g., target/.jbytescanner/)
      */
@@ -26,7 +28,7 @@ public class ConfigManager {
             workspaceDir.mkdirs();
         }
 
-        File configFile = new File(workspaceDir, CONFIG_FILENAME);
+        this.configFile = new File(workspaceDir, CONFIG_FILENAME);
         
         // Strategy: 
         // 1. Look in workspace/.jbytescanner/rules.yaml (Project specific)
@@ -40,6 +42,35 @@ public class ConfigManager {
         }
         
         loadConfig(configFile);
+    }
+
+    public void updateScanPackage(String packageName) {
+        if (config == null || packageName == null) return;
+        
+        // Update in-memory
+        if (config.getScanConfig() == null) {
+            config.setScanConfig(new ScanConfig());
+        }
+        
+        // If list is empty or doesn't contain the package
+        if (config.getScanConfig().getScanPackages().isEmpty()) {
+            config.getScanConfig().getScanPackages().add(packageName);
+            logger.info("Auto-configured scan_package: {}", packageName);
+            
+            // Persist to file
+            saveConfig();
+        }
+    }
+
+    private void saveConfig() {
+        if (configFile == null) return;
+        ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
+        try {
+            mapper.writeValue(configFile, config);
+            logger.info("Updated configuration saved to: {}", configFile.getAbsolutePath());
+        } catch (IOException e) {
+            logger.error("Failed to save updated configuration", e);
+        }
     }
 
     private void extractDefaultConfig(File destination) {

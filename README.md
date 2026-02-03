@@ -11,6 +11,7 @@
 *   **微服务支持**: 自动识别并解压 Spring Boot Fat JAR (`BOOT-INF/classes`)，无需人工干预。
 *   **资产发现**: 快速提取所有 API 路由（Spring MVC, Servlet, JAX-RS）生成字典，辅助黑盒测试。
 *   **高度可配**: 通过 `rules.yaml` 灵活定义 Source/Sink，支持注解和方法签名。
+*   **稳定可靠**: 采用“严格依赖隔离”架构，自动区分业务代码与第三方库，避免分析引擎因复杂库结构而崩溃。
 *   **标准输出**: 结果支持导出为 `api.txt` 字典和标准 SARIF 格式（开发中）。
 
 ## 🛠️ 快速开始
@@ -87,7 +88,7 @@ POST /api/login com.example.AuthController void login(java.lang.String,java.lang
 config:
   max_depth: 10
   scan_packages: 
-    - "com.example"  # 仅扫描特定包以优化速度
+    - "com.example"  # [关键] 仅扫描特定包。未匹配的 JAR 将被视为纯库文件(不生成Body)，极大提高稳定性和速度。
 
 sources:
   - type: "annotation"

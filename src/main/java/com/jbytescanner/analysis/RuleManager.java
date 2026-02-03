@@ -39,16 +39,19 @@ public class RuleManager {
     }
 
     public boolean isSink(SootMethod method) {
+        if (method == null) return false;
         // Exact signature match
         // Future improvement: fuzzy match or regex
         return sinkSignatureMap.containsKey(method.getSignature());
     }
     
     public SinkRule getSinkRule(SootMethod method) {
+        if (method == null) return null;
         return sinkSignatureMap.get(method.getSignature());
     }
 
     public boolean isSource(SootMethod method) {
+        if (method == null) return false;
         return sourceSignatureMap.containsKey(method.getSignature());
     }
 
