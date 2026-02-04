@@ -45,6 +45,9 @@ This plan focuses on evolving JByteScanner into a specialized tool for **Red Tea
     *   **10.2 Interactive Audit Shell**: 
         *   JLine-based REPL.
         *   Commands: `search`, `path`, `inspect`, `add-sink`, `export-cg`.
+    *   **10.3 Enhanced Reporting (Source Mapping)**:
+        *   **Multi-Module Support**: Prefix SARIF `uri` with JAR name (e.g., `user-service/com/example/User.java`) to support microservices source code linking in VSCode.
+        *   **Decompile Helper**: Generate scripts to decompile JARs into the expected directory structure.
 
 ---
 

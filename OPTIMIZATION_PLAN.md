@@ -90,3 +90,14 @@ This document outlines the technical implementation strategies for the Red Team-
     *   `inspect`: Dump Jimple.
     *   `add-sink`: Runtime rule modification.
     *   `export`: Export CallGraph to `.dot` or Burp format.
+
+### 10.3 Enhanced Reporting (Source Code Mapping)
+*   **Problem**: Microservices (multiple JARs) cause SARIF path collisions.
+*   **Solution**: JAR-Aware URI Prefixing.
+    *   SARIF `uri` format: `{jarNameWithoutVersion}/{packagePath}/{ClassName}.java`.
+    *   Example: `user-service/com/example/UserController.java`.
+*   **Workflow**:
+    1.  User decompiles JARs into folders matching the JAR name (e.g., `decompile/user-service/`).
+    2.  JByteScanner generates SARIF with matching prefixes.
+    3.  VSCode SARIF Viewer automatically resolves the correct file.
+*   **Helper**: JByteScanner can output a `decompile.sh` script to automate the folder creation and CFR execution.
