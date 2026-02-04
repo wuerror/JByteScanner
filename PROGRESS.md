@@ -25,9 +25,11 @@ This phase focuses on fixing core performance bottlenecks, stability issues, and
 
 This phase evolves the engine to use more sophisticated analysis techniques for better performance.
 
-- [ ] **Phase 7.1: Method Summary Generation**
-  - [ ] Create a reusable `SummarizingIntraproceduralAnalysis` class to **generate** a `MethodSummary` for any given method.
-  - [ ] Integrate this summary generation logic into the main analysis loop to populate the cache.
+- [x] **Phase 7.1: Method Summary Generation**
+  - [x] Create `MethodSummary` model to capture return flows and sink reachability.
+  - [x] Refactor `IntraTaintAnalysis` into a standalone reusable component.
+  - [x] Create `SummaryGenerator` to compute summaries for a given method (Intra-procedural).
+  - [x] Integrate this summary generation logic into the main analysis loop to populate the cache.
 - [ ] **Phase 7.2: Worklist Engine & Summary Application**
   - [ ] (Major Task) Refactor the core recursive engine to a more powerful worklist-based, fixed-point iteration algorithm.
   - [ ] Implement the logic to effectively **apply** the cached method summaries within the new worklist engine.

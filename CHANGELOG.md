@@ -5,6 +5,10 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Added
+- **Method Summary Integration (Phase 7.1)**:
+    - Integrated `SummaryGenerator` into `InterproceduralTaintAnalysis` loop.
+    - Implemented caching of method summaries (`MethodSummary`) during analysis to support future worklist-based engine.
+    - Summaries now capture intra-procedural taint flow (params to return/sinks) for each visited method.
 - **Refactor AnalysisState (Phase 6.1)**:
     - Replaced inefficient String-based memoization key in `InterproceduralTaintAnalysis` with a structured `AnalysisState` object.
     - Utilized `BitSet` for efficient storage of tainted parameter indices, reducing memory footprint during deep recursion.
