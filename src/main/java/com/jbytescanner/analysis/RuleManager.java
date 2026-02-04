@@ -50,6 +50,11 @@ public class RuleManager {
         return sinkSignatureMap.get(method.getSignature());
     }
 
+    public SinkRule getSinkRule(String signature) {
+        if (signature == null) return null;
+        return sinkSignatureMap.get(signature);
+    }
+
     public boolean isSource(SootMethod method) {
         if (method == null) return false;
         return sourceSignatureMap.containsKey(method.getSignature());

@@ -30,9 +30,10 @@ This phase evolves the engine to use more sophisticated analysis techniques for 
   - [x] Refactor `IntraTaintAnalysis` into a standalone reusable component.
   - [x] Create `SummaryGenerator` to compute summaries for a given method (Intra-procedural).
   - [x] Integrate this summary generation logic into the main analysis loop to populate the cache.
-- [ ] **Phase 7.2: Worklist Engine & Summary Application**
-  - [ ] (Major Task) Refactor the core recursive engine to a more powerful worklist-based, fixed-point iteration algorithm.
-  - [ ] Implement the logic to effectively **apply** the cached method summaries within the new worklist engine.
+- [x] **Phase 7.2: Worklist Engine & Summary Application**
+  - [x] (Major Task) Refactor the core recursive engine to a more powerful worklist-based algorithm (`WorklistEngine`).
+  - [x] Implement "Leaf Summary Optimization": Identify leaf methods in the Call Graph and apply their summaries directly, skipping redundant analysis.
+  - [x] Switch main `TaintEngine` to use `WorklistEngine`.
 
 ---
 

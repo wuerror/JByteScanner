@@ -89,12 +89,22 @@ public class TaintEngine {
         ReachabilityAnalyzer reachabilityAnalyzer = new ReachabilityAnalyzer(cg);
         Set<SootMethod> reachableMethods = reachabilityAnalyzer.computeBackwardReachability(sinks);
         
-        // 5.2 Execute Analysis
-        InterproceduralTaintAnalysis taintAnalysis = new InterproceduralTaintAnalysis(cg, ruleManager, reachableMethods);
+        // 5.2 Execute Analysis (Phase 7.2: Switched to WorklistEngine)
+        logger.info("Initializing WorklistEngine...");
+        com.jbytescanner.analysis.WorklistEngine worklistEngine = new com.jbytescanner.analysis.WorklistEngine(cg, ruleManager, reachableMethods);
         
         // Resolve actual SootMethods for entry points
         List<SootMethod> analysisRoots = resolveMethods(routes);
-        List<Vulnerability> vulnerabilities = taintAnalysis.run(analysisRoots);
+        
+        // Run Analysis
+        List<Vulnerability> vulnerabilities = worklistEngine.run(analysisRoots);
+        
+        // Legacy Engine (Commented out for now, can be enabled for verification)
+        /*
+        InterproceduralTaintAnalysis legacyEngine = new InterproceduralTaintAnalysis(cg, ruleManager, reachableMethods);
+        List<Vulnerability> legacyVulns = legacyEngine.run(analysisRoots);
+        logger.info("Verification: Worklist found {}, Legacy found {}", vulnerabilities.size(), legacyVulns.size());
+        */
         
         // 6. Generate Report
         if (!vulnerabilities.isEmpty()) {

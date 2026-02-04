@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Added
+- **Worklist Analysis Engine (Phase 7.2)**:
+    - Introduced `WorklistEngine` to replace the recursive `InterproceduralTaintAnalysis`.
+    - Solves potential StackOverflowError on deep call chains.
+    - Implemented "Leaf Summary Optimization": Automatically identifies leaf methods in the Call Graph and applies cached summaries instead of scheduling them for analysis.
+    - Switched `TaintEngine` to use `WorklistEngine` by default.
 - **Method Summary Integration (Phase 7.1)**:
     - Integrated `SummaryGenerator` into `InterproceduralTaintAnalysis` loop.
     - Implemented caching of method summaries (`MethodSummary`) during analysis to support future worklist-based engine.
