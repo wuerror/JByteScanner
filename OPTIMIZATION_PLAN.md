@@ -1,80 +1,92 @@
-# JByteScanner 深度优化与演进计划 (v2 - 融合专家建议)
+# JByteScanner Technical Optimization & Evolution Plan (Expert Edition)
 
-本核心文档旨在规划 JByteScanner 的下一阶段优化路径。基于对当前架构的深入分析和资深专家的技术评审，我们识别了关键瓶颈，并制定了更成熟、风险可控的演进方案。
-
-目标：**在保证检测准确率的前提下，将分析速度提升一个数量级，解决大型项目中的稳定性和性能问题，并逐步演进为企业级的静态分析引擎。**
-
----
-
-## Phase 6: 性能、稳定性与精度 (Performance, Stability & Precision)
-
-此阶段的目标是解决当前引擎的核心痛点，并引入基础的精度优化。
-
-### Phase 6.1: 基础架构优化：结构化状态管理 (`AnalysisState`)
-
-*   **问题**: `visitedStates` 缓存使用字符串 Key，导致海量字符串创建、高昂的哈希计算开销和频繁的 GC。
-*   **方案**:
-    1.  创建 `AnalysisState.java` 类，封装 `SootMethod` 和 `FlowSet<Value>`。
-    2.  重写其 `hashCode()` 和 `equals()` 方法。
-    3.  将 `InterproceduralTaintAnalysis` 中的 `Set<String> visitedStates` 替换为 `Set<AnalysisState> visitedStates`。
-*   **专家实现建议**:
-    *   **`hashCode()` 优化**: `FlowSet` 可能很大，完整的哈希计算会成为瓶颈。实现时应采用**采样哈希**，例如：
-        ```java
-        // Objects.hash(method, taintSet.size(), taintSet.iterator().hasNext() ? taintSet.iterator().next() : null);
-        ```
-    *   **`equals()` 优化**: 确认 `FlowSet` 的 `equals` 方法是否高效。如果不是，需要考虑自定义的快速内容比较或使用引用比较（如果适用）。
-
-### Phase 6.2: 核心优化：智能剪枝 (Smart Pruning)
-
-*   **问题**: 盲目的前向搜索会分析大量无法到达任何 Sink 的代码路径。
-*   **方案**:
-    1.  在 `ReachabilityAnalyzer.java` 中实现**反向可达性分析 (`Backward Reachability Analysis`)**。
-    2.  从所有 Sink 方法出发，在 Call Graph 上执行 **BFS (广度优先)** 遍历，标记所有“可能通向 Sink”的方法。
-    3.  在 `InterproceduralTaintAnalysis` 的递归入口处增加剪枝判断。
-    4.  **增加监控**: 输出剪枝统计数据（例如：`Reachable methods: 5000 / 50000 (10%)`），以验证优化效果和分析范围。
-*   **收益**: 预期提速 10 倍以上。
-
-### Phase 6.3: 稳定性修复：强依赖隔离 (Strict Dependency Isolation)
-
-*   **问题**: Soot 对“重打包（Shaded）”在业务 JAR 中的第三方库（如 BouncyCastle）兼容性差，导致崩溃或卡死。
-*   **方案 (Soot 配置加固)**:
-    1.  **Soot 级白名单**: 修改 `SootManager.java`，利用 `Options.v().set_include(scanPackages)` 强制 Soot **仅为业务包生成方法体**非业务包的类仅保留类型签名。
-    2.  **禁用慢速分析**: 明确禁用 SPARK 指针分析 (`cg.spark`, `enabled:false`)，启用快速的 CHA (`cg.cha`, `enabled:true`)。
-    3.  **增加安全阈值**: 考虑为 Soot 的单个转换阶段设置超时 (`set_max_transformation_seconds`)，防止无限循环。
-
-### Phase 6.5: 精度优化 (Precision Enhancements)
-
-*   **问题**: 当前的分析是路径不敏感和字段不敏感的，可能产生误报。
-*   **方案 (初步)**:
-    1.  **路径敏感性**: 引入简单的分支条件分析，例如识别 `if (x == null)` 或 `if (user.isAdmin())` 等安全检查，在特定分支中终止污点传播。
-    2.  **字段敏感性**: 扩展污点追踪能力，以支持对象字段的污点传递（例如 `user.name = taintedInput;`)。
+## Overview
+This document outlines the technical implementation strategies for the Red Team-focused evolution of JByteScanner, incorporating expert review feedback.
 
 ---
 
-## Phase 7: 高级分析引擎演进 (Advanced Analysis Evolution)
+## Phase 8: Tactical Intelligence Implementation
 
-### Phase 7.1: 可生成摘要的过程内分析器 (Summarizing Intra-procedural Analyzer)
+### 8.1 Secret Scanner (Tri-Layer Architecture)
+*   **Layer 1: Static String Analysis**
+    *   Iterate `Scene.v().getApplicationClasses()` -> Fields & Method Bodies (`ldc`).
+    *   **Entropy Check**: Calculate Shannon Entropy for strings > 20 chars. High entropy (>4.5) suggests keys/tokens.
+    *   **Pattern Match**: Regex for specific providers (AWS `AKIA...`, Private Key Headers).
+*   **Layer 2: Config File Analysis**
+    *   Class: `ConfigScanner`.
+    *   Logic: Unzip JAR, scan `application.properties`, `application.yml`, `bootstrap.yml`.
+    *   Keyword Search: `password`, `secret`, `key` (case-insensitive keys) + High Entropy Values.
+*   **Layer 3: Encoded Secret Detection**
+    *   Control Flow Analysis: Detect `Base64.getDecoder().decode(StringConstant)`.
+    *   Decode statically and re-run entropy/pattern checks on the decoded value.
 
-*   **问题**: 高频工具方法被重复分析。
-*   **方案**:
-    1.  创建 `MethodSummary.java` 数据模型和 `SummaryManager.java` 缓存。
-    2.  创建独立的 `SummarizingIntraproceduralAnalysis.java` 类，其唯一职责是为单个方法**生成**污点传播摘要。
-    3.  在 `InterproceduralTaintAnalysis` 中集成**摘要生成**逻辑，此阶段**不应用**摘要，仅用于验证和填充缓存。
+### 8.2 Vulnerability Scorer (5-Dimensional)
+*   **Class**: `com.jbytescanner.analysis.VulnerabilityScorer`
+*   **Algorithm**: `Score = min(Base + Reachability + Flow + Auth + CVE, 100)`
+    1.  **Sink Severity**: RCE(10), SQLi(8), SSRF(6).
+    2.  **Reachability**: Public API (+30), Protected API (+10), Internal (0).
+    3.  **Flow Complexity**: 
+        *   Direct flow (hops <= 3) -> High Exploitability (+20).
+        *   Deep flow (hops > 10) -> Low Exploitability (+0).
+    4.  **Auth Barrier**: No Auth (+20), Weak Auth (+10), Strong Auth (0).
+    5.  **CVE Bonus**: Matches known CVE pattern (+10).
 
-### Phase 7.2: 基于工作列表的分析引擎重构 (Worklist-based Engine Refactoring)
-
-*   **问题**: 递归分析架构难以应用方法摘要，且有栈溢出风险。
-*   **方案 (分步实施)**:
-    1.  **并行模块**: 创建一个全新的 `WorklistEngine.java` 作为独立模块，实现不动点迭代算法。
-    2.  **双引擎验证**: 在开发阶段，支持双引擎并行运行，通过对比分析结果来验证新引擎的正确性。
-    3.  **逐步切换**: 在新引擎的精度和性能达标后，正式切换为默认分析引擎。
-*   **技术挑战预警**:
-    *   **上下文敏感性**: 需考虑引入 k-CFA 或对象敏感性来控制误报率。
-    *   **收敛速度**: 需为不动点迭代设置最大次数阈值，防止病态代码导致分析卡死。
+### 8.3 Smart PoC Generator (Burp-Ready)
+*   **Class**: `com.jbytescanner.report.PoCGenerator`
+*   **Output**: Raw HTTP Request String (for Burp Repeater).
+*   **Logic**:
+    *   **Method/Path**: From `ApiRoute`.
+    *   **Headers**: 
+        *   Add `Host: target.com` placeholder.
+        *   Add `Content-Type`: `application/json` or `application/x-www-form-urlencoded` based on annotation analysis.
+    *   **Body Construction**:
+        *   If `@RequestBody`: Generate JSON skeleton.
+        *   If `@RequestParam`: Generate URL params or Form body.
+        *   **Payload Injection**: Inject placeholder `{{PAYLOAD}}` into the tainted parameter.
+*   **Example Output**:
+    ```http
+    POST /api/upload HTTP/1.1
+    Host: target.com
+    Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
+    
+    ------WebKitFormBoundary7MA4YWxkTrZu0gW
+    Content-Disposition: form-data; name="file"; filename="payload.jsp"
+    Content-Type: application/octet-stream
+    
+    {{SHELL_CODE}}
+    ------WebKitFormBoundary7MA4YWxkTrZu0gW--
+    ```
 
 ---
 
-## Phase 8: CI/CD 与企业级功能 (CI/CD & Enterprise Features)
+## Phase 9: Deep Exploitation Chains
 
-*   **增量分析**: 支持在 CI/CD 环境中只分析变更的代码及其影响范围，大幅缩短二次扫描时间。
-*   **并行化分析**: 利用多核 CPU 并行处理不同的分析任务（例如，从不同入口点开始的分析），提升整体吞吐量。
+### 9.1 Auth Bypass (Advanced)
+*   **AntPathMatcher Simulation**: Reimplement Spring's path matching logic to correctly handle overlapping rules (`/api/**` vs `/api/public/**`).
+*   **Hardcoded Credential Hunt**: Detect `if (var.equals("literal"))` patterns in Auth-related methods.
+
+### 9.2 Deserialization Gadget Mining
+*   **Strategy**: Two-Stage Analysis.
+*   **Stage 1 (Feature Scan)**: Scan all classes for `Serializable` + `readObject`/`readResolve` + Dangerous calls inside them (Heuristic).
+*   **Stage 2 (Deep Scan)**: Build *Local* CallGraph for candidate classes only.
+*   **Knowledge Base**: Load `gadgets.yaml` for known library fingerprints (Commons-Collections, etc.).
+
+---
+
+## Phase 10: Interactive & SCA
+
+### 10.1 Offensive SCA
+*   **Multi-Fingerprint**:
+    *   SHA-1 Hash.
+    *   Maven `pom.properties` (GroupId/ArtifactId).
+    *   **Class Signature**: Check for existence of specific classes/methods to identify shaded jars.
+*   **Data Source**: Embedded `nvd_lite.json` or `known_vuln_libs.json`.
+
+### 10.2 Interactive Audit Shell
+*   **Technology**: JLine3.
+*   **Features**:
+    *   `search`: Regex search for methods.
+    *   `path`: Shortest path query.
+    *   `inspect`: Dump Jimple.
+    *   `add-sink`: Runtime rule modification.
+    *   `export`: Export CallGraph to `.dot` or Burp format.
