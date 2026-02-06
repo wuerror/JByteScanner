@@ -16,20 +16,28 @@ graph TD
     User[User/Auditor] --> Launcher["Launcher (CLI)"]
     Launcher --> ConfigMgr[Config Manager]
     Launcher --> DiscoveryEngine["A. Asset Discovery Engine (Lightweight)"]
-    Launcher --> TaintEngine["B. Taint Analysis Engine (Heavyweight)"]
+    Launcher --> SecretScanner["B. Secret Scanner (Tactical)"]
+    Launcher --> TaintEngine["C. Taint Analysis Engine (Heavyweight)"]
     
     ConfigMgr --> |Load/Gen| Rules["Rules (yaml)"]
     
     DiscoveryEngine --> |"Soot (Structure)"| JARs[Target JARs]
     DiscoveryEngine --> |Extract| APIDict["api.txt (Route Dict)"]
     DiscoveryEngine --> |Extract| ComponentDict["components.txt (SCA)"]
+
+    SecretScanner --> |"ASM/Regex"| JARs
+    SecretScanner --> |"Scan Configs"| JARs
+    SecretScanner --> |Export| Secrets["secrets.txt"]
     
     TaintEngine --> |Input| APIDict
     TaintEngine --> |Input| ComponentDict
     TaintEngine --> |"Soot (SPARK/Jimple)"| JARs
     TaintEngine --> |Analyze| Vulnerabilities[Vulnerabilities]
     
-    Vulnerabilities --> ReportGen[Report Generator]
+    Vulnerabilities --> Scorer[Vulnerability Scorer]
+    Scorer --> |"R-S-A-C Model"| ScoredVulns[Scored Vulnerabilities]
+
+    ScoredVulns --> ReportGen[Report Generator]
     ReportGen --> |Export| SARIF["result.sarif"]
 ```
 
@@ -55,11 +63,31 @@ graph TD
 4.  **Taint Engine (Heavyweight)**
     *   **Technology**: Builds Pointer Analysis and Call Graph using Soot's `SPARK` or `CHA`.
     *   **Strategy**: Uses **"Demand-Driven Analysis"**. Instead of analyzing the entire universe, it uses entry points from `api.txt` to build relevant call subgraphs, significantly reducing memory usage.
-    *   **Optimization**: Will utilize `components.txt` to skip analysis for safe library versions (e.g., skip Fastjson rules if version >= 1.2.83).
+    *   **Engine Update**: Now uses a **Worklist-based Engine** (Phase 7) to replace recursive analysis, preventing StackOverflow on deep chains.
+    *   **Optimization**: 
+        *   **Leaf Summaries**: Caches summaries for leaf methods to avoid redundant analysis.
+        *   Utilizes `components.txt` to skip analysis for safe library versions.
 
 5.  **Report Generator**
     *   **Goal**: Address Pain Point 5.
     *   **Format**: Supports SARIF (Standard Static Analysis Results Interchange Format) v2.1.0, enabling direct integration with VSCode, GitHub Security, etc.
+    *   **Enhancement**: Includes risk levels (CRITICAL, HIGH, etc.) and numerical scores derived from the Vulnerability Scorer.
+
+6.  **Secret Scanner (Tactical)**
+    *   **Goal**: Provide immediate value by identifying hardcoded credentials (Phase 8.1).
+    *   **Technology**: Uses ASM for bytecode string extraction and Regex/Entropy analysis. Does not require heavy Soot analysis.
+    *   **Capabilities**:
+        *   **Config Scan**: Parses `application.properties/yml` inside JARs.
+        *   **String Scan**: Detects keys (AWS, JDBC) in constant pools.
+        *   **Entropy**: Identifies high-entropy strings (potential secrets).
+        *   **Base64**: Decodes and recursively scans Base64 strings.
+        *   **Context-Aware**: Detects hash usage (e.g., `token.equals("md5")`).
+
+7.  **Vulnerability Scorer**
+    *   **Goal**: Prioritize findings for security auditors (Phase 8.2).
+    *   **Model**: **R-S-A-C** (Reachability * Severity * Auth * Confidence).
+    *   **Auth Detection**: Heuristically identifies `@PreAuthorize`, `@Secured`, etc., to determine if a vulnerability is behind an authentication barrier.
+
 
 ## 3. Technology Stack & Principles
 
