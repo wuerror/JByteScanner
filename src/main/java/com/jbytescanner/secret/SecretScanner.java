@@ -1,6 +1,8 @@
 package com.jbytescanner.secret;
 
 import com.jbytescanner.core.JarLoader;
+import com.jbytescanner.secret.asm.AsmStringCollector;
+import org.objectweb.asm.ClassReader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import soot.*;
@@ -8,15 +10,16 @@ import soot.jimple.StringConstant;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Base64;
-import java.util.List;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
 
 public class SecretScanner {
     private static final Logger logger = LoggerFactory.getLogger(SecretScanner.class);
@@ -34,7 +37,7 @@ public class SecretScanner {
     public List<SecretFinding> scan(List<String> targetAppJars) {
         List<SecretFinding> findings = new ArrayList<>();
         
-        logger.info("Starting Secret Scanner...");
+        logger.info("Starting Secret Scanner (Hybrid Mode: ASM + Soot)...");
 
         // 1. Scan Configuration Files
         for (String path : targetAppJars) {
@@ -44,8 +47,8 @@ public class SecretScanner {
             }
         }
 
-        // 2. Scan Constant Pool (Code)
-        findings.addAll(scanConstantPool());
+        // 2. Scan Constant Pool using ASM (Fast Scan)
+        findings.addAll(scanWithAsm(targetAppJars));
 
         logger.info("Secret Scanner found {} potential secrets.", findings.size());
         return findings;
@@ -108,106 +111,167 @@ public class SecretScanner {
         return findings;
     }
 
-    private List<SecretFinding> scanConstantPool() {
+    private List<SecretFinding> scanWithAsm(List<String> targetAppJars) {
         List<SecretFinding> findings = new ArrayList<>();
+        AsmStringCollector collector = new AsmStringCollector();
         
-        // Use a snapshot of classes to avoid ConcurrentModificationException if Soot modifies the chain
-        List<SootClass> snapshot = new ArrayList<>(Scene.v().getApplicationClasses());
-
-        for (SootClass sc : snapshot) {
-            if (sc.isPhantom()) continue;
-
-            // Use a snapshot of methods as well, just in case
-            List<SootMethod> methodSnapshot = new ArrayList<>(sc.getMethods());
+        logger.info("Scanning .class files with ASM...");
+        
+        for (String jarPath : targetAppJars) {
+            File jarFile = new File(jarPath);
+            if (jarFile.isDirectory()) {
+                scanDirWithAsm(jarFile, collector);
+            } else if (jarFile.isFile() && jarPath.endsWith(".jar")) {
+                scanJarWithAsm(jarFile, collector);
+            }
+        }
+        
+        Map<String, List<String>> collected = collector.getCollectedStrings();
+        logger.info("ASM extracted strings from {} methods. Processing...", collected.size());
+        
+        Set<String> methodsRequiringContext = new HashSet<>();
+        
+        // Analyze extracted strings
+        for (Map.Entry<String, List<String>> entry : collected.entrySet()) {
+            String methodSig = entry.getKey();
+            List<String> strings = entry.getValue();
             
-            for (SootMethod sm : methodSnapshot) {
-                if (!sm.hasActiveBody()) {
-                    try {
-                        sm.retrieveActiveBody();
-                    } catch (Exception e) {
-                        continue;
-                    }
+            for (String value : strings) {
+                // If it's a simple secret, report immediately
+                // If it's a Hash, mark method for Soot Analysis
+                
+                // AWS
+                if (AWS_ACCESS_KEY.matcher(value).find()) {
+                    findings.add(new SecretFinding("AWS Access Key", methodSig, value, "ASM Fast Scan", "HIGH"));
+                    continue;
                 }
+                
+                // JDBC
+                if (JDBC_PATTERN.matcher(value).matches() && value.contains("password=")) {
+                     findings.add(new SecretFinding("JDBC Connection String", methodSig, value, "Hardcoded JDBC", "MEDIUM"));
+                     continue;
+                }
+                
+                // Hash Check
+                if (HEX_HASH_PATTERN.matcher(value).matches()) {
+                    methodsRequiringContext.add(methodSig); // Delegate to Soot
+                    continue;
+                }
+                
+                // High Entropy & Base64
+                if (value.length() > 16) {
+                    if (value.startsWith("HTTP/") || value.contains(" ")) {
+                        if (!value.toLowerCase().startsWith("bearer ")) continue; 
+                    }
 
-                // Check units safely
-                try {
-                    for (Unit u : sm.getActiveBody().getUnits()) {
-                        for (ValueBox vb : u.getUseBoxes()) {
-                            if (vb.getValue() instanceof StringConstant) {
-                                String value = ((StringConstant) vb.getValue()).value;
-                                checkStringSecret(value, sc.getName() + "." + sm.getName(), findings, u);
-                            }
+                    double entropy = calculateEntropy(value);
+                    if (entropy > 4.6) {
+                        if (isBase64(value)) {
+                             try {
+                                 String decoded = new String(Base64.getDecoder().decode(value), StandardCharsets.UTF_8);
+                                 if (GENERIC_SECRET.matcher("val=" + decoded).find()) {
+                                      findings.add(new SecretFinding("Encoded Secret (Base64)", methodSig, value + " -> " + decoded, "Base64 High Entropy", "HIGH"));
+                                 } else {
+                                      findings.add(new SecretFinding("High Entropy String", methodSig, value, "Entropy: " + String.format("%.2f", entropy), "LOW"));
+                                 }
+                             } catch (IllegalArgumentException e) {
+                                 findings.add(new SecretFinding("High Entropy String", methodSig, value, "Entropy: " + String.format("%.2f", entropy), "LOW"));
+                             }
+                        } else {
+                             findings.add(new SecretFinding("High Entropy String", methodSig, value, "Entropy: " + String.format("%.2f", entropy), "LOW"));
                         }
                     }
-                } catch (Exception e) {
-                    // Ignore errors during unit iteration (e.g. body modification)
+                }
+            }
+        }
+        
+        // Phase 2: Context Analysis with Soot (Only for identified methods)
+        if (!methodsRequiringContext.isEmpty()) {
+            logger.info("Performing deep context analysis on {} suspicious methods...", methodsRequiringContext.size());
+            findings.addAll(analyzeContextWithSoot(methodsRequiringContext));
+        }
+        
+        return findings;
+    }
+    
+    private void scanDirWithAsm(File dir, AsmStringCollector collector) {
+        try (Stream<Path> walk = Files.walk(dir.toPath())) {
+            walk.filter(p -> p.toString().endsWith(".class"))
+                .forEach(p -> {
+                    try (InputStream is = Files.newInputStream(p)) {
+                        new ClassReader(is).accept(collector, 0);
+                    } catch (Exception e) {
+                        // ignore broken class
+                    }
+                });
+        } catch (IOException e) {
+            logger.error("Error walking directory for ASM: {}", dir, e);
+        }
+    }
+    
+    private void scanJarWithAsm(File jarFile, AsmStringCollector collector) {
+        try (ZipFile zip = new ZipFile(jarFile)) {
+            Enumeration<? extends ZipEntry> entries = zip.entries();
+            while (entries.hasMoreElements()) {
+                ZipEntry entry = entries.nextElement();
+                if (entry.getName().endsWith(".class")) {
+                    try (InputStream is = zip.getInputStream(entry)) {
+                        new ClassReader(is).accept(collector, 0);
+                    } catch (Exception e) {
+                        // ignore
+                    }
+                }
+            }
+        } catch (IOException e) {
+            logger.error("Error reading jar for ASM: {}", jarFile, e);
+        }
+    }
+
+    private List<SecretFinding> analyzeContextWithSoot(Set<String> methodSigs) {
+        List<SecretFinding> findings = new ArrayList<>();
+        
+        for (String methodId : methodSigs) {
+            // methodId is "com.example.Class#methodName"
+            String className = methodId.split("#")[0];
+            String methodName = methodId.split("#")[1];
+            
+            if (!Scene.v().containsClass(className)) continue;
+            
+            SootClass sc = Scene.v().getSootClass(className);
+            if (sc.isPhantom()) continue;
+            
+            // Iterate over all methods with that name (handling overloads)
+            for (SootMethod sm : sc.getMethods()) {
+                if (sm.getName().equals(methodName)) {
+                    if (!sm.hasActiveBody()) {
+                        try {
+                            sm.retrieveActiveBody();
+                        } catch (Exception e) {
+                            continue;
+                        }
+                    }
+                    
+                    try {
+                        for (Unit u : sm.getActiveBody().getUnits()) {
+                            for (ValueBox vb : u.getUseBoxes()) {
+                                if (vb.getValue() instanceof StringConstant) {
+                                    String value = ((StringConstant) vb.getValue()).value;
+                                    // Check Hash again in context
+                                    if (HEX_HASH_PATTERN.matcher(value).matches()) {
+                                        checkHashUsage(value, sc.getName() + "." + sm.getName(), findings, u);
+                                    }
+                                }
+                            }
+                        }
+                    } catch (Exception e) {
+                        // ignore
+                    }
                 }
             }
         }
         return findings;
     }
 
-    private void checkStringSecret(String value, String location, List<SecretFinding> findings, Unit contextUnit) {
-        if (value == null || value.length() < 8) return;
-
-        // AWS
-        if (AWS_ACCESS_KEY.matcher(value).find()) {
-            findings.add(new SecretFinding("AWS Access Key", location, value, "Hardcoded String", "HIGH"));
-            return;
-        }
-
-        // JDBC
-        if (JDBC_PATTERN.matcher(value).matches() && value.contains("password=")) {
-             findings.add(new SecretFinding("JDBC Connection String", location, value, "Hardcoded JDBC", "MEDIUM"));
-             return;
-        }
-        
-        // 1. Hash Credential Check (Context Aware)
-        // Checks if a Hex String (MD5/SHA) is used in a suspicious context (equals() or sensitive variable)
-        if (HEX_HASH_PATTERN.matcher(value).matches()) {
-            checkHashUsage(value, location, findings, contextUnit);
-            // If it matches a hash, we usually don't need to check entropy/base64 unless we want double reporting
-            // But let's allow it to fall through if it's not flagged as a hash credential to be safe?
-            // Actually, if it is a hash, it won't trigger base64, and might not trigger entropy.
-            // So if we catch it here, we are good.
-            return; 
-        }
-
-        // High Entropy & Base64
-        // Only check if string is long enough to be a key (e.g. 16+ chars)
-        if (value.length() > 16) {
-            // Filter out common false positives
-            if (value.startsWith("HTTP/") || value.contains(" ")) {
-                // Secrets usually don't have spaces unless they are long passphrases, 
-                // but single sentences often trigger entropy.
-                // Exception: "Bearer <token>"
-                if (!value.toLowerCase().startsWith("bearer ")) {
-                    return; 
-                }
-            }
-
-            double entropy = calculateEntropy(value);
-            if (entropy > 4.6) { // Increased threshold slightly
-                // Check if it's Base64
-                if (isBase64(value)) {
-                     try {
-                         String decoded = new String(Base64.getDecoder().decode(value), StandardCharsets.UTF_8);
-                         if (GENERIC_SECRET.matcher("val=" + decoded).find()) {
-                              findings.add(new SecretFinding("Encoded Secret (Base64)", location, value + " -> " + decoded, "Base64 High Entropy", "HIGH"));
-                         } else {
-                              findings.add(new SecretFinding("High Entropy String", location, value, "Entropy: " + String.format("%.2f", entropy), "LOW"));
-                         }
-                     } catch (IllegalArgumentException e) {
-                         findings.add(new SecretFinding("High Entropy String", location, value, "Entropy: " + String.format("%.2f", entropy), "LOW"));
-                     }
-                } else {
-                    // Just high entropy, maybe a random key or hash
-                     findings.add(new SecretFinding("High Entropy String", location, value, "Entropy: " + String.format("%.2f", entropy), "LOW"));
-                }
-            }
-        }
-    }
-    
     private void checkHashUsage(String value, String location, List<SecretFinding> findings, Unit u) {
         boolean isSuspicious = false;
         String reason = "";
@@ -250,11 +314,7 @@ public class SecretScanner {
                      }
                  }
              }
-        }
-        
-        // Also check if the string itself is involved in an InvokeExpr even if it's not a Stmt
-        // The Unit passed here IS the statement.
-        // We covered InvokeStmt and AssignStmt (which covers x = func(...)).
+         }
         
         if (isSuspicious) {
             findings.add(new SecretFinding("Hardcoded Hash Credential", location, value, reason, "HIGH"));
