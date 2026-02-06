@@ -158,13 +158,32 @@ public class SecretScanner {
                     continue;
                 }
                 
-                // High Entropy & Base64
-                if (value.length() > 16) {
-                    if (value.startsWith("HTTP/") || value.contains(" ")) {
-                        if (!value.toLowerCase().startsWith("bearer ")) continue; 
-                    }
+        // High Entropy & Base64
+        // Only check if string is long enough to be a key (e.g. 16+ chars)
+        if (value.length() > 16) {
+            // Filter out common false positives
+            if (value.startsWith("HTTP/") || value.contains(" ") || value.contains("\n") || value.contains("\r") || value.contains("\t")) {
+                // Secrets usually don't have spaces unless they are long passphrases, 
+                // but single sentences often trigger entropy.
+                // Exception: "Bearer <token>"
+                if (!value.toLowerCase().startsWith("bearer ")) {
+                    continue; 
+                }
+            }
+            
+            // Check for Chinese characters (CJK Unified Ideographs)
+            // Secrets basically never contain Chinese characters.
+            boolean hasChinese = false;
+            for (int i = 0; i < value.length(); i++) {
+                char c = value.charAt(i);
+                if (c >= 0x4E00 && c <= 0x9FFF) {
+                    hasChinese = true;
+                    break;
+                }
+            }
+            if (hasChinese) continue;
 
-                    double entropy = calculateEntropy(value);
+            double entropy = calculateEntropy(value);
                     if (entropy > 4.6) {
                         if (isBase64(value)) {
                              try {
