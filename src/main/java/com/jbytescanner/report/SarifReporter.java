@@ -43,11 +43,28 @@ public class SarifReporter {
         for (Vulnerability v : vulnerabilities) {
             ObjectNode result = results.addObject();
             result.put("ruleId", v.getType());
-            result.put("level", "error");
+            // Map RiskLevel to SARIF level
+            String sarifLevel = "warning";
+            if ("CRITICAL".equals(v.getRiskLevel()) || "HIGH".equals(v.getRiskLevel())) {
+                sarifLevel = "error";
+            } else if ("INFO".equals(v.getRiskLevel())) {
+                sarifLevel = "note";
+            }
+            result.put("level", sarifLevel);
             
             ObjectNode message = result.putObject("message");
-            message.put("text", String.format("Detected %s flow from %s to %s", 
-                    v.getType(), v.getSourceMethod(), v.getSinkMethod()));
+            String risk = v.getRiskLevel() != null ? v.getRiskLevel() : "UNKNOWN";
+            // Format score to 1 decimal place
+            String scoreStr = String.format("%.1f", v.getScore());
+            
+            message.put("text", String.format("[%s] Score: %s | %s flow from %s to %s", 
+                    risk, scoreStr, v.getType(), v.getSourceMethod(), v.getSinkMethod()));
+
+            // Properties bag for custom scores
+            ObjectNode properties = result.putObject("properties");
+            properties.put("score", v.getScore());
+            properties.put("confidence", v.getConfidenceScore());
+            properties.put("riskLevel", v.getRiskLevel());
 
             // Locations (Simplified - pointing to Sink)
             ArrayNode locations = result.putArray("locations");

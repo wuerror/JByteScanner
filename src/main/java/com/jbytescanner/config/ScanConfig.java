@@ -13,6 +13,9 @@ public class ScanConfig {
     @JsonProperty("scan_packages")
     private List<String> scanPackages = new ArrayList<>();
 
+    @JsonProperty("auth_config")
+    private AuthConfig authConfig;
+
     public List<String> getScanPackages() {
         if (scanPackages == null) {
             scanPackages = new ArrayList<>();

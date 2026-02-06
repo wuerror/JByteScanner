@@ -273,7 +273,9 @@ public class WorklistEngine {
         fullTrace.add(sinkSig);
         String source = fullTrace.isEmpty() ? "Unknown" : fullTrace.get(0);
         
-        Vulnerability vuln = new Vulnerability(vulnType, source, sinkSig, fullTrace);
+        // Phase 8.2: Pass 'isFullFlow' and 'rule' to Vulnerability
+        // Worklist engine tracks taint from Source to Sink, so it is Full Flow by default.
+        Vulnerability vuln = new Vulnerability(vulnType, source, sinkSig, fullTrace, true, rule);
         
         boolean exists = vulnerabilities.stream().anyMatch(v -> 
             v.getType().equals(vuln.getType()) && 

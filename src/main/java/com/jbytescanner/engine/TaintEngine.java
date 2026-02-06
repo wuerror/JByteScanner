@@ -106,7 +106,24 @@ public class TaintEngine {
         logger.info("Verification: Worklist found {}, Legacy found {}", vulnerabilities.size(), legacyVulns.size());
         */
         
-        // 6. Generate Report
+        // 6. Scoring (Phase 8.2)
+        logger.info("Running Vulnerability Scorer (Phase 8.2)...");
+        // Ensure AuthConfig is initialized
+        com.jbytescanner.config.AuthConfig authConfig = configManager.getConfig().getScanConfig().getAuthConfig();
+        if (authConfig == null) {
+            authConfig = new com.jbytescanner.config.AuthConfig();
+            configManager.getConfig().getScanConfig().setAuthConfig(authConfig);
+        }
+        com.jbytescanner.score.AuthDetector authDetector = new com.jbytescanner.score.AuthDetector(authConfig);
+        com.jbytescanner.score.VulnScorer scorer = new com.jbytescanner.score.VulnScorer(authDetector);
+        
+        for (Vulnerability vuln : vulnerabilities) {
+            // Find corresponding ApiRoute for the sourceMethod
+            ApiRoute route = findRoute(routes, vuln.getSourceMethod());
+            scorer.score(vuln, route);
+        }
+
+        // 7. Generate Report
         if (!vulnerabilities.isEmpty()) {
             SarifReporter reporter = new SarifReporter(workspaceDir);
             reporter.generate(vulnerabilities);
@@ -114,6 +131,20 @@ public class TaintEngine {
             logger.info("No vulnerabilities found. Skipping report generation.");
         }
     }
+
+    private ApiRoute findRoute(List<ApiRoute> routes, String methodSig) {
+        if (methodSig == null) return null;
+        for (ApiRoute r : routes) {
+            // Check if methodSig contains the route's method name/class
+            // methodSig is full soot signature e.g. <com.example.Test: void main(java.lang.String[])>
+            // route has separate class and method
+            if (methodSig.contains(r.getClassName()) && methodSig.contains(r.getMethodSig().replaceAll("\\(.*\\)", ""))) {
+                return r;
+            }
+        }
+        return null;
+    }
+
 
 
     private List<SootMethod> resolveMethods(List<ApiRoute> routes) {

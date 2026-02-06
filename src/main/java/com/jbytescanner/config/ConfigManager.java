@@ -89,6 +89,10 @@ public class ConfigManager {
         ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
         try {
             this.config = mapper.readValue(configFile, Config.class);
+            // Default AuthConfig if null
+            if (config.getScanConfig().getAuthConfig() == null) {
+                config.getScanConfig().setAuthConfig(new AuthConfig());
+            }
             logger.info("Configuration loaded. Sources: {}, Sinks: {}", 
                     config.getSources().size(), config.getSinks().size());
         } catch (IOException e) {

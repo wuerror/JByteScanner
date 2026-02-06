@@ -169,7 +169,8 @@ public class InterproceduralTaintAnalysis {
         // Find source from bottom of stack
         String source = fullTrace.isEmpty() ? "Unknown" : fullTrace.get(0);
         
-        Vulnerability vuln = new Vulnerability(vulnType, source, sink.getSignature(), fullTrace);
+        // Legacy Engine always assumes full flow because it traces recursively
+        Vulnerability vuln = new Vulnerability(vulnType, source, sink.getSignature(), fullTrace, true, rule);
         
         // Deduplicate
         boolean exists = vulnerabilities.stream().anyMatch(v -> 
