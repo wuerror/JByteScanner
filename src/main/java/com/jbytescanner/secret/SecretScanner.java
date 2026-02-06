@@ -111,10 +111,16 @@ public class SecretScanner {
     private List<SecretFinding> scanConstantPool() {
         List<SecretFinding> findings = new ArrayList<>();
         
-        for (SootClass sc : Scene.v().getApplicationClasses()) {
+        // Use a snapshot of classes to avoid ConcurrentModificationException if Soot modifies the chain
+        List<SootClass> snapshot = new ArrayList<>(Scene.v().getApplicationClasses());
+
+        for (SootClass sc : snapshot) {
             if (sc.isPhantom()) continue;
 
-            for (SootMethod sm : sc.getMethods()) {
+            // Use a snapshot of methods as well, just in case
+            List<SootMethod> methodSnapshot = new ArrayList<>(sc.getMethods());
+            
+            for (SootMethod sm : methodSnapshot) {
                 if (!sm.hasActiveBody()) {
                     try {
                         sm.retrieveActiveBody();
@@ -123,13 +129,18 @@ public class SecretScanner {
                     }
                 }
 
-                for (Unit u : sm.getActiveBody().getUnits()) {
-                    for (ValueBox vb : u.getUseBoxes()) {
-                        if (vb.getValue() instanceof StringConstant) {
-                            String value = ((StringConstant) vb.getValue()).value;
-                            checkStringSecret(value, sc.getName() + "." + sm.getName(), findings, u);
+                // Check units safely
+                try {
+                    for (Unit u : sm.getActiveBody().getUnits()) {
+                        for (ValueBox vb : u.getUseBoxes()) {
+                            if (vb.getValue() instanceof StringConstant) {
+                                String value = ((StringConstant) vb.getValue()).value;
+                                checkStringSecret(value, sc.getName() + "." + sm.getName(), findings, u);
+                            }
                         }
                     }
+                } catch (Exception e) {
+                    // Ignore errors during unit iteration (e.g. body modification)
                 }
             }
         }

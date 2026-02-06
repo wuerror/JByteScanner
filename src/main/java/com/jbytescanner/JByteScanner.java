@@ -125,15 +125,11 @@ public class JByteScanner implements Callable<Integer> {
         } else {
             System.out.println("Phase 2 Skipped. Using existing api.txt for project: " + projectName);
         }
-        
-        if (isApiMode) {
-            System.out.println("Mode 'api' finished. Exiting.");
-            return 0;
-        }
 
-        // Phase 2.5: Secret Scanner
-        // Ensure Soot is initialized if Discovery was skipped
-        if (apiFile.exists() && !forceDiscovery) {
+        // Phase 2.5: Secret Scanner (Execute in BOTH api and scan modes)
+        // Ensure Soot is initialized if Discovery was skipped (e.g. in 'scan' mode with existing api.txt)
+        // Note: In 'api' mode, DiscoveryEngine.run() already initializes Soot.
+        if (isScanMode && apiFile.exists() && !forceDiscovery) {
              List<String> combinedLibs = new java.util.ArrayList<>(loadedJars.libJars);
              if (loadedJars.depAppJars != null) combinedLibs.addAll(loadedJars.depAppJars);
              com.jbytescanner.core.SootManager.initSoot(loadedJars.targetAppJars, combinedLibs, false);
@@ -145,6 +141,11 @@ public class JByteScanner implements Callable<Integer> {
         List<com.jbytescanner.secret.SecretFinding> findings = secretScanner.scan(loadedJars.targetAppJars);
         secretScanner.writeReport(workspaceDir, findings);
         System.out.println("Secret Scan Complete. Findings: " + findings.size());
+        
+        if (isApiMode) {
+            System.out.println("Mode 'api' finished. Exiting.");
+            return 0;
+        }
         
         System.out.println("------------------------------------------");
         
