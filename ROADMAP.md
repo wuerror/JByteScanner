@@ -25,10 +25,10 @@ This document tracks the evolution of JByteScanner into a specialized Red Team t
 
 **Goal**: Deliver immediate high-value findings suitable for penetration testing.
 
-### Phase 8.1: Secret Scanner (Tri-Layer) [TODO]
-- [ ] **Static String Scan**: Regex + Entropy check on Constant Pool.
-- [ ] **Config Scan**: Parse `application.properties/yml` inside JARs.
-- [ ] **Encoded Scan**: Detect and decode Base64 strings.
+### Phase 8.1: Secret Scanner (Tri-Layer) [COMPLETED]
+- [x] **Static String Scan**: Regex + Entropy check on Constant Pool.
+- [x] **Config Scan**: Parse `application.properties/yml` inside JARs.
+- [x] **Encoded Scan**: Detect and decode Base64 strings.
 
 ### Phase 8.2: Vulnerability Scorer [TODO]
 - [ ] **Scoring Engine**: Implement 5-dimension scoring model (Sink, Reachability, Flow, Auth, CVE).
@@ -44,7 +44,8 @@ This document tracks the evolution of JByteScanner into a specialized Red Team t
 
 ### Phase 9: Deep Exploitation Chains
 - [ ] **9.1 Auth Bypass**: Advanced Spring Security config analysis.
-- [ ] **9.2 Gadget Mining**: Two-stage deserialization chain discovery.
+- [ ] **9.2 gadget suggest**: dependency check and suggest known gadget(from java-chains)
+- [ ] **9.3 Gadget Mining**: Two-stage deserialization chain discovery.
 
 ### Phase 10: Interactive & SCA
 - [ ] **10.1 Offensive SCA**: Fingerprint libraries & link to CVEs.

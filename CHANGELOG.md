@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Added
+- **Secret Scanner (Phase 8.1)**:
+    - Implemented a new "Tactical Intelligence" module for discovering hardcoded secrets.
+    - **Config Scan**: Automatically scans `application.properties`, `.yml`, `.xml` inside JARs/Fat JARs for passwords, tokens, and keys.
+    - **Code Scan**: Iterates over String constants in the bytecode to find AWS keys, JDBC credentials, and other secrets using Regex.
+    - **Entropy Analysis**: Implemented Shannon Entropy calculation to detect high-entropy strings (e.g., random keys, large payloads).
+    - **Base64 Decoding**: Detects Base64 strings, decodes them, and recursively scans the decoded content for secrets.
+    - **Context-Aware Hash Detection**: Identifies hardcoded Hash credentials (MD5/SHA) by analyzing their usage context (e.g., `token.equals("hash")` or assignment to sensitive variables like `secret`, `admin`).
+    - Integrated seamlessly into the main scan flow; generates `secrets.txt` in the workspace.
 - **Worklist Analysis Engine (Phase 7.2)**:
     - Introduced `WorklistEngine` to replace the recursive `InterproceduralTaintAnalysis`.
     - Solves potential StackOverflowError on deep call chains.

@@ -130,6 +130,21 @@ public class JByteScanner implements Callable<Integer> {
             System.out.println("Mode 'api' finished. Exiting.");
             return 0;
         }
+
+        // Phase 2.5: Secret Scanner
+        // Ensure Soot is initialized if Discovery was skipped
+        if (apiFile.exists() && !forceDiscovery) {
+             List<String> combinedLibs = new java.util.ArrayList<>(loadedJars.libJars);
+             if (loadedJars.depAppJars != null) combinedLibs.addAll(loadedJars.depAppJars);
+             com.jbytescanner.core.SootManager.initSoot(loadedJars.targetAppJars, combinedLibs, false);
+        }
+
+        System.out.println("------------------------------------------");
+        System.out.println("Starting Secret Scanner...");
+        com.jbytescanner.secret.SecretScanner secretScanner = new com.jbytescanner.secret.SecretScanner();
+        List<com.jbytescanner.secret.SecretFinding> findings = secretScanner.scan(loadedJars.targetAppJars);
+        secretScanner.writeReport(workspaceDir, findings);
+        System.out.println("Secret Scan Complete. Findings: " + findings.size());
         
         System.out.println("------------------------------------------");
         
