@@ -30,7 +30,13 @@ This document tracks the evolution of JByteScanner into a specialized Red Team t
 - [x] **Config Scan**: Parse `application.properties/yml` inside JARs.
 - [x] **Encoded Scan**: Detect and decode Base64 strings.
 
-### Phase 8.2: Vulnerability Scorer [TODO]
+### Phase 8.2: Vulnerability Scorer [COMPLETED]
+- [x] **R-S-A-C Model**: Implemented Reachability * Severity * Auth * Confidence scoring.
+- [x] **Auth Detector**: Heuristic detection of `@PreAuthorize`, `@Secured`, and custom auth annotations.
+- [x] **Rule Enhancement**: Added `severity` and `category` (code-exec, sqli, etc.) to rules.yaml.
+- [x] **Report Upgrade**: SARIF report now includes Risk Level and numerical Score.
+
+## 🔮 Future Phase: Interactive Triage (Phase 9)
 - [ ] **Scoring Engine**: Implement 5-dimension scoring model (Sink, Reachability, Flow, Auth, CVE).
 - [ ] **Report Integration**: Add scores to SARIF/Markdown output.
 

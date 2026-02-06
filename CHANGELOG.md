@@ -13,6 +13,11 @@ All notable changes to this project will be documented in this file.
     - **Base64 Decoding**: Detects Base64 strings, decodes them, and recursively scans the decoded content for secrets.
     - **Context-Aware Hash Detection**: Identifies hardcoded Hash credentials (MD5/SHA) by analyzing their usage context (e.g., `token.equals("hash")` or assignment to sensitive variables like `secret`, `admin`).
     - Integrated seamlessly into the main scan flow; generates `secrets.txt` in the workspace.
+- **Vulnerability Scorer (Phase 8.2)**:
+    - Introduced **R-S-A-C Scoring Model**: Calculates vulnerability risk based on Sink Severity, Reachability, Auth Barrier, and Confidence.
+    - **Authentication Detection**: Heuristic analysis of Spring Security/Shiro annotations (`@PreAuthorize`, `@Secured`, custom `Auth`) to identify protected endpoints.
+    - **Rule Categories**: Enhanced `rules.yaml` with categories (e.g., `code-exec`, `cmd-exec`, `sqli`) and default severity scores.
+    - **Risk Grading**: Vulnerabilities are now graded as `CRITICAL`, `HIGH`, `MEDIUM`, `LOW`, or `INFO` in the SARIF report.
 - **Worklist Analysis Engine (Phase 7.2)**:
     - Introduced `WorklistEngine` to replace the recursive `InterproceduralTaintAnalysis`.
     - Solves potential StackOverflowError on deep call chains.
