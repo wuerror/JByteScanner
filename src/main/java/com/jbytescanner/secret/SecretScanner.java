@@ -26,7 +26,7 @@ public class SecretScanner {
     
     // Regex Patterns
     private static final Pattern AWS_ACCESS_KEY = Pattern.compile("AKIA[0-9A-Z]{16}");
-    private static final Pattern GENERIC_SECRET = Pattern.compile("(?i)(password|secret|token|api_?key|access_?key)\\s*[:=]\\s*['\"]?([^\\s'\"]{5,})['\"]?");
+    private static final Pattern GENERIC_SECRET = Pattern.compile("(?i)(password|secret|token|api_?key|access_?key|auth_?key|private_?key|encrypt|jwt_?secret|credential|auth_?token)\\s*[:=]\\s*['\"]?([^\\s'\"]{5,})['\"]?");
     private static final Pattern BASE64_PATTERN = Pattern.compile("^([A-Za-z0-9+/]{4})*([A-Za-z0-9+/]{3}=|[A-Za-z0-9+/]{2}==)?$");
     private static final Pattern JDBC_PATTERN = Pattern.compile("jdbc:[a-z:]+://.*");
     
