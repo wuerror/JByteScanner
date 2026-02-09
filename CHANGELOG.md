@@ -36,6 +36,12 @@ All notable changes to this project will be documented in this file.
     - This architecture prevents crashes and significantly improves stability when analyzing complex third-party libraries (e.g., `com.itextpdf`, `org.bouncycastle`).
     - Spring Boot `BOOT-INF/classes` is automatically treated as Target.
 
+### Optimized
+- **Call Graph Generation (Strategy A)**:
+    - Optimized `SootManager` to apply strict exclusions *before* loading classes.
+    - Extended the default exclusion list to filter out massive frameworks (Spring internals, AWS/Azure SDKs, Netty, etc.) from analysis scope.
+    - Significantly reduced `wjtp` phase execution time and memory usage.
+
 ### Fixed
 - **NPE in RuleManager**: Fixed `NullPointerException` when processing CallGraph edges where `target()` method is null during Backward Reachability Analysis.
 - **DiscoveryEngine Compilation**: Fixed variable reference error (`appJars` -> `targetAppJars`).

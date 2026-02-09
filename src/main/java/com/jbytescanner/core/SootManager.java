@@ -16,6 +16,44 @@ import java.util.List;
 public class SootManager {
     private static final Logger logger = LoggerFactory.getLogger(SootManager.class);
 
+    private static final List<String> DEFAULT_EXCLUDES = java.util.Arrays.asList(
+        // JDK & Android
+        "java.", "javax.", "sun.", "jdk.", "android.", "dalvik.", "com.sun.", "org.xml.", "org.w3c.",
+        
+        // Logging
+        "org.slf4j.", "org.apache.commons.logging.", "org.log4j.", "org.apache.logging.", "ch.qos.logback.",
+        
+        // Common Utils & JSON
+        "com.google.", "org.apache.commons.", "com.fasterxml.jackson.", "com.alibaba.fastjson.", "com.google.gson.",
+        "org.json.", "net.minidev.json.", "org.yaml.",
+        
+        // Spring & Frameworks (We only want to analyze the application code, not the framework internals unless needed)
+        "org.springframework.", "org.hibernate.", "org.mybatis.", "org.thymeleaf.", "freemarker.",
+        "org.jboss.", "org.apache.tomcat.", "org.apache.catalina.", "org.eclipse.jetty.", "io.undertow.",
+        
+        // Network & Async
+        "io.netty.", "io.grpc.", "io.reactivex.", "rx.", "okhttp3.", "org.apache.http.",
+        
+        // Cloud SDKs (Huge bloat)
+        "com.amazonaws.", "software.amazon.awssdk.", "com.azure.", "com.microsoft.", "com.oracle.bmc.",
+        
+        // Database Drivers
+        "org.postgresql.", "com.mysql.", "oracle.jdbc.", "com.microsoft.sqlserver.", "org.h2.", "org.hsqldb.", 
+        "org.mongodb.", "redis.clients.", "com.zaxxer.hikari.",
+        
+        // Crypto & Security
+        "org.bouncycastle.", "com.nimbusds.", "io.jsonwebtoken.",
+        
+        // Languages
+        "scala.", "kotlin.", "groovy.", "clojure.",
+        
+        // Testing
+        "junit.", "org.junit.", "org.testng.", "org.mockito.", "net.bytebuddy.", "org.objenesis.",
+        
+        // Others
+        "com.aspose.", "com.itextpdf.", "org.dom4j.", "org.jsoup."
+    );
+
     public static void initSoot(List<String> appJars, List<String> libJars, boolean wholeProgram, List<String> scanPackages) {
         G.reset();
 
@@ -36,7 +74,7 @@ public class SootManager {
 
         Options.v().set_soot_classpath(cpBuilder.toString());
         
-        // ONLY App jars go to process-dir
+        // ONLY App jars go to process_dir
         Options.v().set_process_dir(appJars);
         
         // 3. Phase Options
@@ -46,42 +84,17 @@ public class SootManager {
             // Strict Isolation: Only generate bodies for included packages
             Options.v().set_no_bodies_for_excluded(true);
             
-            // 3.1 Whitelist (Include)
+            // 3.1 Whitelist (Include) - CRITICAL for Speed
             if (scanPackages != null && !scanPackages.isEmpty()) {
                 logger.info("Applying strict inclusion scope: {}", scanPackages);
                 Options.v().set_include(scanPackages);
             }
 
-            // 3.2 Blacklist (Exclude)
-            List<String> excludes = new ArrayList<>();
-            // Standard excludes
-            excludes.add("java.");
-            excludes.add("javax.");
-            excludes.add("sun.");
-            excludes.add("jdk.");
-            excludes.add("android.");
-            // Common libs that cause trouble (bloated or complex)
-            excludes.add("org.slf4j.");
-            excludes.add("org.apache.");
-            excludes.add("com.google.");
-            excludes.add("net.minidev."); 
-            excludes.add("com.fasterxml.jackson.");
-            excludes.add("org.springframework."); // We only analyze business logic, usually don't need deep spring bodies
-            excludes.add("org.hibernate.");
-            excludes.add("io.netty.");
-            
-            // Phase 6.3 Enhanced Exclusion List (Based on log analysis)
-            excludes.add("org.bouncycastle."); // Fix crash
-            excludes.add("com.sheca.");        // Fix crash
-            excludes.add("com.aspose.");
-            excludes.add("com.itextpdf.");
-            excludes.add("oracle.");
-            excludes.add("dm.jdbc.");
-            excludes.add("jj2000.");
-            excludes.add("com.github.jaiimageio.");
-            excludes.add("com.claymoresystems.");
-            
-            Options.v().set_exclude(excludes);
+            // 3.2 Blacklist (Exclude) - Optimized List
+            // Using set_exclude allows us to explicitly block these even if they are in process_dir (partially)
+            // or if they are pulled in by dependencies.
+            logger.info("Applying comprehensive exclude list ({} prefixes)...", DEFAULT_EXCLUDES.size());
+            Options.v().set_exclude(DEFAULT_EXCLUDES);
         }
         
         // 4. Load
