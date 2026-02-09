@@ -24,6 +24,11 @@ All notable changes to this project will be documented in this file.
     - **Authentication Detection**: Heuristic analysis of Spring Security/Shiro annotations (`@PreAuthorize`, `@Secured`, custom `Auth`) to identify protected endpoints.
     - **Rule Categories**: Enhanced `rules.yaml` with categories (e.g., `code-exec`, `cmd-exec`, `sqli`) and default severity scores.
     - **Risk Grading**: Vulnerabilities are now graded as `CRITICAL`, `HIGH`, `MEDIUM`, `LOW`, or `INFO` in the SARIF report.
+- **Gadget Suggestion Engine (Phase 9.2)**:
+    - Implemented `GadgetInspector` to analyze library dependencies and suggest usable Deserialization Gadget Chains.
+    - **Database**: Integrated a database of 400+ known gadgets extracted from `java-chains` tool.
+    - **SCA**: Implemented lightweight SCA (Software Composition Analysis) to parse `pom.properties` and JAR filenames for dependency versioning.
+    - **Reporting**: Generates a grouped report `gadgets.txt` mapping available libraries to potential exploit chains.
 - **Worklist Analysis Engine (Phase 7.2)**:
     - Introduced `WorklistEngine` to replace the recursive `InterproceduralTaintAnalysis`.
     - Solves potential StackOverflowError on deep call chains.

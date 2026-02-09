@@ -40,9 +40,9 @@ This document tracks the evolution of JByteScanner into a specialized Red Team t
 - [ ] **Scoring Engine**: Implement 5-dimension scoring model (Sink, Reachability, Flow, Auth, CVE).
 - [ ] **Report Integration**: Add scores to SARIF/Markdown output.
 
-### Phase 8.3: Smart PoC Generator [TODO]
-- [ ] **Burp Request Gen**: Generate raw HTTP requests.
-- [ ] **Smart Payloads**: Context-aware placeholders (JSON vs Form).
+### Phase 8.3: Smart PoC Generator [COMPLETED]
+- [x] **Burp Request Gen**: Generate raw HTTP requests.
+- [x] **Smart Payloads**: Context-aware placeholders (JSON vs Form).
 
 ---
 
@@ -50,7 +50,7 @@ This document tracks the evolution of JByteScanner into a specialized Red Team t
 
 ### Phase 9: Deep Exploitation Chains
 - [ ] **9.1 Auth Bypass**: Advanced Spring Security config analysis.
-- [ ] **9.2 gadget suggest**: dependency check and suggest known gadget(from java-chains)
+- [x] **9.2 Gadget Suggest**: Dependency check and suggest known gadget (from java-chains).
 - [ ] **9.3 Gadget Mining**: Two-stage deserialization chain discovery.
 
 ### Phase 10: Interactive & SCA

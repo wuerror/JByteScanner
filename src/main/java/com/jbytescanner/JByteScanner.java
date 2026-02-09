@@ -142,6 +142,56 @@ public class JByteScanner implements Callable<Integer> {
         secretScanner.writeReport(workspaceDir, findings);
         System.out.println("Secret Scan Complete. Findings: " + findings.size());
         
+        // Phase 9.2: Gadget Inspector
+        System.out.println("------------------------------------------");
+        System.out.println("Starting Gadget Inspector (Phase 9.2)...");
+        com.jbytescanner.engine.GadgetInspector gadgetInspector = new com.jbytescanner.engine.GadgetInspector();
+        List<com.jbytescanner.model.Gadget> gadgets = gadgetInspector.inspect(loadedJars.libJars);
+        
+        System.out.println("Found " + gadgets.size() + " usable gadgets based on dependencies.");
+        if (!gadgets.isEmpty()) {
+            File gadgetFile = new File(workspaceDir, "gadgets.txt");
+            try (java.io.PrintWriter pw = new java.io.PrintWriter(gadgetFile, "UTF-8")) {
+                pw.println("### Potential Gadgets (Grouped by Dependencies) ###");
+                
+                // Grouping Logic
+                java.util.Map<String, java.util.List<com.jbytescanner.model.Gadget>> grouped = new java.util.HashMap<>();
+                
+                for (com.jbytescanner.model.Gadget g : gadgets) {
+                    String key = "No Dependencies (JDK/Universal)";
+                    if (g.getDependencies() != null && !g.getDependencies().isEmpty()) {
+                        key = g.getDependencies().stream()
+                             .map(d -> {
+                                 if (d.getArtifact() != null) return d.getArtifact();
+                                 if (d.getRaw() != null) return d.getRaw();
+                                 return "unknown";
+                             })
+                             .sorted()
+                             .collect(java.util.stream.Collectors.joining(", "));
+                    }
+                    grouped.computeIfAbsent(key, k -> new java.util.ArrayList<>()).add(g);
+                }
+                
+                // Output
+                for (java.util.Map.Entry<String, java.util.List<com.jbytescanner.model.Gadget>> entry : grouped.entrySet()) {
+                    pw.println("==================================================");
+                    pw.println("Dependency Set: [" + entry.getKey() + "]");
+                    pw.println("--------------------------------------------------");
+                    for (com.jbytescanner.model.Gadget g : entry.getValue()) {
+                        pw.println("* " + g.getName() + " (" + g.getClassName() + ")");
+                        if (g.getDescription() != null && !g.getDescription().isEmpty()) {
+                            pw.println("  Desc: " + g.getDescription().replace("\n", " "));
+                        }
+                    }
+                    pw.println();
+                }
+
+            } catch (Exception e) {
+                logger.error("Failed to write gadget report", e);
+            }
+            System.out.println("Gadget report written to: " + gadgetFile.getAbsolutePath());
+        }
+
         if (isApiMode) {
             System.out.println("Mode 'api' finished. Exiting.");
             return 0;

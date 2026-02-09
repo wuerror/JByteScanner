@@ -1,0 +1,4111 @@
+[
+  {
+    "name": "RMI底层JRMP的dgc存在反序列化漏洞",
+    "description": "",
+    "class": "RMIDGCExploit",
+    "dependencies": []
+  },
+  {
+    "name": "Axis2链",
+    "description": "可用于 CVE-2017-3066 Adobe Coldfusion 11/12",
+    "class": "Axis2MetaDataEntry",
+    "dependencies": [
+      {
+        "artifact": "axis",
+        "raw": "axis"
+      }
+    ]
+  },
+  {
+    "name": "Axis2链-带Java序列化混淆",
+    "description": "可用于 CVE-2017-3066 Adobe Coldfusion 11/12",
+    "class": "Axis2MetaDataEntryObf",
+    "dependencies": [
+      {
+        "artifact": "axis",
+        "raw": "axis"
+      }
+    ]
+  },
+  {
+    "name": "远程类加载",
+    "description": "",
+    "class": "C3P0WrapperConnPool",
+    "dependencies": [
+      {
+        "artifact": "c3p0",
+        "raw": "c3p0"
+      }
+    ]
+  },
+  {
+    "name": "HikariJNDI注入",
+    "description": "",
+    "class": "HikariConfigGadget",
+    "dependencies": [
+      {
+        "artifact": "hikari",
+        "raw": "hikari"
+      }
+    ]
+  },
+  {
+    "name": "ReplicatedTree链",
+    "description": "",
+    "class": "ReplicatedTreeGadget",
+    "dependencies": [
+      {
+        "artifact": "org",
+        "raw": "org.jgroups"
+      }
+    ]
+  },
+  {
+    "name": "JNDI注入",
+    "description": "",
+    "class": "SpringPropertyPathFactory",
+    "dependencies": [
+      {
+        "artifact": "spring-beans",
+        "raw": "spring-beans"
+      }
+    ]
+  },
+  {
+    "name": "UnicastRef2",
+    "description": "sun.rmi.server.UnicastRef2 配合 JRMPListener 进行RCE",
+    "class": "UnicastRef2Gadget",
+    "dependencies": [
+      {
+        "artifact": "jdk",
+        "raw": "jdk"
+      }
+    ]
+  },
+  {
+    "name": "UnicastRef",
+    "description": "sun.rmi.server.UnicastRef 配合 JRMPListener 进行RCE",
+    "class": "UnicastRefGadget",
+    "dependencies": [
+      {
+        "artifact": "jdk",
+        "raw": "jdk"
+      }
+    ]
+  },
+  {
+    "name": "进行JrmpClient",
+    "description": "Bypass高版本jdk进行JRMP反序列化",
+    "class": "BypassJrmpClient",
+    "dependencies": []
+  },
+  {
+    "name": "自定义字节码-Base64字符串",
+    "description": "从参数中解码获取字节码字节流，适用于自定义字节码场合，增加了工具拓展性",
+    "class": "BytecodeFromBase64",
+    "dependencies": []
+  },
+  {
+    "name": "自定义字节码-Hex字符串",
+    "description": "从参数中解码获取字节码字节流，适用于自定义字节码场合，增加了工具拓展性",
+    "class": "BytecodeFromHex",
+    "dependencies": []
+  },
+  {
+    "name": "自定义字节码-本地文件",
+    "description": "从文件中读取字节码，适用于自定义字节码场合，增加了工具拓展性",
+    "class": "BytecodeFromLocalFile",
+    "dependencies": []
+  },
+  {
+    "name": "自定义字节码-上传文件",
+    "description": "",
+    "class": "BytecodeFromUploadFile",
+    "dependencies": []
+  },
+  {
+    "name": "发起DNSLog请求",
+    "description": "发起DNSLog请求的字节码，用于探测字节码是否可以执行成功",
+    "class": "DNSLog",
+    "dependencies": []
+  },
+  {
+    "name": "发起DNSLog和Http请求",
+    "description": "本质是发起Http请求，并Post当前调用栈、环境变量信息，该链可同时探测DNSLog和Http出网\\\\n适用于一键探测DNSLog、HTTP出网，在 JNDIShowHand 链中常用\\\\n注意，不适合探测没有配置DNS的服务器，可单独使用 HTTPReq 链进行单独探测\\\\n本链会通过指定dnslog的子域名进行回显当前使用的gadget链、操作系统信息\\\\n响应示例: deser.fastjson.templatesimpl.windows.xxx.eyes.sh",
+    "class": "DNSLogAndHttp",
+    "dependencies": []
+  },
+  {
+    "name": "发起DNSLog请求2",
+    "description": "发起DNSLog请求的字节码，用于探测字节码是否可以执行成功，和DNSLog1的区别就是该链会包含当前利用链信息，以及目标系统信息，会自动在DNS头部额外添加一些子域名信息",
+    "class": "DNSLogWithInfo",
+    "dependencies": []
+  },
+  {
+    "name": "生成tomcat-docbase需要的字节码",
+    "description": "参考 https://github.com/luelueking/CVE-2022-25845-In-Spring，文件路径需要与类名一致。\\\\n例如类名为org.example.Exception，文件路径则为/tmp/tomcat-docbase.xxxxxxxxxxxxx/WEB-INF/classes/org/example\\\\n通过以下payload触发\\\\n{\\\\n  \\\\",
+    "class": "Docbase",
+    "dependencies": []
+  },
+  {
+    "name": "文件下载",
+    "description": "生成下载文件的字节码",
+    "class": "Download",
+    "dependencies": []
+  },
+  {
+    "name": "下载文件并执行",
+    "description": "下载文件并执行的字节码，自动识别win/linux",
+    "class": "DownloadExec",
+    "dependencies": []
+  },
+  {
+    "name": "执行命令",
+    "description": "使用 ProcessBuilder 执行命令的字节码，自动识别win/linux，内部采用 cmd.exe /c xxx 或 bash -c xxx 来执行命令",
+    "class": "Exec",
+    "dependencies": []
+  },
+  {
+    "name": "执行命令",
+    "description": "",
+    "class": "ExecCustom",
+    "dependencies": []
+  },
+  {
+    "name": "自定义字节码-本地文件",
+    "description": "从文件中读取字节码，适用于自定义字节码场合，增加了工具拓展性",
+    "class": "FileSteamFromUploadFile",
+    "dependencies": []
+  },
+  {
+    "name": "发起http请求",
+    "description": "发起http请求的字节码，可探测HTTP/TCP出网，用于探测字节码是否执行成功、判断目标是否出网，注意env、调用栈信息为明文",
+    "class": "HTTPReq",
+    "dependencies": []
+  },
+  {
+    "name": "修改ShiroKey",
+    "description": "修改 Shiro key 字节码",
+    "class": "ModifyShiroKey",
+    "dependencies": []
+  },
+  {
+    "name": "通过Sleep判断目标操作系统",
+    "description": "",
+    "class": "OsSleep",
+    "dependencies": []
+  },
+  {
+    "name": "反弹Shell",
+    "description": "同时支持win和linux，请注意流量是明文的",
+    "class": "ReverseShell",
+    "dependencies": []
+  },
+  {
+    "name": "RuoYiShell",
+    "description": "解决spel打内存马的时候超过1W字符,以及定时任务跨线程导致找不到context问题。",
+    "class": "RuoYiShell",
+    "dependencies": []
+  },
+  {
+    "name": "生成使用dnslog探测中间件的字节码",
+    "description": "",
+    "class": "ServerDetectorWithDNSLog",
+    "dependencies": []
+  },
+  {
+    "name": "生成使用dnslog探测中间件的字节码",
+    "description": "",
+    "class": "ServerInfoHttpDnsLog",
+    "dependencies": []
+  },
+  {
+    "name": "Sleep字节码",
+    "description": "在不出网情况下是判断是否存在代码执行",
+    "class": "Sleep",
+    "dependencies": []
+  },
+  {
+    "name": "Spring字节码加载",
+    "description": "从指定参数中获取字节码并加载",
+    "class": "SpringLoaderFromParam",
+    "dependencies": [
+      {
+        "artifact": "spring",
+        "raw": "spring"
+      }
+    ]
+  },
+  {
+    "name": "发起Tcp请求",
+    "description": "用于判断tcp协议是否出网\\\\nncat -lvp 9999",
+    "class": "TcpConnect",
+    "dependencies": []
+  },
+  {
+    "name": "修改TomcatHeader长度限制",
+    "description": "可实现在Shiro环境下的Header头长度限制的绕过",
+    "class": "TomcatHeader",
+    "dependencies": []
+  },
+  {
+    "name": "发起UDP请求",
+    "description": "用于判断udp协议是否出网\\\\nncat -lvup 9999",
+    "class": "UdpConnect",
+    "dependencies": []
+  },
+  {
+    "name": "写字符串到文件",
+    "description": "本链仅支持写入简单字符串，例如写webshell场景。注意本字节码不适用于写入二进制文件，对应的请使用WriteLargeFile",
+    "class": "WriteFile",
+    "dependencies": []
+  },
+  {
+    "name": "写入二进制文件并执行",
+    "description": "写入二进制文件,会从本地读取文件，经过gzip、base64后存放到字节码中,然后调用命令去执行文件",
+    "class": "WriteFileExec",
+    "dependencies": []
+  },
+  {
+    "name": "写入大文件/二进制文件",
+    "description": "写入大文件或二进制文件, 会从本地读取文件，经过gzip、base64后存放到字节码中",
+    "class": "WriteLargeFile",
+    "dependencies": []
+  },
+  {
+    "name": "处理字节码",
+    "description": "对字节码进行处理，比如修改类名、实现特定接口、插入特定函数以及字节码混淆\\\\n内置 https://github.com/jar-analyzer/class-obf v1.9.1 字节码混淆",
+    "class": "BytecodeConvert",
+    "dependencies": []
+  },
+  {
+    "name": "生成 ApusicV9 命令执行明文回显的字节码",
+    "description": "",
+    "class": "ApusicEcho",
+    "dependencies": []
+  },
+  {
+    "name": "生成 GlassFish 命令执行明文回显的字节码",
+    "description": "GlassFish/Payara/InforSuite/ApusicV10/Primeton 可使用当前方式进行回显",
+    "class": "GlassFishEcho",
+    "dependencies": []
+  },
+  {
+    "name": "调用 Jeg 生成回显字节码",
+    "description": "方法一、明文传参及回显\\\\n执行ls命令: X-Authorization: ls\\\\n\\\\n方法二、加密传参及回显\\\\n模板:\\\\t\\\\tX-Authorization: eyJeXA10TbkhnteAiS0PtwRFQKqp5EYIIWXXXLKXDf5NPTs2M1FykATD[xor+base64 命令].eyJ82Df13d=\\\\n执行ls命令:\\\\t\\\\tX-Authorization: eyJeXA10TbkhnteAiS0PtwRFQKqp5EYIIWXXXLKXDf5NPTs2M1FykATDU0w=.eyJ82Df13d=\\\\n<a href=\\\\",
+    "class": "JegGadget",
+    "dependencies": []
+  },
+  {
+    "name": "生成 Jetty 命令执行明文回显的字节码",
+    "description": "",
+    "class": "JettyEcho",
+    "dependencies": []
+  },
+  {
+    "name": "One For All Echo 回显",
+    "description": "一个 Payload 包含了一些常见中间件的回显：WebLogic、Jetty、Tomcat、Spring",
+    "class": "OneForAllEcho",
+    "dependencies": []
+  },
+  {
+    "name": "生成 Resin 命令执行明文回显的字节码",
+    "description": "",
+    "class": "ResinEcho",
+    "dependencies": []
+  },
+  {
+    "name": "Shiro下字节码分离加载",
+    "description": "适用于Shiro环境下字节码长度限制\\\\n注意为了减少特征, 字节码中的 yv66vg 头部已在程序中指定, 在请求参数中携带字节码请求时需要去除这部分字符串, 并且需要对base64字符串进行url编码",
+    "class": "ShiroClassLoader",
+    "dependencies": []
+  },
+  {
+    "name": "Shiro下字节码分离加载2",
+    "description": "适用于Shiro环境下字节码长度限制, POST传入字节码参数时，需要对base64字符串进行url编码",
+    "class": "ShiroClassLoader2",
+    "dependencies": []
+  },
+  {
+    "name": "生成 Tomcat 命令执行明文回显的字节码",
+    "description": "",
+    "class": "TomcatEcho",
+    "dependencies": []
+  },
+  {
+    "name": "生成 Tomcat 命令执行明文回显的字节码 2",
+    "description": "Tomcat/JBoss/BES 中间件可使用当前进行回显",
+    "class": "TomcatEcho2",
+    "dependencies": []
+  },
+  {
+    "name": "生成 TongWeb 命令执行明文回显的字节码",
+    "description": "适配 TongWeb 6/7/8 版本",
+    "class": "TongWebEcho",
+    "dependencies": []
+  },
+  {
+    "name": "生成 Undertow 命令执行明文回显的字节码",
+    "description": "JBossEAP7/WildFly 中间件可使用当前进行回显",
+    "class": "UndertowEcho",
+    "dependencies": []
+  },
+  {
+    "name": "生成 WebLogic 命令执行明文回显的字节码",
+    "description": "",
+    "class": "WebLogicEcho",
+    "dependencies": []
+  },
+  {
+    "name": "生成 WebSphere 命令执行明文回显的字节码",
+    "description": "暂未适配 WAS7，已适配 WAS8/9",
+    "class": "WebSphereEcho",
+    "dependencies": []
+  },
+  {
+    "name": "借助 Jmg 注入器配合自定义马生成注马字节码",
+    "description": "自定义shell会自动设置为随机类名\\\\n\\\\n",
+    "class": "JmgCustomShellGadget",
+    "dependencies": []
+  },
+  {
+    "name": "调用 Jmg 生成注入内存马字节码",
+    "description": "",
+    "class": "JmgGadget",
+    "dependencies": []
+  },
+  {
+    "name": "调用 MemShellParty 生成注入内存马字节码",
+    "description": "",
+    "class": "MemShellPartyGadget",
+    "dependencies": []
+  },
+  {
+    "name": "自定义Java反序列化数据",
+    "description": "可自定义传入Base64格式的Java序列化数据，用于一些二次反序列化场合",
+    "class": "UserCustomSerializeData",
+    "dependencies": []
+  },
+  {
+    "name": "调用Equals方法",
+    "description": "",
+    "class": "HotSTSourceEquals",
+    "dependencies": []
+  },
+  {
+    "name": "Aviator 表达式加载字节码",
+    "description": "",
+    "class": "AviatorConvert",
+    "dependencies": [
+      {
+        "artifact": "Aviator",
+        "raw": "Aviator"
+      },
+      {
+        "artifact": "spring",
+        "raw": "spring"
+      }
+    ]
+  },
+  {
+    "name": "将byte[]字节码转换为BCEL字符串",
+    "description": "依赖 com.sun.org.apache.bcel.internal.util.ClassLoader 类",
+    "class": "BcelConvert",
+    "dependencies": [
+      {
+        "artifact": "JDK8",
+        "raw": "JDK8 < 8u251"
+      }
+    ]
+  },
+  {
+    "name": "将byte[]字节码转换为Beanshell字符串",
+    "description": "内部使用js引擎来实现加载字节码",
+    "class": "BeanshellConvert",
+    "dependencies": [
+      {
+        "artifact": "bsh",
+        "raw": "bsh"
+      }
+    ]
+  },
+  {
+    "name": "将byte[]字节码转换为EL表达式字符串",
+    "description": "默认不包含括号，内部使用js引擎来实现加载字节码",
+    "class": "ElConvert",
+    "dependencies": [
+      {
+        "artifact": "el",
+        "raw": "el"
+      }
+    ]
+  },
+  {
+    "name": "EL表达式执行系统命令",
+    "description": "",
+    "class": "ElExec",
+    "dependencies": []
+  },
+  {
+    "name": "freemarker表达式加载字节码",
+    "description": "freemarker 调用 SpEL 执行字节码\\\\nReference: https://www.cnblogs.com/CoLo/p/16706091.html",
+    "class": "FreemarkerConvert",
+    "dependencies": [
+      {
+        "artifact": "freemarker",
+        "raw": "freemarker"
+      },
+      {
+        "artifact": "SpEL",
+        "raw": "SpEL"
+      }
+    ]
+  },
+  {
+    "name": "freemarker表达式加载字节码2",
+    "description": "freemarker 调用 js 执行字节码\\\\nReference: https://github.com/ReaJason/MemShellParty",
+    "class": "FreemarkerConvert2",
+    "dependencies": [
+      {
+        "artifact": "freemarker",
+        "raw": "freemarker"
+      },
+      {
+        "artifact": "js",
+        "raw": "js"
+      }
+    ]
+  },
+  {
+    "name": "Groovy表达式字符串2",
+    "description": "将byte[]字节码转换为Groovy表达式字符串，注意这里使用 @groovy.transform.ASTTest",
+    "class": "Groovy2Convert",
+    "dependencies": [
+      {
+        "group": "groovy",
+        "artifact": "groovy.lang.GroovyShell",
+        "version": "*"
+      }
+    ]
+  },
+  {
+    "name": "Groovy表达式字符串",
+    "description": "将byte[]字节码转换为Groovy表达式字符串",
+    "class": "GroovyConvert",
+    "dependencies": [
+      {
+        "group": "groovy",
+        "artifact": "groovy.lang.GroovyShell",
+        "version": "*"
+      }
+    ]
+  },
+  {
+    "name": "Groovy表达式字符串1",
+    "description": "简单的Runtime命令执行",
+    "class": "GroovyExec1Convert",
+    "dependencies": [
+      {
+        "group": "groovy",
+        "artifact": "groovy.lang.GroovyShell",
+        "version": "*"
+      }
+    ]
+  },
+  {
+    "name": "Groovy表达式字符串1",
+    "description": "",
+    "class": "GroovyExec2Convert",
+    "dependencies": []
+  },
+  {
+    "name": "将byte[]字节码转换为Jexl表达式字符串",
+    "description": "内部使用js引擎来实现加载字节码",
+    "class": "JexlConvert",
+    "dependencies": [
+      {
+        "artifact": "Jxel",
+        "raw": "Jxel"
+      }
+    ]
+  },
+  {
+    "name": "将byte[]字节码转换为JinJava表达式字符串",
+    "description": "内部使用js引擎来实现加载字节码",
+    "class": "JinJavaConvert",
+    "dependencies": [
+      {
+        "artifact": "jinjava",
+        "raw": "jinjava"
+      }
+    ]
+  },
+  {
+    "name": "将byte[]字节码转换为Js表达式字符串",
+    "description": "使用ClassLoader进行加载,最大程度上提供类兼容",
+    "class": "JsConver3",
+    "dependencies": [
+      {
+        "artifact": "8",
+        "raw": "8 <= jdk <= 14"
+      }
+    ]
+  },
+  {
+    "name": "将byte[]字节码转换为Js表达式字符串",
+    "description": "使用theUnsafe实现字节码加载\\\\nJava 6/7的js解析引擎是 Mozilla Rhino，从java8开始改为 Oracle Nashorn, Nashorn在jdk15中被移除, Rhino和Nashorn细节有所差异",
+    "class": "JsConvert",
+    "dependencies": [
+      {
+        "artifact": "8",
+        "raw": "8 <= jdk <= 14"
+      }
+    ]
+  },
+  {
+    "name": "将byte[]字节码转换为Js表达式字符串",
+    "description": "在Rhino下使用theUnsafe实现字节码加载",
+    "class": "JsConvert2",
+    "dependencies": [
+      {
+        "artifact": "8",
+        "raw": "8 <= jdk"
+      }
+    ]
+  },
+  {
+    "name": "JS Runtime执行命令",
+    "description": "",
+    "class": "JsExec",
+    "dependencies": []
+  },
+  {
+    "name": "jxpath表达式嵌套js加载字节码",
+    "description": "内部嵌套js引擎实现加载任意字节码",
+    "class": "JxpathConvert",
+    "dependencies": [
+      {
+        "artifact": "jxpath_Expr",
+        "raw": "jxpath_Expr"
+      }
+    ]
+  },
+  {
+    "name": "jxpath表达式嵌套spel加载字节码",
+    "description": "",
+    "class": "JxpathConvert2",
+    "dependencies": []
+  },
+  {
+    "name": "jxpath表达式执行系统命令",
+    "description": "",
+    "class": "JxpathExec",
+    "dependencies": []
+  },
+  {
+    "name": "发起简单请求的Mvel表达式",
+    "description": "new java.net.URL(\\\\",
+    "class": "MvelConnectTest",
+    "dependencies": []
+  },
+  {
+    "name": "将byte[]字节码转换为Mvel表达式字符串",
+    "description": "内部使用js引擎来实现加载字节码",
+    "class": "MvelConvert",
+    "dependencies": [
+      {
+        "artifact": "mvel",
+        "raw": "mvel"
+      }
+    ]
+  },
+  {
+    "name": "Mvel执行命令",
+    "description": "",
+    "class": "MvelExec",
+    "dependencies": []
+  },
+  {
+    "name": "将byte[]字节码转换为Ongl表达式字符串",
+    "description": "内部嵌套js引擎实现加载任意字节码",
+    "class": "OnglConvert",
+    "dependencies": [
+      {
+        "artifact": "ognl",
+        "raw": "ognl"
+      },
+      {
+        "artifact": "Ognl",
+        "raw": "Ognl<3.1.25"
+      },
+      {
+        "artifact": "Ognl",
+        "raw": "Ognl<3.2.12"
+      }
+    ]
+  },
+  {
+    "name": "jdk高版本Ongl表达式执行Java代码",
+    "description": "使用jdk.jshell.Jshell执行java代码",
+    "class": "OnglConvert2",
+    "dependencies": [
+      {
+        "artifact": "ognl",
+        "raw": "ognl"
+      },
+      {
+        "artifact": "jdk",
+        "raw": "jdk >= 9"
+      }
+    ]
+  },
+  {
+    "name": "Ongl表达式执行命令",
+    "description": "简单通过Runtime执行命令",
+    "class": "OnglExec1",
+    "dependencies": [
+      {
+        "artifact": "ognl",
+        "raw": "ognl"
+      }
+    ]
+  },
+  {
+    "name": "Ongl表达式执行命令",
+    "description": "简单通过ProcessBuilder执行命令",
+    "class": "OnglExec2",
+    "dependencies": [
+      {
+        "artifact": "ognl",
+        "raw": "ognl"
+      }
+    ]
+  },
+  {
+    "name": "将byte[]字节码转换为SPEL表达式字符串",
+    "description": "依赖Spring相关的类，需要core、expression包，使用 org.springframework.cglib.core.ReflectUtils 加载字节码；默认生成不包含两边的括号`${X}`解析语法",
+    "class": "SpelConvert",
+    "dependencies": [
+      {
+        "group": "spring",
+        "artifact": "org.springframework.cglib.core.ReflectUtils/org.springframework.util.Base64Utils/org.springframework.util.ClassUtils",
+        "version": "*"
+      }
+    ]
+  },
+  {
+    "name": "thymeleaf表达式加载字节码",
+    "description": "thymeleaf 调用 SpEL 表达式执行字节码",
+    "class": "ThymeleafConvert",
+    "dependencies": [
+      {
+        "artifact": "thymeleaf",
+        "raw": "thymeleaf"
+      },
+      {
+        "artifact": "SpEL",
+        "raw": "SpEL"
+      }
+    ]
+  },
+  {
+    "name": "thymeleaf表达式js加载字节码",
+    "description": "thymeleaf 调用 js 来实现加载字节码",
+    "class": "ThymeleafConvert2",
+    "dependencies": [
+      {
+        "artifact": "thymeleaf",
+        "raw": "thymeleaf"
+      },
+      {
+        "artifact": "js",
+        "raw": "js"
+      }
+    ]
+  },
+  {
+    "name": "thymeleaf表达式执行系统命令",
+    "description": "",
+    "class": "ThymeleafExec",
+    "dependencies": []
+  },
+  {
+    "name": "自定义表达式字符串",
+    "description": "",
+    "class": "UserCustomExpr",
+    "dependencies": []
+  },
+  {
+    "name": "将byte[]字节码转换为Velocity表达式字符串",
+    "description": "内部嵌套使用bcel来实现加载字节码，所以额外要求jdk版本",
+    "class": "VelocityConvert",
+    "dependencies": [
+      {
+        "artifact": "velocity",
+        "raw": "velocity"
+      },
+      {
+        "artifact": "jdk",
+        "raw": "jdk<8u251"
+      }
+    ]
+  },
+  {
+    "name": "velocity表达式js加载字节码",
+    "description": "velocity 调用 js 实现执行字节码\\\\nReference: https://github.com/ReaJason/MemShellParty",
+    "class": "VelocityConvert2",
+    "dependencies": [
+      {
+        "artifact": "velocity",
+        "raw": "velocity"
+      },
+      {
+        "artifact": "js",
+        "raw": "js"
+      }
+    ]
+  },
+  {
+    "name": "DB2 JDBC URL",
+    "description": "适用于jdbc rce场景，jdbc利用可以转为jndi注入利用",
+    "class": "Db2Jdbc",
+    "dependencies": [
+      {
+        "group": "db2",
+        "artifact": "com.ibm.db2.jcc.DB2Driver",
+        "version": "*"
+      }
+    ]
+  },
+  {
+    "name": "ModeShape JDBC URL",
+    "description": "适用于jdbc rce场景，jdbc利用可以转为jndi注入利用",
+    "class": "ModeShapeJdbc",
+    "dependencies": [
+      {
+        "group": "modeshape",
+        "artifact": "org.modeshape.jdbc.LocalJcrDriver",
+        "version": "*"
+      }
+    ]
+  },
+  {
+    "name": "Mysql JDBC URL",
+    "description": "适用于jdbc rce场景，jdbc转为Java反序列化",
+    "class": "MysqlJdbc",
+    "dependencies": [
+      {
+        "artifact": "mysql-connector-java",
+        "raw": "mysql-connector-java"
+      }
+    ]
+  },
+  {
+    "name": "Openguass JDBC URL",
+    "description": "魔改 PostgreSQL，适用于jdbc rce场景，通过 ClassPathXmlApplicationContext 加载xml，实现执行任意字节码",
+    "class": "OpengaussJdbc",
+    "dependencies": [
+      {
+        "artifact": "Opengauss",
+        "raw": "Opengauss < 3.0.0"
+      }
+    ]
+  },
+  {
+    "name": "PostgreSQL JDBC URL CVE-2022-21724",
+    "description": "适用于jdbc rce场景，通过 org.springframework.context.support.ClassPathXmlApplicationContext 加载xml，实现执行任意字节码",
+    "class": "PostgreSqlJdbc",
+    "dependencies": [
+      {
+        "group": "org.postgresql",
+        "artifact": "postgresql",
+        "version": "org.postgresql.Driver"
+      },
+      {
+        "group": "9.4.1208 <= org.postgresql",
+        "artifact": "postgresql < 42.2.25",
+        "version": "*"
+      },
+      {
+        "group": "42.3.0 <= org.postgresql",
+        "artifact": "postgresql < 42.3.2",
+        "version": "*"
+      }
+    ]
+  },
+  {
+    "name": "PostgreSQL JDBC 仅适用于JNDI模块",
+    "description": "注意，本Gadget只适用于在JNDI Exploit 模块中使用\\\\n适用于jdbc rce场景，通过 ClassPathXmlApplicationContext 加载本地xml，实现执行任意字节码\\\\n该 JNDI 版会自动生成spring bean xml文件并缓存到 JNDI Exploit 中，实现自动化利用",
+    "class": "PostgreSqlJdbc4Jndi",
+    "dependencies": [
+      {
+        "group": "org.postgresql",
+        "artifact": "postgresql",
+        "version": "org.postgresql.Driver"
+      },
+      {
+        "group": "9.4.1208 <= org.postgresql",
+        "artifact": "postgresql <42.2.25",
+        "version": "*"
+      },
+      {
+        "group": "42.3.0 <= org.postgresql",
+        "artifact": "postgresql < 42.3.2",
+        "version": "*"
+      }
+    ]
+  },
+  {
+    "name": "Sqlite JDBC URL",
+    "description": "sqlite jdbc利用可以转为SSRF",
+    "class": "SqliteJdbc",
+    "dependencies": [
+      {
+        "group": "sqlite",
+        "artifact": "org.sqlite.JDBC",
+        "version": "*"
+      }
+    ]
+  },
+  {
+    "name": "Sqlite load_extension RCE",
+    "description": "",
+    "class": "SqliteRceJdbc",
+    "dependencies": []
+  },
+  {
+    "name": "Derby 创建数据库 无SQL",
+    "description": "适用于jdbc rce场景，并且可执行sql语句的场景，例如jndi配合Datasource场景。无sql",
+    "class": "DerbyCreateJdbc",
+    "dependencies": [
+      {
+        "group": "derby",
+        "artifact": "org.apache.derby.jdbc.EmbeddedDriver",
+        "version": "*"
+      }
+    ]
+  },
+  {
+    "name": "Derby 删除数据库 无SQL",
+    "description": "适用于jdbc rce场景，例如jndi配合Datasource场景",
+    "class": "DerbyDropJdbc",
+    "dependencies": [
+      {
+        "group": "derby",
+        "artifact": "org.apache.derby.jdbc.EmbeddedDriver",
+        "version": "*"
+      }
+    ]
+  },
+  {
+    "name": "Derby slave远程反序列化 无SQL",
+    "description": "适用于jdbc rce场景，连接指定ip的4851端口，接受反序列化数据，此链可将jdbc利用可以转为Java deserialize利用",
+    "class": "DerbySlaveJdbc",
+    "dependencies": [
+      {
+        "group": "derby",
+        "artifact": "org.apache.derby.jdbc.EmbeddedDriver",
+        "version": "*"
+      }
+    ]
+  },
+  {
+    "name": "Derby 远程加载jar包-多SQL 仅适用于JNDI模块",
+    "description": "本链会从远程获取jar包并初始化，注意这里不会RCE，后续RCE需要调用里面的函数\\\\n总共4条sql语句，加载jar包、创建PROCEDURE\\\\nsqlList.add(\\\\",
+    "class": "DerbyInstallJdbc",
+    "dependencies": []
+  },
+  {
+    "name": "2.Derby 添加Classpath 单SQL",
+    "description": "适用于HikariCP和TomcatJDBC仅能执行单条SQL情况\\\\nCALL SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY('derby.database.classpath', 'APP.\\\\",
+    "class": "DerbyAddClassPathJdbc",
+    "dependencies": []
+  },
+  {
+    "name": "5.Derby 调用cmd函数 单SQL",
+    "description": "适用于HikariCP和TomcatJDBC仅能执行单条SQL情况\\\\nCALL cmd('\\\\",
+    "class": "DerbyCommandJdbc",
+    "dependencies": []
+  },
+  {
+    "name": "3.Derby CreateCmdProc 单SQL",
+    "description": "",
+    "class": "DerbyCreateCmdProcJdbc",
+    "dependencies": []
+  },
+  {
+    "name": "4.Derby CreateRevProc 单SQL",
+    "description": "",
+    "class": "DerbyCreateRevProcJdbc",
+    "dependencies": []
+  },
+  {
+    "name": "1.Derby 远程加载jar包 单SQL 仅适用于JNDI模块",
+    "description": "适用于HikariCP和TomcatJDBC仅能执行单条SQL情况\\\\nCALL SQLJ.INSTALL_JAR('\\\\",
+    "class": "DerbyInstallJarJdbc",
+    "dependencies": []
+  },
+  {
+    "name": "6.Derby 调用rev函数反弹shell 单SQL",
+    "description": "适用于HikariCP和TomcatJDBC仅能执行单条SQL情况\\\\nCALL rev('\\\\",
+    "class": "DerbyReverseShellJdbc",
+    "dependencies": []
+  },
+  {
+    "name": "H2 JDBC URL Groovy命令执行",
+    "description": "适用于jdbc rce场景，通过H2执行Groovy表达式，这里采用了最简单的getRuntime去执行命令，Payload比较简短，前提是需有Groovy依赖",
+    "class": "H2GroovyExecJdbc",
+    "dependencies": [
+      {
+        "group": "com.h2database",
+        "artifact": "h2",
+        "version": "org.h2.Driver"
+      },
+      {
+        "group": "org.codehaus.groovy",
+        "artifact": "groovy",
+        "version": "*"
+      }
+    ]
+  },
+  {
+    "name": "H2 JDBC URL Java命令执行1",
+    "description": "适用于jdbc rce场景，通过H2执行Java代码，这里采用了最简单的getRuntime去执行命令，Payload比较简短",
+    "class": "H2JavaExecJdbc1",
+    "dependencies": [
+      {
+        "group": "com.h2database",
+        "artifact": "h2",
+        "version": "org.h2.Driver"
+      }
+    ]
+  },
+  {
+    "name": "H2 JDBC URL Java命令执行2",
+    "description": "适用于jdbc rce场景，通过H2的 TRIGGER 功能执行Java代码，这里采用了最简单的getRuntime去执行命令，Payload比较简短",
+    "class": "H2JavaExecJdbc2",
+    "dependencies": [
+      {
+        "group": "com.h2database",
+        "artifact": "h2",
+        "version": "org.h2.Driver"
+      },
+      {
+        "artifact": "All",
+        "raw": "All JDk"
+      }
+    ]
+  },
+  {
+    "name": "H2 JDBC URL Java加载任意字节码1",
+    "description": "适用于jdbc rce场景，通过H2执行任意Java代码，Base64解码逻辑采用了高度兼容写法，Payload较大，本链实现了加载任意字节码\\\\n已优化该Payload：https://github.com/vulhub/java-chains/issues/24",
+    "class": "H2JavaJdbc1",
+    "dependencies": [
+      {
+        "group": "com.h2database",
+        "artifact": "h2",
+        "version": "org.h2.Driver"
+      }
+    ]
+  },
+  {
+    "name": "H2 JDBC URL Java加载任意字节码2",
+    "description": "适用于jdbc rce场景，通过H2的 TRIGGER 功能，控制javac编译器执行任意Java代码，加载字节码",
+    "class": "H2JavaJdbc2",
+    "dependencies": [
+      {
+        "group": "com.h2database",
+        "artifact": "h2",
+        "version": "org.h2.Driver"
+      }
+    ]
+  },
+  {
+    "name": "H2 JDBC URL Java加载任意字节码3",
+    "description": "适用于jdbc rce场景，通过H2执行任意Java代码，本链实现了加载任意字节码。使用了sun.misc.BASE64Decoder，要求jdk<=8",
+    "class": "H2JavaJdbc3",
+    "dependencies": [
+      {
+        "group": "com.h2database",
+        "artifact": "h2",
+        "version": "org.h2.Driver"
+      },
+      {
+        "artifact": "jdk",
+        "raw": "jdk<=8"
+      }
+    ]
+  },
+  {
+    "name": "H2 JDBC URL Java反弹shell",
+    "description": "适用于jdbc rce场景，通过H2执行Java代码，这里采用了最简单的反弹shell，Payload相对简短",
+    "class": "H2JavaReverseJdbc",
+    "dependencies": [
+      {
+        "group": "com.h2database",
+        "artifact": "h2",
+        "version": "org.h2.Driver"
+      }
+    ]
+  },
+  {
+    "name": "H2 JDBC URL js命令执行",
+    "description": "适用于jdbc rce场景，通过H2执行js表达式，这里采用了最简单的getRuntime去执行命令，Payload比较简短",
+    "class": "H2JsExecJdbc",
+    "dependencies": [
+      {
+        "group": "com.h2database",
+        "artifact": "h2",
+        "version": "org.h2.Driver"
+      }
+    ]
+  },
+  {
+    "name": "H2 JDBC URL 远程加载执行sql文件",
+    "description": "适用于jdbc rce场景，通过H2远程加载sql语句，执行命令/字节码",
+    "class": "H2RemoteJdbc",
+    "dependencies": [
+      {
+        "group": "com.h2database",
+        "artifact": "h2",
+        "version": "org.h2.Driver"
+      }
+    ]
+  },
+  {
+    "name": "Hsql CALL C3P0ImplUtils 二次反序列化",
+    "description": "调用 com.mchange.v2.c3p0.impl.C3P0ImplUtils#parseUserOverridesAsString 实现二次反序列化",
+    "class": "HsqldbC3p0HexJdbc",
+    "dependencies": [
+      {
+        "group": "com.mchange",
+        "artifact": "c3p0",
+        "version": "*"
+      },
+      {
+        "group": "hsqldb",
+        "artifact": "org.hsqldb.jdbcDriver",
+        "version": "*"
+      }
+    ]
+  },
+  {
+    "name": "Hsql 自定义执行语句",
+    "description": "用户自定义执行sql语句",
+    "class": "HsqldbCustomJdbc",
+    "dependencies": [
+      {
+        "group": "hsqldb",
+        "artifact": "org.hsqldb.jdbcDriver",
+        "version": "*"
+      }
+    ]
+  },
+  {
+    "name": "Hsql CALL defineClass 加载字节码",
+    "description": "调用 org.springframework.util.ReflectionUtils#defineClass 实现加载字节码",
+    "class": "HsqldbDefineClassJdbc",
+    "dependencies": [
+      {
+        "group": "hsqldb",
+        "artifact": "org.hsqldb.jdbcDriver",
+        "version": "*"
+      },
+      {
+        "artifact": "spring-core",
+        "raw": "spring-core"
+      }
+    ]
+  },
+  {
+    "name": "Hsql CALL SerializationUtils 二次反序列化",
+    "description": "调用 org.springframework.util.SerializationUtils#deserialize 实现二次反序列化",
+    "class": "HsqldbHexDeserJdbc",
+    "dependencies": [
+      {
+        "artifact": "spring",
+        "raw": "spring"
+      },
+      {
+        "group": "hsqldb",
+        "artifact": "org.hsqldb.jdbcDriver",
+        "version": "*"
+      }
+    ]
+  },
+  {
+    "name": "Hsql CALL ScriptTool 二次反序列化",
+    "description": "CALL org.hsqldb.util.ScriptTool#main 二次反序列化hsql 老版本可能无法使用该姿势",
+    "class": "HsqldbHexJdbcOld1",
+    "dependencies": [
+      {
+        "group": "hsqldb",
+        "artifact": "org.hsqldb.jdbcDriver",
+        "version": "*"
+      }
+    ]
+  },
+  {
+    "name": "Hsql CALL InOutUtil 二次反序列化",
+    "description": "org.hsqldb.lib.InOutUtil#deserializehsql 老版本可能无法使用该姿势",
+    "class": "HsqldbHexJdbcOld2",
+    "dependencies": [
+      {
+        "group": "hsqldb",
+        "artifact": "org.hsqldb.jdbcDriver",
+        "version": "*"
+      }
+    ]
+  },
+  {
+    "name": "Hsql CREATE,INSERT 二次反序列化",
+    "description": "调用 CREATE TABLE 并 INSERT，实现二次反序列化\\\\nhsql 老版本可能无法使用该姿势",
+    "class": "HsqldbHexJdbcOld3",
+    "dependencies": [
+      {
+        "group": "hsqldb",
+        "artifact": "org.hsqldb.jdbcDriver",
+        "version": "*"
+      }
+    ]
+  },
+  {
+    "name": "Hsql CALL InitialContext JNDI注入",
+    "description": "调用javax.naming.InitialContext#doLookup实现JNDI注入",
+    "class": "HsqldbJndiJdbc",
+    "dependencies": [
+      {
+        "group": "hsqldb",
+        "artifact": "org.hsqldb.jdbcDriver",
+        "version": "*"
+      }
+    ]
+  },
+  {
+    "name": "Hsql 设置系统环境变量",
+    "description": "调用 java.lang.System#setProperty 设置系统环境变量",
+    "class": "HsqldbPropertyJdbc",
+    "dependencies": [
+      {
+        "group": "hsqldb",
+        "artifact": "org.hsqldb.jdbcDriver",
+        "version": "*"
+      }
+    ]
+  },
+  {
+    "name": "charsets利用姿势1-jar包",
+    "description": "将字节码封装为charsets.jar文件\\\\n适用于 SpringBoot 环境下写 charsets.jar RCE\\\\n这里会固定写死恶意className为: sun.nio.cs.ext.IBM33722\\\\nReference: \\\\nhttps://landgrey.me/blog/22/\\\\nhttps://github.com/LandGrey/spring-boot-upload-file-lead-to-rce-tricks\\\\n",
+    "class": "CharsetJarConvert",
+    "dependencies": [
+      {
+        "artifact": "springboot",
+        "raw": "springboot"
+      }
+    ]
+  },
+  {
+    "name": "charsets利用姿势2-字节码",
+    "description": "适用于 SpringBoot 环境下写字节码文件以及SPI service文件进行 RCE\\\\n需要将上述两个文件上传至: /usr/lib/jvm/java-1.8-openjdk/jre/classes/ 目录下, 并且需要创建对应文件夹\\\\n此Gadget生成的是一个jar包, 需要自行解压获取里面的 class字节码文件和 META-INF/services/java.nio.charset.spi.CharsetProvider 文件, 然后进行上传\\\\nReference: https://threedr3am.github.io/2021/04/14/JDK8%E4%BB%BB%E6%84%8F%E6%96%87%E4%BB%B6%E5%86%99%E5%9C%BA%E6%99%AF%E4%B8%8B%E7%9A%84SpringBoot%20RCE/\\\\n",
+    "class": "CharsetJarConvert2",
+    "dependencies": [
+      {
+        "artifact": "springboot",
+        "raw": "springboot"
+      }
+    ]
+  },
+  {
+    "name": "Derby加载任意字节码",
+    "description": "适用于Nacos sql注入rce场景",
+    "class": "DerbyRceSql",
+    "dependencies": [
+      {
+        "artifact": "derby",
+        "raw": "derby"
+      }
+    ]
+  },
+  {
+    "name": "将字节码转为Groovy Jar包字节流",
+    "description": "适用于Fastjson远程加载Groovy Jar包 RCE场景\\\\n会自动在jar包内创建 META-INF/services/org.codehaus.groovy.transform.ASTTransformation 文件，并将文件内容设置字节码类名",
+    "class": "GroovyJarConvert",
+    "dependencies": [
+      {
+        "group": "org.codehaus.groovy",
+        "artifact": "groovy",
+        "version": "*"
+      }
+    ]
+  },
+  {
+    "name": "生成h2 sql文件",
+    "description": "通过Runtime执行任意命令，本链用于配合h2远程加载sql的姿势",
+    "class": "H2ExecSql",
+    "dependencies": [
+      {
+        "artifact": "derby",
+        "raw": "derby"
+      }
+    ]
+  },
+  {
+    "name": "将字节码转为Jar包",
+    "description": "输出普通Jar包字节流",
+    "class": "Jar",
+    "dependencies": []
+  },
+  {
+    "name": "Java Bash 执行命令处理",
+    "description": "处理 Runtime Exec 执行某些命令的问题",
+    "class": "JavaRunCmdBash",
+    "dependencies": []
+  },
+  {
+    "name": "Java Powershell 执行命令处理",
+    "description": "处理 Runtime Exec 执行某些命令的问题",
+    "class": "JavaRunCmdPs",
+    "dependencies": []
+  },
+  {
+    "name": "将字节码转为Jsp文件",
+    "description": "Jsp加载字节码模板来自Godzilla",
+    "class": "Jsp",
+    "dependencies": []
+  },
+  {
+    "name": "将字节码转为Jsp文件",
+    "description": "模板来自 Jmg",
+    "class": "Jsp2",
+    "dependencies": []
+  },
+  {
+    "name": "生成SnakeYaml 二次反序列化Payload",
+    "description": "通过 com.mchange.v2.c3p0.WrapperConnectionPoolDataSource 实现二次反序列化",
+    "class": "SnakeyamlC3p0",
+    "dependencies": [
+      {
+        "artifact": "snakeyaml",
+        "raw": "snakeyaml"
+      },
+      {
+        "artifact": "c3p0",
+        "raw": "c3p0"
+      }
+    ]
+  },
+  {
+    "name": "生成SnakeYaml简单的dnslog请求探测Payoad",
+    "description": "通过java.net.URL触发dnslog请求，注意此payload非类探测",
+    "class": "SnakeyamlDnslog",
+    "dependencies": [
+      {
+        "artifact": "snakeyaml",
+        "raw": "snakeyaml"
+      }
+    ]
+  },
+  {
+    "name": "将字节码转为SnakeYaml Jar包字节流",
+    "description": "适用于SnakeYaml远程加载Jar包 RCE，会自动创建 META-INF/services/javax.script.ScriptEngineFactory 文件，并将文件内容设置为字节码名称",
+    "class": "SnakeyamlJarConvert",
+    "dependencies": [
+      {
+        "artifact": "snakeyaml",
+        "raw": "snakeyaml"
+      }
+    ]
+  },
+  {
+    "name": "SnakeYaml远程加载JAR包",
+    "description": "利用SPI机制，基于ScriptEngineManager利用链，远程加载特定的jar包，实现任意字节码执行",
+    "class": "SnakeyamlJarSpi",
+    "dependencies": [
+      {
+        "artifact": "snakeyaml",
+        "raw": "snakeyaml"
+      }
+    ]
+  },
+  {
+    "name": "SnakeYaml远程加载JAR包 仅适用于JNDI模块",
+    "description": "注意，本Gadget只适用于在JNDI Chains Exploit 模块中使用\\\\n利用SPI机制，基于ScriptEngineManager利用链，远程加载特定的jar包，实现任意字节码执行\\\\n该 JNDI 版会自动缓存jar包到JNDI服务器中的HTTP Server中，并自动设置 http 请求路径，实现自动化利用",
+    "class": "SnakeyamlJarSpi4JNDI",
+    "dependencies": [
+      {
+        "artifact": "snakeyaml",
+        "raw": "snakeyaml"
+      }
+    ]
+  },
+  {
+    "name": "生成SnakeYaml Jndi注入 Payload",
+    "description": "通过 com.sun.rowset.JdbcRowSetImpl 实现jndi注入",
+    "class": "SnakeyamlJndi1",
+    "dependencies": [
+      {
+        "artifact": "snakeyaml",
+        "raw": "snakeyaml"
+      }
+    ]
+  },
+  {
+    "name": "生成SnakeYaml Jndi注入 Payload",
+    "description": "通过 org.springframework.jndi.support.SimpleJndiBeanFactory 实现jndi注入",
+    "class": "SnakeyamlJndi2",
+    "dependencies": [
+      {
+        "artifact": "snakeyaml",
+        "raw": "snakeyaml"
+      },
+      {
+        "artifact": "spring-bean",
+        "raw": "spring-bean"
+      }
+    ]
+  },
+  {
+    "name": "将字节码封装进spring bean.xml中，返回xml文件内容",
+    "description": "适用于ClassPathXmlApplicationContext加载xml文件场景，例如在PostgreSQL jdbc url利用，通过加载bean.xml文件实现字节码执行RCE",
+    "class": "SpringBeanXmlClassLoader",
+    "dependencies": [
+      {
+        "artifact": "spring-bean",
+        "raw": "spring-bean"
+      }
+    ]
+  },
+  {
+    "name": "将XMLDecoder payload封装进spring bean.xml中，返回xml文件内容",
+    "description": "适用于ClassPathXmlApplicationContext加载xml文件场景，通过XMLDecoder解码并触发XML payload",
+    "class": "SpringBeanXMLDecoderClassLoader",
+    "dependencies": [
+      {
+        "artifact": "spring-bean",
+        "raw": "spring-bean"
+      }
+    ]
+  },
+  {
+    "name": "执行命令",
+    "description": "适用于 ClassPathXmlApplicationContext 加载xml文件场景，例如在 PostgreSQL jdbc url 利用，通过加载bean.xml文件 通过 ProcessBuilder 实现命令执行",
+    "class": "SpringBeanXmlExec",
+    "dependencies": [
+      {
+        "artifact": "spring-bean",
+        "raw": "spring-bean"
+      }
+    ]
+  },
+  {
+    "name": "spring bean.xml 执行任意 SpEL 表达式",
+    "description": "适用于ClassPathXmlApplicationContext加载xml文件场景",
+    "class": "SpringBeanXmlSpEL",
+    "dependencies": [
+      {
+        "artifact": "spring-bean",
+        "raw": "spring-bean"
+      },
+      {
+        "artifact": "spel",
+        "raw": "spel"
+      }
+    ]
+  },
+  {
+    "name": "将Java反序列化数据转为XMLDecoder格式",
+    "description": "适用于 XMLDecoder 反序列化，例如 WebLogic CVE-2019-2725, 依赖 oracle.toplink.internal.sessions.UnitOfWorkChangeSet 类",
+    "class": "XMLDecoder",
+    "dependencies": []
+  },
+  {
+    "name": "BAVE 调用toString",
+    "description": "",
+    "class": "BadAttributeValueExpExceptionToString",
+    "dependencies": []
+  },
+  {
+    "name": "EventListenerList 调用toString",
+    "description": "",
+    "class": "EventListenerListToString",
+    "dependencies": []
+  },
+  {
+    "name": "EventListenerList 调用toString 高版本JDK",
+    "description": "",
+    "class": "EventListenerListToStringHighJDK",
+    "dependencies": []
+  },
+  {
+    "name": "GString compareTo 调用toString",
+    "description": "利用 GString.compareTo 内部触发 toString\\\\n本链入口为 ConcurrentSkipListMap.readObject（JDK 11+ 才会触发 compareTo）",
+    "class": "GStringCompareToToString",
+    "dependencies": [
+      {
+        "group": "org.codehaus.groovy",
+        "artifact": "groovy",
+        "version": "2.4.3"
+      }
+    ]
+  },
+  {
+    "name": "TextAndMnemonicHashMap 调用toString",
+    "description": "",
+    "class": "TextAndMnemonicHashMapToString",
+    "dependencies": []
+  },
+  {
+    "name": " TextAndMnemonicHashMap 调用toString 高版本JDK",
+    "description": "",
+    "class": "TextAndMnemonicHashMapToStringHighJDK",
+    "dependencies": []
+  },
+  {
+    "name": "Xalan XString 调用toString",
+    "description": "",
+    "class": "XalanXStringToString1",
+    "dependencies": []
+  },
+  {
+    "name": "Xalan XStringForChars 调用toString",
+    "description": "",
+    "class": "XalanXStringToString2",
+    "dependencies": []
+  },
+  {
+    "name": "Xalan XStringForFSB 调用toString",
+    "description": "",
+    "class": "XalanXStringToString3",
+    "dependencies": []
+  },
+  {
+    "name": "XString 调用toString",
+    "description": "",
+    "class": "XStringToString1",
+    "dependencies": []
+  },
+  {
+    "name": "XStringForChars 调用toString",
+    "description": "",
+    "class": "XStringToString2",
+    "dependencies": []
+  },
+  {
+    "name": "XStringForFSB 调用toString",
+    "description": "",
+    "class": "XStringToString3",
+    "dependencies": []
+  },
+  {
+    "name": "自定义String类型数据",
+    "description": "",
+    "class": "CustomString",
+    "dependencies": []
+  },
+  {
+    "name": "dbcp BasicDataSource 1.2.47",
+    "description": "",
+    "class": "FastjsonBasicDataSource",
+    "dependencies": [
+      {
+        "artifact": "bcel",
+        "raw": "bcel"
+      },
+      {
+        "artifact": "dbcp",
+        "raw": "dbcp"
+      },
+      {
+        "artifact": "fastjson",
+        "raw": "fastjson <= 1.2.47"
+      }
+    ]
+  },
+  {
+    "name": "mybatis BasicDataSource 1.2.47",
+    "description": "",
+    "class": "FastjsonBasicDataSourcemybatis",
+    "dependencies": [
+      {
+        "artifact": "bcel",
+        "raw": "bcel"
+      },
+      {
+        "artifact": "mybatis",
+        "raw": "mybatis"
+      },
+      {
+        "artifact": "fastjson",
+        "raw": "fastjson <= 1.2.47"
+      }
+    ]
+  },
+  {
+    "name": "C3p0 1.2.47",
+    "description": "",
+    "class": "FastjsonC3p0",
+    "dependencies": [
+      {
+        "group": "com.mchange",
+        "artifact": "c3p0",
+        "version": "*"
+      },
+      {
+        "artifact": "fastjson",
+        "raw": "fastjson <= 1.2.47"
+      }
+    ]
+  },
+  {
+    "name": "Fastjson CommonsIo 1.2.68/1.2.80 写文件",
+    "description": "Fastjson（1.2.68/1.2.75-80 版本）结合 CommonsIo 实现文件写入时，因 Fastjson 在不同系统环境下的随机性表现存在差异：若随机匹配到 decoder，仅支持写入字符串类型文件；若未匹配到 decoder，则会调用 charset 构造解码器，此时可写入二进制文件。此外，当 LockableFileWriter 创建实例报错时，需尝试修改 lockDir 目录，该问题大概率是由于存在 lck 缓存文件导致.",
+    "class": "FastjsonCmonsio",
+    "dependencies": [
+      {
+        "artifact": "fastjson",
+        "raw": "fastjson 1.2.x"
+      },
+      {
+        "artifact": "commons-io",
+        "raw": "commons-io 2.x"
+      }
+    ]
+  },
+  {
+    "name": "Fastjson DNSLog",
+    "description": "",
+    "class": "FastjsonDns",
+    "dependencies": [
+      {
+        "artifact": "fastjson",
+        "raw": "fastjson 1.2.x"
+      }
+    ]
+  },
+  {
+    "name": "Groovy 1.2.83",
+    "description": "需要发送两个payload才能实现远程加载 groovy jar\\\\n恶意 Groovy jar 包可在 「OtherPayload -> GroovyJarConvert」 中生成",
+    "class": "FastjsonGroovy",
+    "dependencies": [
+      {
+        "group": "org.codehaus",
+        "artifact": "groovy",
+        "version": "*"
+      },
+      {
+        "artifact": "1",
+        "raw": "1.2.76 <= fastjson <= 1.2.83 autoTypeEnabled"
+      }
+    ]
+  },
+  {
+    "name": "H2Jdbc 1.2.47",
+    "description": "",
+    "class": "FastjsonH2Jdbc",
+    "dependencies": [
+      {
+        "group": "com.h2database",
+        "artifact": "h2 <= 2.2.224",
+        "version": "*"
+      },
+      {
+        "artifact": "fastjson",
+        "raw": "fastjson <= 1.2.61"
+      }
+    ]
+  },
+  {
+    "name": "JdbcRowSetImpl 1.2.47",
+    "description": "",
+    "class": "FastjsonJdbcRowSetImpl",
+    "dependencies": [
+      {
+        "artifact": "fastjson",
+        "raw": "fastjson <= 1.2.47"
+      }
+    ]
+  },
+  {
+    "name": "Jta 1.2.67",
+    "description": "",
+    "class": "FastjsonJta",
+    "dependencies": [
+      {
+        "raw": "依赖ignite-jta-2.16.0.jar"
+      },
+      {
+        "artifact": "ignite-core-2",
+        "raw": "ignite-core-2.16.0.jar"
+      },
+      {
+        "artifact": "jta-1",
+        "raw": "jta-1.1.jar，需要开启autoType"
+      },
+      {
+        "artifact": "fastjson",
+        "raw": "fastjson <= 1.2.67"
+      }
+    ]
+  },
+  {
+    "name": "H2Jdbc 1.2.58",
+    "description": "",
+    "class": "FastjsonlogbackH2Jdbc",
+    "dependencies": [
+      {
+        "group": "ch.qos",
+        "artifact": "logback",
+        "version": "*"
+      },
+      {
+        "group": "com.h2database",
+        "artifact": "h2",
+        "version": "*"
+      },
+      {
+        "artifact": "fastjson",
+        "raw": "fastjson <= 1.2.58"
+      }
+    ]
+  },
+  {
+    "name": "FastjsonMySQL1_2_80",
+    "description": "",
+    "class": "FastjsonMySQL1_2_80",
+    "dependencies": [
+      {
+        "artifact": "mysql5",
+        "raw": "mysql5<5.1.49"
+      },
+      {
+        "artifact": "1",
+        "raw": "1.2.75<fastjson <= 1.2.80"
+      }
+    ]
+  },
+  {
+    "name": "Mysql-connector 1.2.68",
+    "description": "",
+    "class": "FastjsonMySQLJdbc",
+    "dependencies": [
+      {
+        "artifact": "mysql",
+        "raw": "mysql"
+      },
+      {
+        "artifact": "fastjson",
+        "raw": "fastjson <= 1.2.68"
+      }
+    ]
+  },
+  {
+    "name": "Mysql-connector 1.2.68",
+    "description": "FastjsonMySQL不出网利用, 配合FakeMySQLBuildPipeFile模块生成bin文件上传后,填入地址生成payload  Dbname为test,修改后会连不上，且因为生成的流文件会变，须重新生成",
+    "class": "FastjsonMySQLPipe",
+    "dependencies": [
+      {
+        "artifact": "mysql",
+        "raw": "mysql"
+      },
+      {
+        "artifact": "fastjson",
+        "raw": "fastjson <= 1.2.68"
+      },
+      {
+        "raw": "配合FakeMySQLBuildPipeFile模块进行mysql不出网利用"
+      },
+      {
+        "artifact": "Mysql8",
+        "raw": "Mysql8只能打8.0.19"
+      }
+    ]
+  },
+  {
+    "name": "postgresql 1.2.68",
+    "description": "",
+    "class": "FastjsonPostgreSQLJdbc",
+    "dependencies": [
+      {
+        "group": "org.postgresql",
+        "artifact": "postgresql",
+        "version": "org.postgresql.Driver"
+      },
+      {
+        "group": "9.4.1208 <= org.postgresql",
+        "artifact": "postgresql < 42.2.25",
+        "version": "*"
+      },
+      {
+        "group": "42.3.0 <= org.postgresql",
+        "artifact": "postgresql < 42.3.2",
+        "version": "*"
+      }
+    ]
+  },
+  {
+    "name": "postgresql 1.2.80",
+    "description": "postgresql 在 fastjson1.2.80 上的利用，使用 socketFactoryArg 加载 spring-bean.xml",
+    "class": "FastjsonPostgreSQLJdbc1_2_80",
+    "dependencies": [
+      {
+        "group": "org.postgresql",
+        "artifact": "postgresql",
+        "version": "org.postgresql.Driver"
+      },
+      {
+        "group": "9.4.1208 <= org.postgresql",
+        "artifact": "postgresql < 42.2.25",
+        "version": "*"
+      },
+      {
+        "group": "42.3.0 <= org.postgresql",
+        "artifact": "postgresql < 42.3.2",
+        "version": "*"
+      },
+      {
+        "artifact": "1",
+        "raw": "1.2.75 < fastjson <= 1.2.80"
+      }
+    ]
+  },
+  {
+    "name": "FastjsonWriteFileJDK11 1.2.68",
+    "description": "",
+    "class": "FastjsonWriteFileJDK11",
+    "dependencies": [
+      {
+        "artifact": "JDK11",
+        "raw": "JDK11"
+      }
+    ]
+  },
+  {
+    "name": "加载LazyValue相关链",
+    "description": "使用 UIDefaults.ProxyLazyValue 加载 LazyValue 相关链, 能够调用任意类的任意方法",
+    "class": "ProxyLazyValueUIDefaults",
+    "dependencies": [
+      {
+        "artifact": "jdk",
+        "raw": "jdk"
+      }
+    ]
+  },
+  {
+    "name": "加载LazyValue相关链",
+    "description": "使用了ProxyLazyValue、XStringForFSB、AudioFileFormat$Type类, 后续加载LazyValue相关链",
+    "class": "ProxyLazyValueXString",
+    "dependencies": []
+  },
+  {
+    "name": "加载LazyValue相关链",
+    "description": "使用 sun.swing.SwingLazyValue 加载 LazyValue 相关链\\\\n注意 SwingLazyValue.createValue 加载类的过程中classLoader为null，只能调用到rt.jar中的类",
+    "class": "SwingLazyValueUIDefaults",
+    "dependencies": [
+      {
+        "artifact": "jdk",
+        "raw": "jdk"
+      }
+    ]
+  },
+  {
+    "name": "加载LazyValue相关链",
+    "description": "使用了javax.activation.MimeTypeParameterList、SwingLazyValue、XStringForFSB、AudioFileFormat$Type类, 后续加载LazyValue相关链\\\\n注意 SwingLazyValue.createValue 加载类的过程中classLoader为null，只能调用到rt.jar中的类",
+    "class": "SwingLazyValueXString",
+    "dependencies": []
+  },
+  {
+    "name": "GroovyGString",
+    "description": "Hessian Groovy GString chain. ConcurrentHashMap -> GString -> Closure from next gadget.",
+    "class": "GroovyGString",
+    "dependencies": [
+      {
+        "group": "org.codehaus.groovy",
+        "artifact": "groovy",
+        "version": "*"
+      }
+    ]
+  },
+  {
+    "name": "加载BCEL字节码",
+    "description": "",
+    "class": "LazyValueWithBcel",
+    "dependencies": []
+  },
+  {
+    "name": "通过SerializationUtils触发二次Java原生反序列化",
+    "description": "通过 org.springframework.util.SerializationUtils 触发Java原生反序列化，建立起了Hessian反序列化和Java反序列化的桥梁",
+    "class": "LazyValueWithDS",
+    "dependencies": [
+      {
+        "artifact": "spring-core",
+        "raw": "spring-core"
+      }
+    ]
+  },
+  {
+    "name": "lang SerializationUtils触发二次反序列化",
+    "description": "通过 org.apache.commons.lang.SerializationUtils 触发Java原生反序列化",
+    "class": "LazyValueWithDS2",
+    "dependencies": [
+      {
+        "artifact": "common-lang",
+        "raw": "common-lang"
+      }
+    ]
+  },
+  {
+    "name": "lang3 SerializationUtils触发二次反序列化",
+    "description": "通过 org.apache.commons.lang3.SerializationUtils 触发Java原生反序列化",
+    "class": "LazyValueWithDS3",
+    "dependencies": [
+      {
+        "artifact": "common-lang3",
+        "raw": "common-lang3"
+      }
+    ]
+  },
+  {
+    "name": "写文件",
+    "description": "",
+    "class": "LazyValueWithFileWrite1",
+    "dependencies": []
+  },
+  {
+    "name": "DumpBytecode 写文件",
+    "description": "jdk.nashorn.internal.codegen.DumpBytecode",
+    "class": "LazyValueWithFileWrite2",
+    "dependencies": []
+  },
+  {
+    "name": "Groovy链",
+    "description": "通过 groovy.util.Eval 实现 Groovy 代码执行",
+    "class": "LazyValueWithGroovy",
+    "dependencies": [
+      {
+        "group": "org.codehaus.groovy",
+        "artifact": "groovy",
+        "version": "*"
+      }
+    ]
+  },
+  {
+    "name": "发起JNDI请求",
+    "description": "本链通过调用 javax.naming.InitialContext#doLookup 触发JNDI",
+    "class": "LazyValueWithJNDI",
+    "dependencies": []
+  },
+  {
+    "name": "通过Spring ReflectUtils执行任意字节码",
+    "description": "",
+    "class": "LazyValueWithReflectUtils",
+    "dependencies": []
+  },
+  {
+    "name": "发起RMI连接",
+    "description": "",
+    "class": "LazyValueWithRMI",
+    "dependencies": []
+  },
+  {
+    "name": "服务器延迟",
+    "description": "通过Thread.sleep来模拟服务器延迟，模拟网络延迟",
+    "class": "LazyValueWithSleep",
+    "dependencies": []
+  },
+  {
+    "name": "加载本地jar包",
+    "description": "",
+    "class": "LazyValueWithUrlClassLoader",
+    "dependencies": []
+  },
+  {
+    "name": "Hessian加载Reference",
+    "description": "转为类似JNDI利用，可远程加载字节码、Tomcat EL等利用",
+    "class": "DirContextJndi",
+    "dependencies": [
+      {
+        "artifact": "jdk",
+        "raw": "jdk"
+      }
+    ]
+  },
+  {
+    "name": "ServerManagerImpl 命令注入",
+    "description": "该类未实现 Serializable，只适用于Hessian反序列化\\\\ncom.sun.corba.se.impl.activation.ServerTableEntry\\\\n通过getter方法触发命令注入",
+    "class": "ServerManagerImpl",
+    "dependencies": []
+  },
+  {
+    "name": "写文件",
+    "description": "sun.tools.jar.Main\\\\nreference: https://github.com/Boogipop/JavaSec/blob/main/src/main/java/com/javasec/pocs/hessian/HessianProxyLVJarWrite.java",
+    "class": "SwingLazyValueJarWrite",
+    "dependencies": [
+      {
+        "artifact": "jdk",
+        "raw": "jdk"
+      }
+    ]
+  },
+  {
+    "name": "MethodUtil JDK原生链",
+    "description": "本链利用 sun.reflect.misc.MethodUtil 通过调用 Unsafe的defineAnonymousClass 方法加载任意字节码，实现原生JDK RCE，但是JDK可能会崩，实战慎用",
+    "class": "SwingLazyValueMethodUtil",
+    "dependencies": [
+      {
+        "artifact": "jdk",
+        "raw": "jdk < 11"
+      }
+    ]
+  },
+  {
+    "name": "写库文件和加载动态链接库的代码执行链",
+    "description": "使用JavaUtils写入dylib文件，之后再配合System.load进行加载动态链接库，实现任意代码执行\\\\n优先使用Base64编码",
+    "class": "SystemLoad",
+    "dependencies": [
+      {
+        "artifact": "only",
+        "raw": "only jdk"
+      }
+    ]
+  },
+  {
+    "name": "UnixPrintService 命令注入",
+    "description": "该类未实现 Serializable，只适用于Hessian反序列化 并且只适用于unix/linux\\\\njdk高版本移除此类\\\\n通过getter方法触发命令注入\\\\n本地测试 zulu8u345 存在此类",
+    "class": "UnixPrintService",
+    "dependencies": [
+      {
+        "artifact": "linux",
+        "raw": "linux"
+      }
+    ]
+  },
+  {
+    "name": "UnixPrintServiceLookup 命令注入",
+    "description": "该类未实现 Serializable，只适用于Hessian反序列化 并且只适用于unix/linux\\\\njdk高版本移除此类\\\\n通过getter方法触发命令注入\\\\n本地测试 zulu8u345 不存在此类",
+    "class": "UnixPrintServiceLookup",
+    "dependencies": [
+      {
+        "artifact": "linux",
+        "raw": "linux"
+      }
+    ]
+  },
+  {
+    "name": "Xslt整合链2 一键通过js实现代码执行",
+    "description": "使用JavaUtils写xml文件，之后再调用Process函数解析进行任意代码执行，使用JS表达式来执行\\\\n不同于Xslt1链，本链使用Js来执行，不依赖Spring环境\\\\n注意执行后会在指定目录下残留两个文件\\\\n此链可重复执行，会覆盖之前的Payload文件",
+    "class": "XsltOnlyJdk",
+    "dependencies": [
+      {
+        "artifact": "jdk",
+        "raw": "jdk<11"
+      }
+    ]
+  },
+  {
+    "name": "Xslt写xml文件链",
+    "description": "使用JavaUtils写xml文件，之后再配合XsltRead进行任意代码执行\\\\n执行后会在临时目录下生成xml文件，例如 /tmp/data_temp",
+    "class": "XsltWrite",
+    "dependencies": [
+      {
+        "artifact": "jdk",
+        "raw": "jdk"
+      }
+    ]
+  },
+  {
+    "name": "Groovy链",
+    "description": "",
+    "class": "GroovyWithRef",
+    "dependencies": [
+      {
+        "group": "org.codehaus.groovy",
+        "artifact": "groovy",
+        "version": "2.4.3"
+      }
+    ]
+  },
+  {
+    "name": "Resin链",
+    "description": "可加载Reference对象，类似JNDI注入的利用姿势。使用到了XString类",
+    "class": "Resin",
+    "dependencies": [
+      {
+        "group": "com.caucho",
+        "artifact": "quercus",
+        "version": "4.0.45"
+      }
+    ]
+  },
+  {
+    "name": "ROME链1 rome",
+    "description": "",
+    "class": "Rome1",
+    "dependencies": []
+  },
+  {
+    "name": "ROME链2 rometools",
+    "description": "",
+    "class": "Rome2",
+    "dependencies": []
+  },
+  {
+    "name": "equals调用本链 rome EqualsBean链1",
+    "description": "equals触发此链，仅依赖EqualsBean类，调用指定beanClass的所有getter方法。本链同时支持Java反序列化和Hessian反序列化",
+    "class": "RomeEqualsBean1",
+    "dependencies": [
+      {
+        "group": "rome",
+        "artifact": "rome",
+        "version": "1.0"
+      }
+    ]
+  },
+  {
+    "name": "equals调用本链 rometools EqualsBean链2",
+    "description": "equals触发此链，仅依赖EqualsBean类，调用指定beanClass的所有getter方法。本链同时支持Java反序列化和Hessian反序列化",
+    "class": "RomeEqualsBean2",
+    "dependencies": [
+      {
+        "group": "com.rometools",
+        "artifact": "rome",
+        "version": "1.7"
+      }
+    ]
+  },
+  {
+    "name": "toString调用本链 ROME ToStringBean链1",
+    "description": "需toString触发此链，仅依赖ToStringBean类，可触发getter方法",
+    "class": "RomeToStringBean1",
+    "dependencies": [
+      {
+        "group": "rome",
+        "artifact": "rome",
+        "version": "1.0"
+      }
+    ]
+  },
+  {
+    "name": "toString调用本链 ROME ToStringBean链2",
+    "description": "需toString触发此链，仅依赖ToStringBean类，可触发getter方法",
+    "class": "RomeToStringBean2",
+    "dependencies": [
+      {
+        "group": "com.rometools",
+        "artifact": "rome",
+        "version": "1.7"
+      }
+    ]
+  },
+  {
+    "name": "XBean链",
+    "description": "加载本地或远程Reference对象\\\\n涉及 org.apache.xbean.naming.context.WritableContext、javax.naming.ldap.Rdn$RdnEntry、com.sun.org.apache.xpath.internal.objects.XString",
+    "class": "XBean",
+    "dependencies": [
+      {
+        "group": "org.apache.xbean",
+        "artifact": "xbean-naming",
+        "version": "4.20"
+      }
+    ]
+  },
+  {
+    "name": "需要toString链触发的XBean链",
+    "description": "加载本地或远程Reference对象\\\\norg.apache.xbean.naming.context.WritableContext",
+    "class": "XBeanToString",
+    "dependencies": [
+      {
+        "group": "org.apache.xbean",
+        "artifact": "xbean-naming",
+        "version": "4.20"
+      }
+    ]
+  },
+  {
+    "name": "Spring相关链",
+    "description": "",
+    "class": "SpringAbstractBeanFactoryPointcutAdvisor",
+    "dependencies": [
+      {
+        "group": "org.springframework",
+        "artifact": "spring-context",
+        "version": "*"
+      },
+      {
+        "group": "org.springframework",
+        "artifact": "spring-aop",
+        "version": "*"
+      }
+    ]
+  },
+  {
+    "name": "Spring JNDI链",
+    "description": "",
+    "class": "SpringPartiallyComparableAdvisorHolder",
+    "dependencies": [
+      {
+        "group": "org.springframework",
+        "artifact": "spring-context",
+        "version": "*"
+      },
+      {
+        "group": "org.springframework",
+        "artifact": "spring-aop",
+        "version": "*"
+      }
+    ]
+  },
+  {
+    "name": "Xslt解析xml文件链",
+    "description": "需要先使用XsltWrite或其他方式写入xml文件，之后通过本链读取解析指定xml文件实现代码执行.\\\\n执行后默认会在临时目录下生成class文件，例如 /tmp/data_temp.class",
+    "class": "XsltRead",
+    "dependencies": [
+      {
+        "artifact": "jdk",
+        "raw": "jdk"
+      }
+    ]
+  },
+  {
+    "name": "Xslt整合链 一键代码执行",
+    "description": "使用JavaUtils写xml文件，之后再调用Process函数解析进行任意代码执行\\\\n可适用于Nacos7848端口RCE场景，但是需要额外的MetadataOperation对象封装，否则该洞导致只能打一次\\\\n注意这里依赖Spring方法：org.springframework.cglib.core.ReflectUtils\\\\n注意执行后会在指定目录下残留两个文件。此链可重复执行，会覆盖之前的Payload文件",
+    "class": "XsltSpring",
+    "dependencies": [
+      {
+        "artifact": "spring-core",
+        "raw": "spring-core"
+      }
+    ]
+  },
+  {
+    "name": "执行win/linux命令",
+    "description": "通过 org.springframework.beans.factory.config.MethodInvokingFactoryBean 实现调用任意方法\\\\n本链调用 java.lang.Runtime.getRuntime 实现命令执行",
+    "class": "SpringExec",
+    "dependencies": [
+      {
+        "group": "org.springframework",
+        "artifact": "spring-context",
+        "version": "*"
+      }
+    ]
+  },
+  {
+    "name": "向外发起JNDI连接，推荐使用",
+    "description": "利用 spring 中的 org.springframework.jndi.support.SimpleJndiBeanFactory 发起JNDI请求",
+    "class": "SpringJndi1",
+    "dependencies": [
+      {
+        "group": "org.springframework",
+        "artifact": "spring-context",
+        "version": "*"
+      }
+    ]
+  },
+  {
+    "name": "向外发起JNDI连接",
+    "description": "利用 spring 中的 org.springframework.transaction.jta.JtaTransactionManager 发起JNDI请求",
+    "class": "SpringJndi2",
+    "dependencies": [
+      {
+        "group": "javax.transaction",
+        "artifact": "jta",
+        "version": "1.1"
+      },
+      {
+        "artifact": "spring-tx",
+        "raw": "spring-tx"
+      }
+    ]
+  },
+  {
+    "name": "执行linux命令",
+    "description": "通过 org.springframework.beans.factory.config.MethodInvokingFactoryBean 实现调用任意方法\\\\n本链调用 java.lang.Runtime.getRuntime 实现命令执行\\\\n本链执行模板: bash -c 'cmd'",
+    "class": "SpringLinuxExec",
+    "dependencies": [
+      {
+        "group": "org.springframework",
+        "artifact": "spring-context",
+        "version": "*"
+      }
+    ]
+  },
+  {
+    "name": "加载目标的jar包进行任意函数调用",
+    "description": "",
+    "class": "SpringLoadJar",
+    "dependencies": []
+  },
+  {
+    "name": "任意文件上传",
+    "description": "通过 org.springframework.beans.factory.config.MethodInvokingFactoryBean 实现调用任意方法\\\\n本链调用 com.sun.org.apache.xml.internal.security.utils.JavaUtils 实现任意文件写入\\\\n之后可配合 SpringLoadJar 链实现任意代码执行",
+    "class": "SpringUpload",
+    "dependencies": [
+      {
+        "group": "org.springframework",
+        "artifact": "spring-context",
+        "version": "*"
+      }
+    ]
+  },
+  {
+    "name": "Java原生反序列化Payload生成",
+    "description": "对恶意对象进行序列化，生成返回Java序列化后的字节流",
+    "class": "JavaNativeSerialization",
+    "dependencies": []
+  },
+  {
+    "name": "Beanshell链",
+    "description": "",
+    "class": "BeanShell1",
+    "dependencies": [
+      {
+        "group": "org.beanshell",
+        "artifact": "bsh",
+        "version": "2.0b5"
+      }
+    ]
+  },
+  {
+    "name": "Beanshell链2",
+    "description": "",
+    "class": "BeanShell2",
+    "dependencies": [
+      {
+        "group": "org.beanshell",
+        "artifact": "bsh",
+        "version": "2.0b5"
+      }
+    ]
+  },
+  {
+    "name": "C3p0:C3P0 二次反序列化",
+    "description": "",
+    "class": "C3p0_C3p0HexSerialize",
+    "dependencies": []
+  },
+  {
+    "name": "C3p0:C3P0 jndi注入",
+    "description": "",
+    "class": "C3p0_C3p0Jndi",
+    "dependencies": []
+  },
+  {
+    "name": "C3P0:C3P0 jndi注入",
+    "description": "",
+    "class": "C3p0_C3p0Jndi2",
+    "dependencies": []
+  },
+  {
+    "name": "C3P0 Reference 类加载",
+    "description": "支持LDAP远程字节码加载、本地 BeanFactory el表达式执行等\\\\n目前仍然影响c3p0最新版 0.10.1 版本的依赖\\\\ncom.mchange:c3p0:0.10.1 搭配 TomcatElRef 测试中发现重复发送相同包只会触发一次Payload，想要重复触发需要重新生成payload，创建新的字节码类名才可以\\\\n而 0.9.5.5 版本可以重复触发相同类名字节码",
+    "class": "C3p0_C3p0Reference",
+    "dependencies": [
+      {
+        "group": "c3p0",
+        "artifact": "c3p0",
+        "version": "*"
+      }
+    ]
+  },
+  {
+    "name": "CB 1.9 链",
+    "description": "调用任意字段的getter方法，org.apache.commons.beanutils.BeanComparator: serialVersionUID -2044202215314119608L\\\\n适用依赖版本范围：commons-beanutils-1.9.0 ~ 1.9.4\\\\n\\\\ncommons-beanutils 1.8.3 无内置 commons-collections\\\\ncommons-beanutils 1.9.2 内置 commons-collections:3.2.1\\\\ncommons-beanutils 1.9.3 内置 commons-collections:3.2.2\\\\ncommons-beanutils 1.10.0 内置 commons-collections:3.2.2\\\\n",
+    "class": "CommonsBeanutils1",
+    "dependencies": [
+      {
+        "group": "commons-beanutils",
+        "artifact": "commons-beanutils",
+        "version": "1.9.4"
+      },
+      {
+        "group": "commons-logging",
+        "artifact": "commons-logging",
+        "version": "1.2"
+      }
+    ]
+  },
+  {
+    "name": "CB 1.8/1.7 链",
+    "description": "调用任意字段的getter方法，org.apache.commons.beanutils.BeanComparator: serialVersionUID -3490850999041592962\\\\n适用依赖版本范围：commons-beanutils-1.7.0、commons-beanutils-1.8.0~1.8.3\\\\n\\\\ncommons-beanutils 1.8.3 无内置 commons-collections\\\\ncommons-beanutils 1.9.2 内置 commons-collections:3.2.1\\\\ncommons-beanutils 1.9.3 内置 commons-collections:3.2.2\\\\ncommons-beanutils 1.10.0 内置 commons-collections:3.2.2\\\\n",
+    "class": "CommonsBeanutils2",
+    "dependencies": [
+      {
+        "group": "commons-beanutils",
+        "artifact": "commons-beanutils",
+        "version": "1.8.2"
+      },
+      {
+        "group": "commons-logging",
+        "artifact": "commons-logging",
+        "version": "1.1.1"
+      }
+    ]
+  },
+  {
+    "name": "CB 1.6 链",
+    "description": "调用任意字段的getter方法，org.apache.commons.beanutils.BeanComparator: serialVersionUID 2573799559215537819L\\\\n适用依赖版本范围：commons-beanutils-1.6 ~ 1.6.1\\\\n\\\\ncommons-beanutils 1.8.3 无内置 commons-collections\\\\ncommons-beanutils 1.9.2 内置 commons-collections:3.2.1\\\\ncommons-beanutils 1.9.3 内置 commons-collections:3.2.2\\\\ncommons-beanutils 1.10.0 内置 commons-collections:3.2.2\\\\n",
+    "class": "CommonsBeanutils3",
+    "dependencies": [
+      {
+        "group": "commons-beanutils",
+        "artifact": "commons-beanutils",
+        "version": "1.6.1 ~ 1.6.1"
+      },
+      {
+        "group": "commons-logging",
+        "artifact": "commons-logging",
+        "version": "1.1.1"
+      }
+    ]
+  },
+  {
+    "name": "CB 1.5 链",
+    "description": "调用任意字段的getter方法，org.apache.commons.beanutils.BeanComparator: serialVersionUID 5123381023979609048L\\\\n\\\\ncommons-beanutils 1.8.3 无内置 commons-collections\\\\ncommons-beanutils 1.9.2 内置 commons-collections:3.2.1\\\\ncommons-beanutils 1.9.3 内置 commons-collections:3.2.2\\\\ncommons-beanutils 1.10.0 内置 commons-collections:3.2.2\\\\n",
+    "class": "CommonsBeanutils4",
+    "dependencies": [
+      {
+        "group": "commons-beanutils",
+        "artifact": "commons-beanutils",
+        "version": "1.5"
+      }
+    ]
+  },
+  {
+    "name": "CB 1.10 链",
+    "description": "调用任意字段的getter方法，org.apache.commons.beanutils.BeanComparator: serialVersionUID 1\\\\n该版本中的 BeanComparator 类固定写死 serialVersionUID 字段为 1L\\\\n\\\\ncommons-beanutils 1.8.3 无内置 commons-collections\\\\ncommons-beanutils 1.9.2 内置 commons-collections:3.2.1\\\\ncommons-beanutils 1.9.3 内置 commons-collections:3.2.2\\\\ncommons-beanutils 1.10.0 内置 commons-collections:3.2.2\\\\n",
+    "class": "CommonsBeanutils5",
+    "dependencies": [
+      {
+        "group": "commons-beanutils",
+        "artifact": "commons-beanutils",
+        "version": "1.10.0"
+      },
+      {
+        "group": "commons-logging",
+        "artifact": "commons-logging",
+        "version": "1.3.4"
+      }
+    ]
+  },
+  {
+    "name": "CC Transform链加载BCEL",
+    "description": "使用 com.sun.org.apache.bcel.internal.util.ClassLoader 加载BCEL字节码",
+    "class": "TransformerWithBcel",
+    "dependencies": [
+      {
+        "raw": "<=commons-collections 3.2.1"
+      },
+      {
+        "artifact": "or",
+        "raw": "or <=commons-collections 4.0"
+      },
+      {
+        "artifact": "jdk",
+        "raw": "jdk < 8u251"
+      }
+    ]
+  },
+  {
+    "name": "CC Transform链绕TemplaetsImpl黑名单",
+    "description": "使用sun.org.mozilla.javascript.internal.DefiningClassLoader类替代 TemplaetsImpl，绕过用友nc黑名单TemplateImpl检测，JDK6、7 测试成功，可适用于NC、Websphere等反序列化",
+    "class": "TransformerWithDefiningClassLoader",
+    "dependencies": [
+      {
+        "raw": "<=commons-collections 3.2.1"
+      },
+      {
+        "artifact": "or",
+        "raw": "or <=commons-collections 4.0"
+      },
+      {
+        "artifact": "jdk",
+        "raw": "jdk < 8"
+      }
+    ]
+  },
+  {
+    "name": "CC Transform链绕TemplaetsImpl黑名单",
+    "description": "使用org.mozilla.javascript.DefiningClassLoader类替代 TemplaetsImpl，绕过用友nc黑名单TemplateImpl检测，JDK6、7 测试成功，可适用于NC、Websphere等反序列化",
+    "class": "TransformerWithDefiningClassLoader2",
+    "dependencies": [
+      {
+        "raw": "<=commons-collections 3.2.1"
+      },
+      {
+        "artifact": "or",
+        "raw": "or <=commons-collections 4.0"
+      },
+      {
+        "artifact": "jdk",
+        "raw": "jdk < 8"
+      }
+    ]
+  },
+  {
+    "name": "执行指定的系统命令",
+    "description": "使用 java.lang.Runtime 执行系统命令",
+    "class": "TransformerWithExec",
+    "dependencies": [
+      {
+        "artifact": "commons-collections",
+        "raw": "commons-collections <= 3.2.1 or commons-collections <= 4.0"
+      }
+    ]
+  },
+  {
+    "name": "写文件",
+    "description": "",
+    "class": "TransformerWithFileWrite",
+    "dependencies": [
+      {
+        "raw": "<=commons-collections 3.2.1"
+      },
+      {
+        "raw": "<=commons-collections 4.0"
+      }
+    ]
+  },
+  {
+    "name": "向外发起jndi连接",
+    "description": "",
+    "class": "TransformerWithJNDI",
+    "dependencies": [
+      {
+        "raw": "<=commons-collections 3.2.1"
+      },
+      {
+        "raw": "<=commons-collections 4.0"
+      }
+    ]
+  },
+  {
+    "name": "CC Transform链加载BCEL",
+    "description": "使用 com.sun.org.apache.bcel.internal.util.ClassLoader 加载BCEL字节码",
+    "class": "TransformerWithJs",
+    "dependencies": [
+      {
+        "raw": "<=commons-collections 3.2.1"
+      },
+      {
+        "artifact": "or",
+        "raw": "or <=commons-collections 4.0"
+      },
+      {
+        "artifact": "jdk",
+        "raw": "jdk < 8u251"
+      }
+    ]
+  },
+  {
+    "name": "MethodHandles 加载字节码",
+    "description": "jdk高版本使用 java.lang.invoke.MethodHandles.Lookup#defineClass 执行任意字节码\\\\n例如 CC 3.2.1 反序列化链中, 字节码类型格式需要为: org.apache.commons.collections.functors.xxx, xxx为任意类名\\\\n本链已实现自动设置字节码类名为 org.apache.commons.collections.functors.xxx",
+    "class": "TransformerWithMethodHandles",
+    "dependencies": [
+      {
+        "artifact": "jdk17",
+        "raw": "jdk17"
+      }
+    ]
+  },
+  {
+    "name": "Sleep指定时间",
+    "description": "",
+    "class": "TransformerWithSleep",
+    "dependencies": [
+      {
+        "raw": "<=commons-collections 3.2.1"
+      },
+      {
+        "raw": "<=commons-collections 4.0"
+      }
+    ]
+  },
+  {
+    "name": "TemplateImpl执行字节码",
+    "description": "执行后，执行任意代码，依赖TemplatesImpl",
+    "class": "TransformerWithTemplatesImpl",
+    "dependencies": [
+      {
+        "raw": "<=commons-collections 3.2.1"
+      },
+      {
+        "raw": "<=commons-collections 4.0"
+      }
+    ]
+  },
+  {
+    "name": "远程加载jar包",
+    "description": "执行后，向外部HTTP服务上挂载的jar文件进行载入",
+    "class": "TransformerWithURLClassLoader",
+    "dependencies": [
+      {
+        "raw": "<=commons-collections 3.2.1"
+      },
+      {
+        "raw": "<=commons-collections 4.0"
+      }
+    ]
+  },
+  {
+    "name": "CC3.X调用toString方法",
+    "description": "针对CC3.X版本的toString方法调用，org.apache.commons.collections.map.AbstractHashedMap$HashEntry + CaseInsensitiveMap 可调用任意toString方法",
+    "class": "CaseInsensitiveMap3ToString",
+    "dependencies": [
+      {
+        "group": "org.apache.commons",
+        "artifact": "commons-collections3",
+        "version": "3.x"
+      }
+    ]
+  },
+  {
+    "name": "CC3.2.1 InvokerTransformer 链",
+    "description": "针对CC3.2.1依赖，调用任意可序列化对象的任意public方法，并传入任意参数",
+    "class": "CommonsCollectionsK1",
+    "dependencies": [
+      {
+        "group": "commons-collections",
+        "artifact": "commons-collections",
+        "version": "3.2.1"
+      }
+    ]
+  },
+  {
+    "name": "CC3.2.1 ChainedTransformer 链",
+    "description": "针对CC3.2.1依赖，任意调用 org.apache.commons.collections.Transformer#transformer 方法，适用于某些类黑名单情况",
+    "class": "CommonsCollectionsK3",
+    "dependencies": [
+      {
+        "group": "commons-collections",
+        "artifact": "commons-collections",
+        "version": "3.2.1"
+      }
+    ]
+  },
+  {
+    "name": "CC4.x调用toString方法",
+    "description": "针对CC4.x依赖，org.apache.commons.collections4.map.AbstractHashedMap$HashEntry + CaseInsensitiveMap 可调用任意toString方法",
+    "class": "CaseInsensitiveMap4ToString",
+    "dependencies": [
+      {
+        "group": "org.apache.commons",
+        "artifact": "commons-collections4",
+        "version": "4.x"
+      }
+    ]
+  },
+  {
+    "name": "CC4.0 InvokerTransformer 链",
+    "description": "针对CC4.0依赖，调用任意可序列化对象的任意public方法，并传入任意参数",
+    "class": "CommonsCollectionsK2",
+    "dependencies": [
+      {
+        "group": "org.apache.commons",
+        "artifact": "commons-collections4",
+        "version": "4.0"
+      }
+    ]
+  },
+  {
+    "name": "CC4.0 ChainedTransformer 链",
+    "description": "针对CC4.0依赖，任意调用 org.apache.commons.collections.Transformer#transformer 方法，适用于某些类黑名单情况",
+    "class": "CommonsCollectionsK4",
+    "dependencies": [
+      {
+        "group": "org.apache.commons",
+        "artifact": "commons-collections4",
+        "version": "4.0"
+      }
+    ]
+  },
+  {
+    "name": "JdbcRowSetImpl JNDI链",
+    "description": "getter RCE",
+    "class": "JdbcRowSetImpl",
+    "dependencies": [
+      {
+        "artifact": "jdk",
+        "raw": "jdk"
+      }
+    ]
+  },
+  {
+    "name": "JFormattedTextField$FocusLostHandler ",
+    "description": "",
+    "class": "JFormattedTextField",
+    "dependencies": []
+  },
+  {
+    "name": "TemplatesImpl加载字节码",
+    "description": "加载的字节码会被自动设置为继承 AbstractTranslet 类\\\\n\\\\n不适用于高版本JDK，例如 JDK 17\\\\nHessian 反序列化下的部分场景无法使用\\\\n",
+    "class": "TemplatesImpl",
+    "dependencies": [
+      {
+        "artifact": "jdk",
+        "raw": "jdk < 17"
+      }
+    ]
+  },
+  {
+    "name": "TemplatesImpl2加载字节码",
+    "description": "",
+    "class": "TemplatesImpl2",
+    "dependencies": []
+  },
+  {
+    "name": "使用Spring动态代理处理TemplatesImpl",
+    "description": "使用 JdkDynamicAopProxy 类，解决Jackson调用时TemplatesImpl的不稳定问题",
+    "class": "TWrap",
+    "dependencies": [
+      {
+        "group": "spring-aop",
+        "artifact": "org.springframework.aop.framework.JdkDynamicAopProxy",
+        "version": "*"
+      }
+    ]
+  },
+  {
+    "name": "使用Spring动态代理处理TemplatesImpl 高版本JDK",
+    "description": "使用 JdkDynamicAopProxy 类，解决Jackson调用时TemplatesImpl的不稳定问题\\\\nDefaultAdvisorChainFactory>=6.0.10，suid: 273003553246259276，<6.0.10，suid: 6115154060221772279\\\\nsuid: -3979653472172368830 --> 3614129592059888932\\\\nsuid: 3356474919692123037 --> 8414315576825681772\\\\nsuid: -2303280975268180194 --> 1843367288807214527\\\\n由于suid修改是通过字节流替换，该 Gadget 可能不适用于二次反序列化场景",
+    "class": "TWrapHighVersion",
+    "dependencies": [
+      {
+        "group": "spring-aop",
+        "artifact": "org.springframework.aop.framework.JdkDynamicAopProxy",
+        "version": "*"
+      }
+    ]
+  },
+  {
+    "name": "getter方法调用本链发起DNS请求",
+    "description": "",
+    "class": "URL4Getter",
+    "dependencies": []
+  },
+  {
+    "name": "使用spring动态代理包裹 DataSource 的实现类",
+    "description": "使用 JdkDynamicAopProxy 类，解决Jackson调用Datasource的不稳定问题",
+    "class": "DWrap",
+    "dependencies": [
+      {
+        "group": "spring-aop",
+        "artifact": "org.springframework.aop.framework.JdkDynamicAopProxy",
+        "version": "*"
+      }
+    ]
+  },
+  {
+    "name": "C3p0DataSource JDBC URL Attack",
+    "description": "",
+    "class": "C3p0DataSource",
+    "dependencies": []
+  },
+  {
+    "name": "C3p0DataSource JDBC URL Attack",
+    "description": "",
+    "class": "C3p0DataSource2",
+    "dependencies": []
+  },
+  {
+    "name": "C3p0DataSource JDBC URL Attack",
+    "description": "",
+    "class": "C3p0DataSource3",
+    "dependencies": []
+  },
+  {
+    "name": "C3p0DataSource JDBC URL Attack",
+    "description": "",
+    "class": "C3p0DataSource4",
+    "dependencies": []
+  },
+  {
+    "name": "CommonDbcp2DataSource JNDI",
+    "description": "",
+    "class": "CommonDbcp2DataSource",
+    "dependencies": []
+  },
+  {
+    "name": "CommonDbcp2DataSource2 JNDI",
+    "description": "",
+    "class": "CommonDbcp2DataSource2",
+    "dependencies": []
+  },
+  {
+    "name": "CommonDbcpDataSource JNDI",
+    "description": "",
+    "class": "CommonDbcpDataSource",
+    "dependencies": []
+  },
+  {
+    "name": "CommonDbcpDataSource2 JNDI",
+    "description": "",
+    "class": "CommonDbcpDataSource2",
+    "dependencies": []
+  },
+  {
+    "name": "达梦 DataSource JNDI",
+    "description": "dm.jdbc.driver.DmdbRowSet",
+    "class": "DmdbRowSet",
+    "dependencies": [
+      {
+        "group": "com.dameng",
+        "artifact": "DmJdbcDriver18",
+        "version": "8.1.2.141"
+      }
+    ]
+  },
+  {
+    "name": "DruidXADataSource JDBC URL Attack",
+    "description": "getter 触发此链，通过 com.alibaba.druid.pool.xa.DruidXADataSource 类，转为 jdbc url相关利用，使用了DruidXADataSource类",
+    "class": "DruidDataSource",
+    "dependencies": [
+      {
+        "group": "com.alibaba",
+        "artifact": "druid",
+        "version": "1.2.16"
+      }
+    ]
+  },
+  {
+    "name": "DruidDataSource JDBC URL Attack",
+    "description": "getter 触发此链，通过 com.alibaba.druid.pool.DruidDataSource 类，转为 jdbc url相关利用",
+    "class": "DruidDataSource2",
+    "dependencies": [
+      {
+        "group": "com.alibaba",
+        "artifact": "druid",
+        "version": "1.2.16"
+      }
+    ]
+  },
+  {
+    "name": "DriverManagerConnectionProviderImp JDBC URL Attack",
+    "description": "getter 触发此链，通过  org.hibernate.service.jdbc.connections.internal.DriverManagerConnectionProviderImp 类，转为 jdbc url相关利用  serialVersionUID = -3339733132699493320L",
+    "class": "Hiber2jdbc",
+    "dependencies": [
+      {
+        "artifact": "org.hibernate",
+        "version": "4.1.2.Fina - 4.1.12.Fina"
+      }
+    ]
+  },
+  {
+    "name": "DriverManagerConnectionProviderImp JDBC URL Attack",
+    "description": "getter 触发此链，通过  org.hibernate.service.jdbc.connections.internal.DriverManagerConnectionProviderImp 类，转为 jdbc url相关利用  serialVersionUID = -2136711341907612497L",
+    "class": "Hiber2jdbc2",
+    "dependencies": [
+      {
+        "artifact": "org.hibernate",
+        "version": "4.0.0.Final-4.1.1.Final serid 变了"
+      }
+    ]
+  },
+  {
+    "name": "MysqlDataSource Mysql JDBC URL Attack",
+    "description": "getter触发此链，通过 com.mysql.jdbc.jdbc2.optional.MysqlDataSource 类，转为 mysql jdbc url 相关利用",
+    "class": "MysqlDataSource",
+    "dependencies": [
+      {
+        "artifact": "mysql-connector-java",
+        "raw": "mysql-connector-java"
+      }
+    ]
+  },
+  {
+    "name": "Oracle DataSource JNDI",
+    "description": "oracle.jdbc.rowset.OracleJDBCRowSet\\\\n需要Getter触发,fj可能触发不到getConnection就退出了，用cb最好",
+    "class": "OracleCachedRowSet",
+    "dependencies": [
+      {
+        "artifact": "oracle",
+        "raw": "oracle"
+      }
+    ]
+  },
+  {
+    "name": "Oracle DataSource JNDI",
+    "description": "oracle.jdbc.rowset.OracleFilteredRowSet\\\\n需要Getter触发,fj可能触发不到getConnection就退出了，用cb最好",
+    "class": "OracleFilteredRowSet",
+    "dependencies": [
+      {
+        "artifact": "oracle",
+        "raw": "oracle"
+      }
+    ]
+  },
+  {
+    "name": "Oracle DataSource JNDI",
+    "description": "oracle.jdbc.rowset.OracleJDBCRowSet\\\\n需要setter触发",
+    "class": "OracleJDBCRowSet",
+    "dependencies": [
+      {
+        "artifact": "oracle",
+        "raw": "oracle"
+      }
+    ]
+  },
+  {
+    "name": "Oracle DataSource JNDI",
+    "description": "oracle.jdbc.rowset.OracleJoinRowSet\\\\n需要Getter触发,fj可能触发不到getConnection就退出了，用cb最好",
+    "class": "OracleJoinRowSet",
+    "dependencies": [
+      {
+        "artifact": "oracle",
+        "raw": "oracle"
+      }
+    ]
+  },
+  {
+    "name": "Oracle DataSource JNDI",
+    "description": "oracle.jdbc.rowset.OracleWebRowSet\\\\n需要Getter触发,fj可能触发不到getConnection就退出了，用cb最好",
+    "class": "OracleWebRowSet",
+    "dependencies": [
+      {
+        "artifact": "oracle",
+        "raw": "oracle"
+      }
+    ]
+  },
+  {
+    "name": "PostgreSqlDataSource PostgreSQL JDBC URL Attack",
+    "description": "",
+    "class": "PostgreSqlDataSource",
+    "dependencies": []
+  },
+  {
+    "name": "PGSimpleDataSource PostgreSQL JDBC URL Attack",
+    "description": "",
+    "class": "PostgreSqlDataSource2",
+    "dependencies": []
+  },
+  {
+    "name": "Teradata DataSource",
+    "description": "com.teradata.jdbc.TeraDataSource\\\\n漏洞利用较为复杂\\\\nReference: https://github.com/luelueking/Deserial_Sink_With_JDBC/blob/main/src/main/java/teradata/TeradataSink.java",
+    "class": "TeraDataSource",
+    "dependencies": [
+      {
+        "group": "com.teradata.jdbc",
+        "artifact": "terajdbc4",
+        "version": "17.20.00.12"
+      }
+    ]
+  },
+  {
+    "name": "TomcatDbcp2DataSource JNDI",
+    "description": "",
+    "class": "TomcatDbcp2DataSource",
+    "dependencies": []
+  },
+  {
+    "name": "TomcatDbcp2DataSource2 JNDI",
+    "description": "",
+    "class": "TomcatDbcp2DataSource2",
+    "dependencies": []
+  },
+  {
+    "name": "TomcatDbcpDataSource JNDI",
+    "description": "",
+    "class": "TomcatDbcpDataSource",
+    "dependencies": []
+  },
+  {
+    "name": "TomcatDbcpDataSource2 JNDI",
+    "description": "",
+    "class": "TomcatDbcpDataSource2",
+    "dependencies": []
+  },
+  {
+    "name": "Fastjson反序列化链",
+    "description": "",
+    "class": "Fastjson",
+    "dependencies": []
+  },
+  {
+    "name": "Fastjson2反序列化链",
+    "description": "",
+    "class": "Fastjson2",
+    "dependencies": []
+  },
+  {
+    "name": "需要toString链触发的Fastjson反序列化链",
+    "description": "",
+    "class": "FastjsonToString1",
+    "dependencies": []
+  },
+  {
+    "name": "需要toString链触发的Fastjson2反序列化链",
+    "description": "",
+    "class": "FastjsonToString2",
+    "dependencies": []
+  },
+  {
+    "name": "Groovy反序列化链",
+    "description": "",
+    "class": "Groovy",
+    "dependencies": []
+  },
+  {
+    "name": "Groovy反序列化链1",
+    "description": "",
+    "class": "Groovy2",
+    "dependencies": [
+      {
+        "group": "org.codehaus.groovy",
+        "artifact": "groovy",
+        "version": "2.4.3"
+      }
+    ]
+  },
+  {
+    "name": "Groovy2 GString 链",
+    "description": "GString 入口链\\\\nhashmap: HashMap.readObject -> GString.hashCode/toString -> Closure.call\\\\nskiplist: ConcurrentSkipListMap.readObject -> GString.compareTo -> Closure.call（JDK 11+）",
+    "class": "Groovy2GString",
+    "dependencies": [
+      {
+        "group": "org.codehaus.groovy",
+        "artifact": "groovy",
+        "version": "2.4.3"
+      }
+    ]
+  },
+  {
+    "name": "Groovy反序列化拓展链",
+    "description": "调用任意对象的任意方法",
+    "class": "GroovyExpando",
+    "dependencies": [
+      {
+        "group": "org.codehaus.groovy",
+        "artifact": "groovy",
+        "version": "2.4.3"
+      }
+    ]
+  },
+  {
+    "name": "向外发起JNDI",
+    "description": "",
+    "class": "ClosureWithJNDI",
+    "dependencies": [
+      {
+        "group": "org.codehaus.groovy",
+        "artifact": "groovy",
+        "version": "2.4.3"
+      }
+    ]
+  },
+  {
+    "name": "Groovy沙箱-JNDI",
+    "description": "Groovy 沙箱变体（Groovy 2.4.4-2.4.7 + groovy-sandbox）",
+    "class": "ClosureWithJNDISandboxed",
+    "dependencies": [
+      {
+        "group": "org.codehaus.groovy",
+        "artifact": "groovy",
+        "version": "2.4.4-2.4.7"
+      },
+      {
+        "group": "org.kohsuke",
+        "artifact": "groovy-sandbox",
+        "version": "*"
+      }
+    ]
+  },
+  {
+    "name": "执行任意命令",
+    "description": "",
+    "class": "ClosureWithRuntime",
+    "dependencies": [
+      {
+        "group": "org.codehaus.groovy",
+        "artifact": "groovy",
+        "version": "2.4.3"
+      }
+    ]
+  },
+  {
+    "name": "Groovy沙箱-命令执行",
+    "description": "Groovy 沙箱变体（Groovy 2.4.4-2.4.7 + groovy-sandbox）",
+    "class": "ClosureWithRuntimeSandboxed",
+    "dependencies": [
+      {
+        "group": "org.codehaus.groovy",
+        "artifact": "groovy",
+        "version": "2.4.4-2.4.7"
+      },
+      {
+        "group": "org.kohsuke",
+        "artifact": "groovy-sandbox",
+        "version": "*"
+      }
+    ]
+  },
+  {
+    "name": "Groovy利用链代码执行",
+    "description": "使用 TemplatesImpl 实现代码执行",
+    "class": "ClosureWithTemplatesImpl",
+    "dependencies": [
+      {
+        "group": "org.codehaus.groovy",
+        "artifact": "groovy",
+        "version": "2.4.3"
+      }
+    ]
+  },
+  {
+    "name": "Groovy沙箱-TemplatesImpl",
+    "description": "Groovy 沙箱变体（Groovy 2.4.4-2.4.7 + groovy-sandbox）",
+    "class": "ClosureWithTemplatesImplSandboxed",
+    "dependencies": [
+      {
+        "group": "org.codehaus.groovy",
+        "artifact": "groovy",
+        "version": "2.4.4-2.4.7"
+      },
+      {
+        "group": "org.kohsuke",
+        "artifact": "groovy-sandbox",
+        "version": "*"
+      }
+    ]
+  },
+  {
+    "name": "Jackson反序列化链",
+    "description": "",
+    "class": "Jackson",
+    "dependencies": []
+  },
+  {
+    "name": "需要toString链触发的Jackson反序列化",
+    "description": "",
+    "class": "JacksonToString",
+    "dependencies": []
+  },
+  {
+    "name": "DNSLog探测类",
+    "description": "反序列化向外部发起Dns请求可批量探测目标是否存在对应的类\\\\n参数使用优先级: 自定义类探测 > 本地文件 > 内置参数探测",
+    "class": "FindClass",
+    "dependencies": []
+  },
+  {
+    "name": "DNSLog探测类2-指定suid",
+    "description": "精确探测目标类版本\\\\n指定类的 serialVersionUID 字段, 如果目标存在该类且suid能够与之相对应才会向外发起DNSLog请求\\\\n如果只想探测类是否存在请使用 FindClass",
+    "class": "FindClass2",
+    "dependencies": []
+  },
+  {
+    "name": "Sleep探测类",
+    "description": "可通过反序列化大量时间消耗来探测类\\\\n也可以通过该链探测反序列化点",
+    "class": "FindClassByBomb",
+    "dependencies": []
+  },
+  {
+    "name": "Sleep探测类2-指定suid",
+    "description": "精确探测目标类版本\\\\n可指定的类的 serialVersionUID 字段值, 目标环境存在该类且与suid相对应才会进行 “sleep”, 如果只想探测类的存在请使用 FindClassByBomb",
+    "class": "FindClassByBomb2",
+    "dependencies": []
+  },
+  {
+    "name": "jdk7u21反序列化链",
+    "description": "",
+    "class": "Jdk7u21",
+    "dependencies": []
+  },
+  {
+    "name": "Jre8u20反序列化链",
+    "description": "",
+    "class": "JRE8u20",
+    "dependencies": []
+  },
+  {
+    "name": "JRMPClient",
+    "description": "",
+    "class": "JRMPClient",
+    "dependencies": []
+  },
+  {
+    "name": "JRMPClient2",
+    "description": "java.rmi.server.UnicastRemoteObject",
+    "class": "JRMPClient2",
+    "dependencies": [
+      {
+        "artifact": "JDK",
+        "raw": "JDK < 8u241"
+      }
+    ]
+  },
+  {
+    "name": "JRMPClient3",
+    "description": "javax.management.remote.rmi.RMIConnectionImpl_Stub",
+    "class": "JRMPClient3",
+    "dependencies": []
+  },
+  {
+    "name": "JRMPListener",
+    "description": "java.rmi.server.UnicastRemoteObject\\\\n反序列化此 payload 后，目标将会监听设置的端口，配合 exploit 模块中的 JRMPClient 即可RCE",
+    "class": "JRMPListener",
+    "dependencies": []
+  },
+  {
+    "name": "LdapAttribute JNDI",
+    "description": "",
+    "class": "LdapAttribute",
+    "dependencies": []
+  },
+  {
+    "name": "MapMessage二次反序列化",
+    "description": "",
+    "class": "MapMessage",
+    "dependencies": []
+  },
+  {
+    "name": "hutool.MapProxy二次反序列化",
+    "description": "",
+    "class": "MapProxy",
+    "dependencies": []
+  },
+  {
+    "name": "ProcessBuilder执行命令",
+    "description": "",
+    "class": "ProcessBuilder",
+    "dependencies": []
+  },
+  {
+    "name": "RMIConnector二次反序列化",
+    "description": "",
+    "class": "RMIConnector",
+    "dependencies": []
+  },
+  {
+    "name": "SignedObject二次反序列化",
+    "description": "",
+    "class": "SignedObject",
+    "dependencies": []
+  },
+  {
+    "name": "发起DNS请求",
+    "description": "用来判断是否存在Java反序列化点，以及判断DNS是否出网",
+    "class": "URLDNS",
+    "dependencies": []
+  },
+  {
+    "name": "Xalan XString 调用toString链",
+    "description": "",
+    "class": "XalanXString1",
+    "dependencies": []
+  },
+  {
+    "name": "Xalan XStringForChars 调用toString链",
+    "description": "",
+    "class": "XalanXString2",
+    "dependencies": []
+  },
+  {
+    "name": "Xalan XStringForFSB 调用toString链",
+    "description": "",
+    "class": "XalanXString3",
+    "dependencies": []
+  },
+  {
+    "name": "XString 调用toString链",
+    "description": "",
+    "class": "XString1",
+    "dependencies": []
+  },
+  {
+    "name": "XStringForChars 调用toString链",
+    "description": "",
+    "class": "XString2",
+    "dependencies": []
+  },
+  {
+    "name": "XStringForFSB 调用toString链",
+    "description": "",
+    "class": "XString3",
+    "dependencies": []
+  },
+  {
+    "name": "C3P0 二次反序列化",
+    "description": "",
+    "class": "MchangeC3p0HexSerialize",
+    "dependencies": []
+  },
+  {
+    "name": "C3P0 jndi注入",
+    "description": "",
+    "class": "MchangeC3p0Jndi",
+    "dependencies": []
+  },
+  {
+    "name": "C3P0 jndi注入",
+    "description": "",
+    "class": "MchangeC3p0Jndi2",
+    "dependencies": []
+  },
+  {
+    "name": "C3P0 Reference 类加载",
+    "description": "支持LDAP远程字节码加载、本地 BeanFactory el表达式执行等\\\\n目前仍然影响c3p0最新版 0.10.1 版本的依赖\\\\ncom.mchange:c3p0:0.10.1 搭配 TomcatElRef 测试中发现重复发送相同包只会触发一次Payload，想要重复触发需要重新生成payload，创建新的字节码类名才可以\\\\n而 0.9.5.5 版本可以重复触发相同类名字节码",
+    "class": "MchangeC3p0Reference",
+    "dependencies": [
+      {
+        "group": "com.mchange",
+        "artifact": "c3p0",
+        "version": "0.9.1.2 ~ 0.10.1"
+      }
+    ]
+  },
+  {
+    "name": "Click1",
+    "description": "",
+    "class": "Click1",
+    "dependencies": [
+      {
+        "group": "org.apache.click",
+        "artifact": "click-nodeps",
+        "version": "2.3.0"
+      },
+      {
+        "group": "javax.servlet",
+        "artifact": "javax.servlet-api",
+        "version": "3.1.0"
+      }
+    ]
+  },
+  {
+    "name": "Clojure",
+    "description": "",
+    "class": "Clojure",
+    "dependencies": [
+      {
+        "group": "org.clojure",
+        "artifact": "clojure",
+        "version": "1.8.0"
+      }
+    ]
+  },
+  {
+    "name": "FileUpload1",
+    "description": "文件上传链\\\\n代码参考：https://github.com/frohoff/ysoserial/blob/master/src/main/java/ysoserial/payloads/FileUpload1.java",
+    "class": "FileUpload1",
+    "dependencies": [
+      {
+        "group": "commons-fileupload",
+        "artifact": "commons-fileupload",
+        "version": "1.3.1"
+      },
+      {
+        "group": "commons-io",
+        "artifact": "commons-io",
+        "version": "2.4"
+      }
+    ]
+  },
+  {
+    "name": "Hibernate1链 版本3/4",
+    "description": "",
+    "class": "Hibernate1",
+    "dependencies": [
+      {
+        "artifact": "hibernate",
+        "raw": "hibernate"
+      }
+    ]
+  },
+  {
+    "name": "Hibernate1链 版本5",
+    "description": "",
+    "class": "Hibernate1For5",
+    "dependencies": [
+      {
+        "artifact": "hibernate5",
+        "raw": "hibernate5"
+      }
+    ]
+  },
+  {
+    "name": "Hibernate2链 版本3/4",
+    "description": "",
+    "class": "Hibernate2",
+    "dependencies": [
+      {
+        "artifact": "hibernate",
+        "raw": "hibernate"
+      }
+    ]
+  },
+  {
+    "name": "Hibernate2链 版本5",
+    "description": "",
+    "class": "Hibernate2For5",
+    "dependencies": [
+      {
+        "artifact": "hibernate5",
+        "raw": "hibernate5"
+      }
+    ]
+  },
+  {
+    "name": "JavassistWeld1链",
+    "description": "",
+    "class": "JavassistWeld1",
+    "dependencies": [
+      {
+        "group": "javassist",
+        "artifact": "javassist",
+        "version": "3.12.1.GA"
+      },
+      {
+        "group": "org.jboss.weld",
+        "artifact": "weld-core",
+        "version": "1.1.33.Final"
+      },
+      {
+        "group": "javax.enterprise",
+        "artifact": "cdi-api",
+        "version": "1.0-SP1"
+      },
+      {
+        "group": "javax.interceptor",
+        "artifact": "javax.interceptor-api",
+        "version": "3.1"
+      },
+      {
+        "group": "org.jboss.interceptor",
+        "artifact": "jboss-interceptor-spi",
+        "version": "2.0.0.Final"
+      },
+      {
+        "group": "org.slf4j",
+        "artifact": "slf4j-api",
+        "version": "1.7.21"
+      }
+    ]
+  },
+  {
+    "name": "JBossInterceptors1链",
+    "description": "",
+    "class": "JBossInterceptors1",
+    "dependencies": [
+      {
+        "group": "javassist",
+        "artifact": "javassist",
+        "version": "3.12.1.GA"
+      },
+      {
+        "group": "org.jboss.interceptor",
+        "artifact": "jboss-interceptor-core",
+        "version": "2.0.0.Final"
+      },
+      {
+        "group": "javax.enterprise",
+        "artifact": "cdi-api",
+        "version": "1.0-SP1"
+      },
+      {
+        "group": "javax.interceptor",
+        "artifact": "javax.interceptor-api",
+        "version": "3.1"
+      },
+      {
+        "group": "org.jboss.interceptor",
+        "artifact": "jboss-interceptor-spi",
+        "version": "2.0.0.Final"
+      },
+      {
+        "group": "org.slf4j",
+        "artifact": "slf4j-api",
+        "version": "1.7.21"
+      }
+    ]
+  },
+  {
+    "name": "JSON1链",
+    "description": "net.sf.json-lib 链",
+    "class": "JSON1",
+    "dependencies": [
+      {
+        "artifact": "net",
+        "raw": "net.sf.json-lib:json-lib:jar:jdk15:2.4"
+      },
+      {
+        "group": "org.springframework",
+        "artifact": "spring-aop",
+        "version": "4.1.4.RELEASE"
+      },
+      {
+        "group": "aopalliance",
+        "artifact": "aopalliance",
+        "version": "1.0"
+      },
+      {
+        "group": "commons-logging",
+        "artifact": "commons-logging",
+        "version": "1.2"
+      },
+      {
+        "group": "commons-lang",
+        "artifact": "commons-lang",
+        "version": "2.6"
+      },
+      {
+        "group": "net.sf.ezmorph",
+        "artifact": "ezmorph",
+        "version": "1.0.6"
+      },
+      {
+        "group": "commons-beanutils",
+        "artifact": "commons-beanutils",
+        "version": "1.9.2"
+      },
+      {
+        "group": "org.springframework",
+        "artifact": "spring-core",
+        "version": "4.1.4.RELEASE"
+      },
+      {
+        "group": "commons-collections",
+        "artifact": "commons-collections",
+        "version": "3.1"
+      }
+    ]
+  },
+  {
+    "name": "Jython1链",
+    "description": "pythonCode和localPath参数二选一, 执行完后记得删除目标残留的py文件",
+    "class": "Jython1",
+    "dependencies": [
+      {
+        "group": "org.python",
+        "artifact": "jython-standalone",
+        "version": "2.5.2"
+      }
+    ]
+  },
+  {
+    "name": "MozillaRhino1 RCE",
+    "description": "调用任意方法",
+    "class": "MozillaRhino1",
+    "dependencies": [
+      {
+        "group": "rhino",
+        "artifact": "js",
+        "version": "1.7R2"
+      }
+    ]
+  },
+  {
+    "name": "MozillaRhino2 RCE",
+    "description": "不使用BadAttributeValueExpException，调用指定字段的getter方法",
+    "class": "MozillaRhino2",
+    "dependencies": [
+      {
+        "group": "rhino",
+        "artifact": "js>1.6R6",
+        "version": "*"
+      }
+    ]
+  },
+  {
+    "name": "MozillaRhino3 JS RCE",
+    "description": "",
+    "class": "MozillaRhino3",
+    "dependencies": [
+      {
+        "group": "rhino",
+        "artifact": "js <= 1.7.13",
+        "version": "*"
+      }
+    ]
+  },
+  {
+    "name": "Vaadin1",
+    "description": "",
+    "class": "Vaadin1",
+    "dependencies": [
+      {
+        "group": "com.vaadin",
+        "artifact": "vaadin-server",
+        "version": "7.7.14"
+      },
+      {
+        "group": "com.vaadin",
+        "artifact": "vaadin-shared",
+        "version": "7.7.14"
+      }
+    ]
+  },
+  {
+    "name": "Wicket1",
+    "description": "",
+    "class": "Wicket1",
+    "dependencies": []
+  },
+  {
+    "name": "WildFly JNDI",
+    "description": "",
+    "class": "WildFly",
+    "dependencies": [
+      {
+        "group": "org.wildfly",
+        "artifact": "wildfly-connector",
+        "version": "26.0.1.Final"
+      }
+    ]
+  },
+  {
+    "name": "AspectJ链指定目录文件写入文件",
+    "description": "1.9.4不存在",
+    "class": "AspectJWeaver",
+    "dependencies": [
+      {
+        "group": "commons-collections",
+        "artifact": "commons-collections",
+        "version": "all"
+      }
+    ]
+  },
+  {
+    "name": "指定目录文件写入文件",
+    "description": "",
+    "class": "StoreableCachingMap",
+    "dependencies": [
+      {
+        "group": "org.aspectj",
+        "artifact": "aspectjweaver",
+        "version": "1.9.2"
+      }
+    ]
+  },
+  {
+    "name": "使用ReferenceWrapper对Reference类进行封装",
+    "description": "",
+    "class": "RefWrap",
+    "dependencies": []
+  },
+  {
+    "name": "发起RMI请求bypass",
+    "description": "using to bypass jdk>=8u232 <=8u242\\\\",
+    "class": "RMIConnectWithUnicastRemoteObject",
+    "dependencies": []
+  },
+  {
+    "name": "发起RMI请求",
+    "description": "using to bypass jdk>=8u121\\\\",
+    "class": "RMIConnectWrapped",
+    "dependencies": []
+  },
+  {
+    "name": "发起RMI请求",
+    "description": "using to bypass jdk>=8u121\\\\",
+    "class": "RMIConnectWrappedWithProxy",
+    "dependencies": []
+  },
+  {
+    "name": "SpringAop aspectjweaver 链",
+    "description": "Reference: https://github.com/Ape1ron/SpringAopInDeserializationDemo1\\\\norg.springframework.aop.framework.DefaultAdvisorChainFactory\\\\nserialVersionUID - #HEX 0x54dd6437e24e71f7\\\\nserialVersionUID - #DEC 6115154060221772279\\\\n生成 Hessian Payload存在一些问题\\\\n",
+    "class": "SpringAopAspectjweaver",
+    "dependencies": [
+      {
+        "group": "org.springframework",
+        "artifact": "spring-aop",
+        "version": "5.3.19"
+      },
+      {
+        "group": "org.aspectj",
+        "artifact": "aspectjweaver",
+        "version": "1.9.8"
+      }
+    ]
+  },
+  {
+    "name": "Spring Fastjson链",
+    "description": "",
+    "class": "SpringBeansFastjson",
+    "dependencies": []
+  },
+  {
+    "name": "远程字节码加载",
+    "description": "",
+    "class": "LdapClassLoader",
+    "dependencies": []
+  },
+  {
+    "name": "LdapCtxFactory Bypass",
+    "description": "com.sun.jndi.ldap.LdapCtxFactory",
+    "class": "BypassRef",
+    "dependencies": [
+      {
+        "artifact": "jdk21",
+        "raw": "jdk21 bypass"
+      }
+    ]
+  },
+  {
+    "name": "Hessian JNDI SSRF",
+    "description": "factory: com.caucho.burlap.client.BurlapProxyFactory\\\\nGET类型可控url的SSRF",
+    "class": "HessianSSRF",
+    "dependencies": [
+      {
+        "group": "com.caucho",
+        "artifact": "hessian",
+        "version": "4.0.38"
+      }
+    ]
+  },
+  {
+    "name": "JNDI C3P0 二次反序列化",
+    "description": "factory: com.mchange.v2.naming.JavaBeanObjectFactory\\\\n利用 com.mchange.v2.c3p0.WrapperConnectionPoolDataSource 类实现二次反序列化",
+    "class": "JavaBeanObjectFactoryHexDS",
+    "dependencies": [
+      {
+        "artifact": "c3p0",
+        "raw": "c3p0"
+      }
+    ]
+  },
+  {
+    "name": "Tomcat MemoryUserDatabaseFactory 写文件RCE",
+    "description": "factory: org.apache.catalina.users.MemoryUserDatabaseFactory\\\\nclassName: org.apache.catalina.UserDatabase\\\\n\\\\n写文件RCE，Windows无需创建文件夹可直接触发该Gadget; Linux下需要配合其他姿势创建两个文件夹才可以写入\\\\n可通过 H2CreateDirRef 或者 VelocityCreateDirRef 进行创建文件夹:\\\\nstep1, create dir: http:\\\\nstep2, create dir: http:/127.0.0.1:51399\\\\n\\\\n实际创建好的两层目录 http:/127.0.0.1:51399\\\\n",
+    "class": "MemoryUserDatabaseFactoryWriteFile",
+    "dependencies": [
+      {
+        "artifact": "tomcat",
+        "raw": "tomcat"
+      },
+      {
+        "artifact": "tomcat-juli",
+        "raw": "tomcat-juli"
+      },
+      {
+        "artifact": "tomcat-util",
+        "raw": "tomcat-util"
+      },
+      {
+        "artifact": "tomcat-util-scan",
+        "raw": "tomcat-util-scan"
+      }
+    ]
+  },
+  {
+    "name": "h2 创建文件夹",
+    "description": "factory: org.apache.naming.factory.BeanFactory\\\\nJNDI Reference的一种，通过BeanFactory调用单String方法：org.h2.store.fs.FileUtils#createDirectory 创建文件夹，此链会在tomcat根目录下创建文件夹，会配合 MemoryUserDatabaseFactoryWriteFile 进行写文件RCE",
+    "class": "H2CreateDirRef",
+    "dependencies": [
+      {
+        "artifact": "tomcat",
+        "raw": "tomcat"
+      },
+      {
+        "group": "com.h2database",
+        "artifact": "h2",
+        "version": "*"
+      }
+    ]
+  },
+  {
+    "name": "Velocity创建任意文件夹",
+    "description": "factory: org.apache.naming.factory.BeanFactory\\\\n在linux下通过 BeanFactory 调用单String方法：org.apache.velocity.texen.util.FileUtil#mkdir 创建任意文件夹\\\\n之后配合 MemoryUserDatabaseFactoryWriteFile 实现写文件RCE",
+    "class": "VelocityCreateDirRef",
+    "dependencies": [
+      {
+        "artifact": "tomcat",
+        "raw": "tomcat"
+      },
+      {
+        "group": "org.apache.velocity",
+        "artifact": "velocity",
+        "version": "*"
+      }
+    ]
+  },
+  {
+    "name": "Beanshell表达式RCE",
+    "description": "factory: org.apache.naming.factory.BeanFactory\\\\nJNDI Reference的一种，通过BeanFactory调用单String方法 bsh.Interpreter#eval",
+    "class": "BeanshellRef",
+    "dependencies": [
+      {
+        "artifact": "tomcat",
+        "raw": "tomcat"
+      },
+      {
+        "group": "beanshell",
+        "artifact": "bsh",
+        "version": "*"
+      }
+    ]
+  },
+  {
+    "name": "Groovy RCE2",
+    "description": "",
+    "class": "GroovyClassLoaderRef",
+    "dependencies": []
+  },
+  {
+    "name": "Groovy RCE",
+    "description": "factory: org.apache.naming.factory.BeanFactory\\\\nJNDI Reference的一种，通过BeanFactory调用单String方法：groovy.lang.GroovyShell#evaluate 执行任意Groovy表达式",
+    "class": "GroovyShellRef",
+    "dependencies": [
+      {
+        "artifact": "tomcat",
+        "raw": "tomcat"
+      },
+      {
+        "group": "org.codehaus.groovy",
+        "artifact": "groovy",
+        "version": "*"
+      }
+    ]
+  },
+  {
+    "name": "MVEL RCE",
+    "description": "",
+    "class": "MvelRef",
+    "dependencies": []
+  },
+  {
+    "name": "SnakeYaml 远程加载jar包 RCE",
+    "description": "factory: org.apache.naming.factory.BeanFactory\\\\nJNDI Reference的一种，通过BeanFactory调用单String方法：org.yaml.snakeyaml.Yaml#load，通过SnakeYaml远程加载jar包\\\\nsnakeyaml 1.33 版本测试成功，2.0和2.2版本测试失败",
+    "class": "SnakeyamlRef",
+    "dependencies": [
+      {
+        "artifact": "tomcat",
+        "raw": "tomcat"
+      },
+      {
+        "artifact": "snakeyaml",
+        "version": "1.33"
+      }
+    ]
+  },
+  {
+    "name": "El RCE",
+    "description": "",
+    "class": "TomcatElRef",
+    "dependencies": []
+  },
+  {
+    "name": "XStream 命令执行",
+    "description": "factory: org.apache.naming.factory.BeanFactory\\\\nJNDI Ref的一种，通过BeanFactory调用单String方法：com.thoughtworks.xstream.XStream#fromXML，配合xstream依赖漏洞进行rce",
+    "class": "XStreamRef",
+    "dependencies": [
+      {
+        "artifact": "tomcat",
+        "raw": "tomcat"
+      },
+      {
+        "artifact": "xstream",
+        "raw": "xstream"
+      }
+    ]
+  },
+  {
+    "name": "使用MLet进行类探测",
+    "description": "JNDI Reference的一种，通过BeanFactory调用单String方法：javax.management.loading.MLet 实现dnslog探测类",
+    "class": "Mlet2Ref",
+    "dependencies": [
+      {
+        "artifact": "tomcat",
+        "raw": "tomcat"
+      },
+      {
+        "group": "jdk",
+        "artifact": "javax.management.loading.MLet",
+        "version": "*"
+      }
+    ]
+  },
+  {
+    "name": "INIConfiguration 不完美的文件读取",
+    "description": "factory: org.apache.naming.factory.BeanFactory\\\\n通过BeanFactory调用单String方法：org.apache.commons.configuration.INIConfiguration#save 实现文件读取",
+    "class": "INIConfigurationReadFileRef",
+    "dependencies": [
+      {
+        "artifact": "tomcat",
+        "raw": "tomcat"
+      },
+      {
+        "artifact": "commons-configuration",
+        "raw": "commons-configuration"
+      }
+    ]
+  },
+  {
+    "name": "Load NativeLib RCE",
+    "description": "factory: org.apache.naming.factory.BeanFactory\\\\n通过BeanFactory调用单String方法：com.sun.glass.utils.NativeLibLoader，配合文件上传加载动态连接库实现RCE",
+    "class": "LoadNativeLibRef",
+    "dependencies": [
+      {
+        "artifact": "tomcat",
+        "raw": "tomcat"
+      },
+      {
+        "group": "jdk",
+        "artifact": "com.sun.glass.utils.NativeLibLoader",
+        "version": "*"
+      }
+    ]
+  },
+  {
+    "name": "PropertiesConfiguration 不完美的远程文件下载/读取",
+    "description": "factory: org.apache.naming.factory.BeanFactory\\\\n通过BeanFactory调用单String方法：org.apache.commons.configuration.PropertiesConfiguration#save 实现文件下载/读取",
+    "class": "PropertiesConfigurationRef",
+    "dependencies": [
+      {
+        "artifact": "tomcat",
+        "raw": "tomcat"
+      },
+      {
+        "artifact": "commons-configuration",
+        "raw": "commons-configuration"
+      }
+    ]
+  },
+  {
+    "name": "PropertiesConfiguration 不完美的远程文件下载/读取2",
+    "description": "factory: org.apache.naming.factory.BeanFactory\\\\n通过BeanFactory调用单String方法：org.apache.commons.configuration2.PropertiesConfiguration#save 实现文件下载/读取",
+    "class": "PropertiesConfigurationRef2",
+    "dependencies": [
+      {
+        "artifact": "tomcat",
+        "raw": "tomcat"
+      },
+      {
+        "artifact": "commons-configuration2",
+        "raw": "commons-configuration2"
+      }
+    ]
+  },
+  {
+    "name": "configuration 修改系统属性",
+    "description": "",
+    "class": "SystemConfigurationRef",
+    "dependencies": []
+  },
+  {
+    "name": "configuration2 修改系统属性",
+    "description": "",
+    "class": "SystemConfigurationRef2",
+    "dependencies": []
+  },
+  {
+    "name": "groovy 修改系统属性",
+    "description": "",
+    "class": "SystemConfigurationRef3",
+    "dependencies": []
+  },
+  {
+    "name": "Common dbcp2 加载jdbc，转为jdbc url利用",
+    "description": "factory: org.apache.commons.dbcp2.BasicDataSourceFactory",
+    "class": "CommonDbcp2JdbcAttack",
+    "dependencies": [
+      {
+        "artifact": "common-dbcp2",
+        "raw": "common-dbcp2"
+      }
+    ]
+  },
+  {
+    "name": "Common dbcp 加载jdbc，转为jdbc url利用",
+    "description": "factory: org.apache.commons.dbcp.BasicDataSourceFactory",
+    "class": "CommonDbcpJdbcAttack",
+    "dependencies": [
+      {
+        "artifact": "common-dbcp2",
+        "raw": "common-dbcp2"
+      }
+    ]
+  },
+  {
+    "name": "通过 DataSource 类加载jdbc，转为jdbc url的利用",
+    "description": "绕过Tomcat高版本中BeanFactory修复方案，实现jdbc的利用。例如通过其他DataSourceFactory加载h2 jdbc并执行js表达式进行rce，常用搭配：JdbcUrlRef/h2Jdbc/JegGadget/type=class",
+    "class": "DataSource2JdbcAttack",
+    "dependencies": [
+      {
+        "artifact": "DataSourceFactory",
+        "raw": "DataSourceFactory"
+      }
+    ]
+  },
+  {
+    "name": "Druid 加载jdbc，转为jdbc url利用",
+    "description": "factory: com.alibaba.druid.pool.DruidDataSourceFactory",
+    "class": "DruidJdbcAttack",
+    "dependencies": [
+      {
+        "group": "com.alibaba",
+        "artifact": "druid",
+        "version": "*"
+      }
+    ]
+  },
+  {
+    "name": "HikariCP 加载jdbc，转为jdbc url利用",
+    "description": "factory: com.zaxxer.hikari.HikariJNDIFactory\\\\n注意加载sql时只能加载一条，并且sql结尾不能有分号; https://github.com/vulhub/java-chains/issues/12",
+    "class": "HikariJdbcAttack",
+    "dependencies": [
+      {
+        "artifact": "hikari",
+        "raw": "hikari"
+      }
+    ]
+  },
+  {
+    "name": "ResourceFactoryBypass",
+    "description": "factory: org.apache.naming.factory.ResourceFactory\\\\n如果系统环境变量不存在, 则会默认使用 org.apache.tomcat.dbcp.dbcp2.BasicDataSourceFactory，最终实现实现JDBC的利用",
+    "class": "ResourceFactoryBypass",
+    "dependencies": [
+      {
+        "artifact": "tomcat-dbcp2",
+        "raw": "tomcat-dbcp2"
+      }
+    ]
+  },
+  {
+    "name": "Tomcat dbcp2 加载jdbc，转为jdbc url利用",
+    "description": "factory: org.apache.tomcat.dbcp.dbcp2.BasicDataSourceFactory",
+    "class": "TomcatDbcp2JdbcAttack",
+    "dependencies": [
+      {
+        "artifact": "tomcat-dbcp2",
+        "raw": "tomcat-dbcp2"
+      }
+    ]
+  },
+  {
+    "name": "Tomcat dbcp1 加载jdbc，转为jdbc url利用",
+    "description": "factory: org.apache.tomcat.dbcp.dbcp.BasicDataSourceFactory",
+    "class": "TomcatDbcpJdbcAttack",
+    "dependencies": [
+      {
+        "artifact": "tomcat-dbcp",
+        "raw": "tomcat-dbcp"
+      }
+    ]
+  },
+  {
+    "name": "Tomcat jdbc 加载jdbc，转为jdbc url利用",
+    "description": "factory: org.apache.tomcat.jdbc.pool.DataSourceFactory\\\\n注意加载sql时只能加载一条",
+    "class": "TomcatJDBCJdbcAttack",
+    "dependencies": [
+      {
+        "artifact": "tomcat-jdbc",
+        "raw": "tomcat-jdbc"
+      }
+    ]
+  },
+  {
+    "name": "configuration 修改系统属性",
+    "description": "",
+    "class": "CommonConfiguration",
+    "dependencies": []
+  },
+  {
+    "name": "configuration2 修改系统属性",
+    "description": "",
+    "class": "CommonConfiguration2",
+    "dependencies": []
+  },
+  {
+    "name": "groovy 修改系统属性",
+    "description": "factory: org.apache.tomcat.jdbc.naming.GenericNamingResourcesFactory\\\\nJNDI Reference的一种，通过 GenericNamingResourcesFactory 调用setter方法：org.apache.groovy.util.SystemUtil#setSystemPropertyFrom，实现修改系统属性",
+    "class": "CommonConfigurationGroovy",
+    "dependencies": [
+      {
+        "artifact": "tomcat-jdbc",
+        "raw": "tomcat-jdbc"
+      },
+      {
+        "group": "org.codehaus.groovy",
+        "artifact": "groovy",
+        "version": "*"
+      }
+    ]
+  },
+  {
+    "name": "FakeMySQL PipeFile",
+    "description": "",
+    "class": "FakeMySQLPipeFile",
+    "dependencies": []
+  },
+  {
+    "name": "FakeMySQL 读取文件",
+    "description": "",
+    "class": "FakeMySQLReadFile",
+    "dependencies": []
+  },
+  {
+    "name": "FakeMySQL SSRF",
+    "description": "",
+    "class": "FakeMySQLSSRF",
+    "dependencies": []
+  },
+  {
+    "name": "BCEL 加载字节码",
+    "description": "",
+    "class": "XMLBceLoader",
+    "dependencies": [
+      {
+        "artifact": "jdk",
+        "raw": "jdk"
+      }
+    ]
+  },
+  {
+    "name": "简单的 Dnslog 请求探测Payoad",
+    "description": "通过java.net.URL触发dnslog请求",
+    "class": "XMLDnsLog",
+    "dependencies": [
+      {
+        "artifact": "jdk",
+        "raw": "jdk"
+      }
+    ]
+  },
+  {
+    "name": "命令执行",
+    "description": "",
+    "class": "XMLExec",
+    "dependencies": []
+  },
+  {
+    "name": "ClassLoader defineClass 加载字节码",
+    "description": "",
+    "class": "XMLJdkDefineClass",
+    "dependencies": [
+      {
+        "artifact": "jdk",
+        "raw": "jdk"
+      }
+    ]
+  },
+  {
+    "name": "JdbcRowSetImpl JNDI",
+    "description": "通过 com.sun.rowset.JdbcRowSetImpl 发起 JNDI 请求",
+    "class": "XMLJNDI",
+    "dependencies": [
+      {
+        "artifact": "jdk",
+        "raw": "jdk"
+      }
+    ]
+  },
+  {
+    "name": "通过 js 加载字节码",
+    "description": "",
+    "class": "XMLJsLoader",
+    "dependencies": [
+      {
+        "artifact": "jdk",
+        "raw": "jdk"
+      }
+    ]
+  },
+  {
+    "name": "服务器延迟",
+    "description": "",
+    "class": "XMLSleep",
+    "dependencies": [
+      {
+        "artifact": "jdk",
+        "raw": "jdk"
+      }
+    ]
+  }
+]
