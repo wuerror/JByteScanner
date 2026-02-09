@@ -127,6 +127,11 @@ public class TaintEngine {
         if (!vulnerabilities.isEmpty()) {
             SarifReporter reporter = new SarifReporter(workspaceDir);
             reporter.generate(vulnerabilities);
+            
+            // Phase 8.3: Generate Smart PoCs
+            logger.info("Generating Smart PoC payloads...");
+            com.jbytescanner.report.PoCReporter pocReporter = new com.jbytescanner.report.PoCReporter(workspaceDir);
+            pocReporter.generate(vulnerabilities, routes);
         } else {
             logger.info("No vulnerabilities found. Skipping report generation.");
         }
@@ -180,9 +185,47 @@ public class TaintEngine {
             List<String> lines = Files.readAllLines(apiFile.toPath());
             for (String line : lines) {
                 if (line.startsWith("#") || line.trim().isEmpty()) continue;
-                String[] parts = line.split(" ", 4);
+                
+                String metaJson = null;
+                String baseLine = line;
+                
+                // Check for metadata separator
+                if (line.contains(" | {")) {
+                    int splitIdx = line.indexOf(" | {");
+                    baseLine = line.substring(0, splitIdx);
+                    metaJson = line.substring(splitIdx + 3); // "{...}"
+                }
+                
+                String[] parts = baseLine.split(" ", 4);
                 if (parts.length >= 4) {
-                    routes.add(new ApiRoute(parts[0], parts[1], parts[2], parts[3]));
+                    ApiRoute route = new ApiRoute(parts[0], parts[1], parts[2], parts[3]);
+                    
+                    if (metaJson != null) {
+                        try {
+                            com.google.gson.JsonObject json = com.google.gson.JsonParser.parseString(metaJson).getAsJsonObject();
+                            
+                            if (json.has("contentType")) {
+                                route.setContentType(json.get("contentType").getAsString());
+                            }
+                            
+                            if (json.has("params")) {
+                                List<String> params = new ArrayList<>();
+                                com.google.gson.JsonArray arr = json.getAsJsonArray("params");
+                                arr.forEach(e -> params.add(e.getAsString()));
+                                route.setParameters(params);
+                            }
+                            
+                            if (json.has("annotations")) {
+                                java.util.Map<String, String> anns = new java.util.HashMap<>();
+                                com.google.gson.JsonObject obj = json.getAsJsonObject("annotations");
+                                obj.entrySet().forEach(e -> anns.put(e.getKey(), e.getValue().getAsString()));
+                                route.setParamAnnotations(anns);
+                            }
+                        } catch (Exception e) {
+                            logger.warn("Failed to parse metadata for route: {}", parts[1]);
+                        }
+                    }
+                    routes.add(route);
                 }
             }
         } catch (IOException e) {
