@@ -18,9 +18,9 @@
     *   **漏洞评分**: 基于可达性（公网 API vs 内部方法）和利用难度（无过滤 vs 强过滤）进行评分。
     *   **PoC 生成**: 自动生成**可直接导入 Burp Suite** 的 Raw HTTP Request 包。
 *   **深度利用链挖掘**:
-    *   **Gadget Mining**: 自动挖掘反序列化利用链 (Gadget Chains)。
-    *   **Auth Bypass**: 分析 Spring Security 配置与 Controller 映射的差异，发现未授权访问接口。
-*   **交互式审计**: 提供 REPL Shell，允许专家手动查询调用图（`path source sink`），弥补自动化工具的盲区。
+    *   **Gadget suggest**: 根据依赖推荐当前可用的已知gadget。
+    *   **Auth Bypass**: 分析 Spring Security 配置与 Controller 映射的差异，发现未授权访问接口。（未实现）
+*   **交互式审计**: 提供 REPL Shell，允许专家手动查询调用图（`path source sink`），弥补自动化工具的盲区。（未实现）
 *   **高性能引擎**:
     *   **Worklist Engine**: 迭代式污点分析，避免栈溢出。
     *   **Leaf Optimization**: 智能摘要生成，大幅提升分析速度。
@@ -44,23 +44,57 @@ mvn clean package -DskipTests
 
 ### 2. 运行扫描
 
-使用 `java -jar` 命令运行工具。
+使用 `java -jar` 命令运行工具。工具会在扫描的目标目录生成一个`.jbytescanner` 存放生成的报告
 
-**基础扫描 (漏洞挖掘):**
+**轻量扫描:**
 
-```bash
-# 扫描单个 Jar (执行完整扫描: 资产发现 + 漏洞分析 + 战术情报)
-java -jar target/JByteScanner-1.0-SNAPSHOT-shaded.jar /path/to/app.jar
-```
+-m api模式，此模式下会完成三项工作：提取api，扫描硬编码，根据现有的依赖推荐java-chains中可以打的gadget
 
-**仅提取资产 (用于 Fuzzing):**
+生成api.txt，secrets.txt，gadgets.txt，rules.yaml
 
 ```bash
 # 仅提取 API 路由列表 (api.txt)
-java -jar target/JByteScanner-1.0-SNAPSHOT-shaded.jar /path/to/app.jar -m api
+java -jar JByteScanner-1.0-SNAPSHOT.jar /path/to/app.jar -m api
 ```
 
-**交互式模式 (专家复核):**
+api.txt格式如下
+
+```
+options /path methodsign | paramjson
+```
+
+可通过`awk '{print $2;}' test_jars/.jbytescanner/api.txt`获取api路径字典，context路径需要人工补充
+
+**修改source或者sink**
+
+提取的api.txt会作为全量扫描的source来源，对于通过注解鉴权的情况，提供`--filter-annotation`用于选择含有关键词的注解。
+
+比如获取匿名可访问的接口
+
+```
+java -jar JByteScanner-1.0-SNAPSHOT.jar -m api --filter-annotation AnonymousValidator /path/to/app.jar
+```
+
+可存在多个关键词比如：`--filter-annotation aa --filter-annotation AnonymousValidator bb` 是或的关系
+
+也可以人工筛选api.txt条目
+
+对于sink,直接修改生成的rules.yaml。第二次跑，或者再跑全量时会首先加载当前项目目录.jbytescanner下的rules.yaml。也可以通过`-c`选项指定
+
+**全量扫描 (漏洞挖掘):**
+
+-m scan或者什么都不带。如果.jbytescanner目录下已经有api.txt那么会跳过phase2
+
+soot生成call gragh阶段时间会比较久
+
+```bash
+# 扫描单个 Jar或者一个目录 (执行完整扫描: 资产发现 + 漏洞分析 + 战术情报)
+java -jar JByteScanner-1.0-SNAPSHOT.jar /path
+```
+
+若存在漏洞，结果会输出到result.sarif文件
+
+**交互式模式 (未实现):**
 
 ```bash
 # 扫描结束后进入 REPL Shell
@@ -86,8 +120,3 @@ java -jar target/JByteScanner-1.0-SNAPSHOT-shaded.jar /path/to/app.jar --interac
   - [ ] **Offensive SCA**: 攻击型组件指纹识别。
   - [ ] **Interactive Shell**: 内存调用图查询 REPL。
 
----
-
-## 📄 License
-
-MIT License
