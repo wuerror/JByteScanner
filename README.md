@@ -75,13 +75,9 @@ java -jar target/JByteScanner-1.0-SNAPSHOT-shaded.jar /path/to/app.jar --interac
 - [x] **Phase 1-5**: 基础架构、配置管理、资产发现、Soot 集成、SARIF 报告。
 - [x] **Phase 6**: 性能优化（结构化状态、反向剪枝、强依赖隔离）。
 - [x] **Phase 7**: 高级分析引擎（Worklist 迭代引擎、方法摘要、叶子节点优化）。
+- [x] **Phase 8: 战术情报 (Tactical Intelligence)**: Secret 扫描、漏洞评分、Smart PoC 生成。
 
-### 进行中 (Red Team Intelligence)
-- [ ] **Phase 8: 战术情报 (MVP)**
-  - [ ] **Secret Scanner**: 三层架构扫描（常量池、配置文件、编码字符串）。
-  - [ ] **Vuln Scorer**: 五维评分模型（Sink、可达性、过滤、复杂度、CVE）。
-  - [ ] **Smart PoC**: 生成 Burp Suite 格式的 HTTP 请求包。
-
+### 进行中 (Advanced Exploitation)
 - [ ] **Phase 9: 深度利用链**
   - [ ] **Auth Bypass**: 鉴权绕过检测（Config vs Code）。
   - [ ] **Gadget Miner**: 反序列化利用链挖掘。

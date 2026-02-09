@@ -2,9 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
-## [Unreleased]
+## [1.4.0] - 2026-02-09
 
 ### Added
+- **Smart PoC Generator (Phase 8.3)**:
+    - Implemented `PoCGenerator` to automatically create ready-to-use HTTP request payloads for discovered vulnerabilities.
+    - **Context-Aware Generation**: Generates correct `Content-Type` (JSON, Form-UrlEncoded, Multipart) based on Spring annotations (`@RequestBody`, `@RequestParam`).
+    - **Payload Injection**: Automatically injects vulnerability-specific payloads (e.g., `whoami` for RCE, `1=1` for SQLi) into the appropriate parameters.
+    - **ApiRoute Metadata**: Enhanced `api.txt` and `DiscoveryEngine` to capture and persist parameter types, names, and annotations.
+    - Generates `generated_pocs.txt` which can be directly imported into Burp Suite Repeater.
 - **Secret Scanner (Phase 8.1)**:
     - Implemented a new "Tactical Intelligence" module for discovering hardcoded secrets.
     - **Config Scan**: Automatically scans `application.properties`, `.yml`, `.xml` inside JARs/Fat JARs for passwords, tokens, and keys.
@@ -45,3 +51,4 @@ All notable changes to this project will be documented in this file.
 ### Fixed
 - **NPE in RuleManager**: Fixed `NullPointerException` when processing CallGraph edges where `target()` method is null during Backward Reachability Analysis.
 - **DiscoveryEngine Compilation**: Fixed variable reference error (`appJars` -> `targetAppJars`).
+- **Secret Scanner Regex**: Improved regex to better capture keys like `encrypt.key`, `private_key`.
