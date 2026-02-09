@@ -94,6 +94,8 @@ java -jar JByteScanner-1.0-SNAPSHOT.jar /path
 
 若存在漏洞，结果会输出到result.sarif文件
 
+生成的示例请求会在generated_pocs.txt。（可能会有错误）
+
 **交互式模式 (未实现):**
 
 ```bash
