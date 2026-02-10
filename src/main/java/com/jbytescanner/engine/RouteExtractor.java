@@ -36,14 +36,19 @@ public class RouteExtractor {
     private static final String ANN_WEB_SERVLET = "javax.servlet.annotation.WebServlet";
 
     private final List<String> filterAnnotations;
+    private final List<String> scanJars;
 
-    public RouteExtractor(List<String> filterAnnotations) {
+    public RouteExtractor(List<String> filterAnnotations, List<String> scanJars) {
         this.filterAnnotations = filterAnnotations;
+        this.scanJars = scanJars;
     }
 
     public List<ApiRoute> extract() {
         List<ApiRoute> routes = new ArrayList<>();
         
+        // 0. Extract Routes from web.xml (Legacy/Hybrid)
+        routes.addAll(extractWebXmlRoutes());
+
         for (SootClass sc : Scene.v().getApplicationClasses()) {
             if (sc.isPhantom()) continue;
             
@@ -191,6 +196,39 @@ public class RouteExtractor {
                         );
                         routes.add(route);
                     }
+                }
+            }
+        }
+        return routes;
+    }
+
+    private List<ApiRoute> extractWebXmlRoutes() {
+        List<ApiRoute> routes = new ArrayList<>();
+        if (scanJars == null || scanJars.isEmpty()) return routes;
+        
+        WebXmlParser parser = new WebXmlParser();
+        for (String jarPath : scanJars) {
+            Map<String, List<String>> webXmlRoutes = parser.parse(new java.io.File(jarPath));
+            
+            for (Map.Entry<String, List<String>> entry : webXmlRoutes.entrySet()) {
+                String className = entry.getKey();
+                List<String> paths = entry.getValue();
+                
+                // Verify if class is in Soot (Optional, but good for validation)
+                // If the class is a library class, it might not be in "ApplicationClasses" but in "Scene.v().getClasses()"
+                // We add it regardless, because web.xml is an explicit definition.
+                
+                for (String path : paths) {
+                    // Create a route for ALL methods since web.xml maps the servlet generally
+                    routes.add(new ApiRoute(
+                        "ALL", 
+                        path, 
+                        className, 
+                        "service", // Method name placeholder
+                        new ArrayList<>(), // No params known from web.xml
+                        new HashMap<>(), 
+                        "application/x-www-form-urlencoded"
+                    ));
                 }
             }
         }

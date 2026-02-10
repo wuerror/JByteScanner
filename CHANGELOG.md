@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.5.0] - 2026-02-10
+
+### Added
+- **Legacy Web App Support (Phase 10.1)**:
+    - Implemented `WebXmlParser` to extract Servlet mappings from `web.xml` files in JAR/WAR archives.
+    - Updated `RouteExtractor` to merge `web.xml` routes with Spring annotation-based routes.
+    - Enhanced `DiscoveryEngine` to scan all available JARs (including libraries) for `web.xml` definitions, ensuring routes in dependencies (e.g., `bos-resources.jar`) are discovered.
+    - Fixes issue where legacy Servlet routes were missed in hybrid Spring Boot + Servlet applications.
+
 ## [1.4.0] - 2026-02-09
 
 ### Added

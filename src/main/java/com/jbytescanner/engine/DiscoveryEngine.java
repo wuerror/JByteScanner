@@ -45,7 +45,12 @@ public class DiscoveryEngine {
         SootManager.initSoot(targetAppJars, combinedLibs, false);
         
         // 2. Extract Routes
-        RouteExtractor extractor = new RouteExtractor(filterAnnotations);
+        List<String> scanJars = new ArrayList<>();
+        if (targetAppJars != null) scanJars.addAll(targetAppJars);
+        if (depAppJars != null) scanJars.addAll(depAppJars);
+        if (libJars != null) scanJars.addAll(libJars);
+
+        RouteExtractor extractor = new RouteExtractor(filterAnnotations, scanJars);
         List<ApiRoute> routes = extractor.extract();
         
         logger.info("Found {} API Routes.", routes.size());
