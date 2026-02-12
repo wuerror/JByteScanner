@@ -189,7 +189,7 @@ Instead of Regex or ASM, we leverage Soot's superior annotation support. A `Rout
 *   **Recognition Logic**:
     *   **Spring Boot**: Scan `@RestController`, `@Controller` on classes and `@RequestMapping`, `@GetMapping`, `@PostMapping` on methods. Parse `value` or `path` attributes.
     *   **Servlet**: Scan classes inheriting `javax.servlet.http.HttpServlet` and parse `web.xml` (if present) or `@WebServlet`.
-    *   **JAX-RS**: Scan `@Path`.
+    *   **JAX-RS**: Scan `@Path`, `@GET`, `@POST`, `@PUT`, `@DELETE`, `@HEAD`, `@OPTIONS`, `@PATCH` and other JAX-RS annotations.
 *   **Output Format**: `METHOD /full/url/path class.method(params)`
 
 ### 4.2 Pain Points 2 & 3: Configurable Source/Sink (YAML)
