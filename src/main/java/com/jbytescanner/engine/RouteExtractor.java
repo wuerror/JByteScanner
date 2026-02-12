@@ -167,6 +167,11 @@ public class RouteExtractor {
                 if (methodPaths.isEmpty()) {
                     methodPaths.add(""); // Default to empty if no value specified
                 }
+                
+                // If we have @Path but no HTTP method, default to GET (common convention)
+                if (httpMethod == null) {
+                    httpMethod = "GET";
+                }
             } else if (httpMethod != null) {
                 // Even without @Path, if it has HTTP method annotation, treat as root path
                 methodPaths.add("");
@@ -454,7 +459,9 @@ public class RouteExtractor {
             meta.parameters.add(name + ":" + type.toString());
 
             // Check for JSON content type based on parameter type
-            if (type.toString().contains("String") || type.toString().contains("Object")) {
+            // For POJO types (non-primitive, non-string, non-collection), assume JSON if no specific annotation
+            String typeStr = type.toString();
+            if (!isPrimitiveOrBasicType(typeStr)) {
                 // If there's a @Consumes annotation with JSON, set content type
                 AnnotationTag consumesTag = AnnotationHelper.getAnnotation(sm, ANN_CONSUMES);
                 if (consumesTag != null) {
@@ -515,5 +522,20 @@ public class RouteExtractor {
         }
 
         return meta;
+    }
+    
+    private boolean isPrimitiveOrBasicType(String typeStr) {
+        // Check if it's a primitive type, String, or common wrapper types
+        return typeStr.equals("boolean") || typeStr.equals("char") || 
+               typeStr.equals("byte") || typeStr.equals("short") || 
+               typeStr.equals("int") || typeStr.equals("long") || 
+               typeStr.equals("float") || typeStr.equals("double") ||
+               typeStr.contains("String") || typeStr.contains("Boolean") ||
+               typeStr.contains("Character") || typeStr.contains("Byte") ||
+               typeStr.contains("Short") || typeStr.contains("Integer") ||
+               typeStr.contains("Long") || typeStr.contains("Float") ||
+               typeStr.contains("Double") || typeStr.contains("Date") ||
+               typeStr.contains("List") || typeStr.contains("Collection") ||
+               typeStr.contains("Map") || typeStr.contains("Array");
     }
 }
