@@ -18,27 +18,19 @@
 
 由于存在多个 AI 接力开发，本计划严格划分为独立、可验证的阶段。**在每个阶段未获人工确认前，严禁越界修改代码。**
 
-### 阶段 1：环境与依赖彻底切换 (Step 1)
-*   **目标**：完成依赖树的清理，确保项目能够基于 Tai-e 成功编译。
+### 阶段 1-3：环境切换、引擎初始化与 API Mode 适配（可合并执行）
+*   **目标**：完成 Tai-e 依赖引入，构建全局运行上下文 (`World`)，并在不破坏原有 `JarLoader` 业务包推断能力的前提下，使用 Tai-e 原生能力重写 API 资产发现，同时解决由于配置不当导致的性能和资源占用过高问题。
 *   **行动项**：
-    1. 修改 `pom.xml`：**彻底删除** `org.soot-oss:soot` 依赖。
-    2. 修改 `pom.xml`：引入 Tai-e 官方稳定版依赖 (`net.pascal-lab:tai-e:0.5.2`)。
-    3. 清理废弃代码：删除 `src/main/java/com/jbytescanner/core/SootManager.java`。
-    4. 修复因删除 Soot 导致的全局编译错误（暂时注释掉报错的方法体，确保 Maven 编译通过）。
-
-### 阶段 2：引擎初始化与上下文构建 (Step 2)
-*   **目标**：建立 Tai-e 的全局运行上下文 (`World`)。
-*   **行动项**：
-    1. 新建 `com.jbytescanner.core.TaieManager` 类。
-    2. 实现配置映射：将原先的 `targetAppJars` 映射为 Tai-e 的 `--app-class-path`；将 `libJars` 和 `depAppJars` 映射为 `--class-path`。
-    3. 修改 `JByteScanner.java` 的全局初始化逻辑，使其调用 `TaieManager` 初始化引擎。
-
-### 阶段 3：API 资产发现模式重写 (Step 3) - 独立可测
-*   **目标**：恢复 `api` 模式的路由提取能力，且输出格式 (`api.txt`) 必须与老版本 100% 一致。
-*   **行动项**：
-    1. 重写 `RouteExtractor.java`：使用 Tai-e 的 `JClass`, `JMethod`, `Annotation` 替换所有 Soot API (`SootClass`, `AnnotationTag` 等)。
-    2. 重写 `DiscoveryEngine.java` 以适配新的 `TaieManager`。
-    3. **验证点**：运行 `-m api`，对比生成的 `api.txt` 是否与 Soot 版本完全一致（包括 Spring, JAX-RS, Servlet 路由）。
+    1. **依赖调整**：修改 `pom.xml`，引入 Tai-e 官方稳定版依赖 (`net.pascal-lab:tai-e:0.5.2`)。同时彻底删除 `org.soot-oss:soot` 依赖。删除 `src/main/java/com/jbytescanner/core/SootManager.java`。
+    2. **保留核心能力（必须严格遵守）**：在重构初始化流程时，**必须完全保留 `JarLoader.java` 中的 `inferBasePackage`（自动推断业务包名）能力**。依然只将推断出的业务包或包含业务代码的 classes 作为 `targetAppJars`（映射到 Tai-e 的 `--app-class-path`），将其他的依赖库（`depAppJars` 和 `libJars`）映射为 `--class-path`。
+    3. **上下文构建 (`TaieManager.java`)**：
+        *   **【性能优化点 1】避免 `--input-classes all`**：绝对不能添加 `--input-classes all` 参数。Tai-e 默认只会将 `--app-class-path`（即我们的 `targetAppJars`）上的类视为 `application classes`。这样可以保证 `World.get().getClassHierarchy().applicationClasses()` 只返回业务类，避免全量扫描依赖。
+        *   **【性能优化点 2】谨慎使用 `-pp`**：如果仅运行 `api` 模式（提取注解），可以暂不添加 `-pp` 参数，避免加载整个 JVM rt.jar，进一步加快构建速度。
+    4. **API 资产发现模式重写 (`DiscoveryEngine.java` & `RouteExtractor.java`)**：
+        *   **重写 `RouteExtractor.java`**：使用 Tai-e 的 `JClass`, `JMethod`, `Annotation` 替换所有 Soot API。
+        *   **【性能优化点 3】避免触发不必要的 IR 构建**：在提取参数名时，不要调用 `sm.getParamName(i)`（该方法会导致当前方法立刻触发 Bytecode 到 Jimple/Tai-e IR 的转换）。直接使用 `"arg" + i` 作为占位符，或者通过捕获异常的方式谨慎处理，以保障扫描极速。
+        *   **【性能优化点 4】缩小 `web.xml` 扫描范围**：修改 `DiscoveryEngine.java`，不要把 `libJars` 加入 `scanJars`，让 `WebXmlParser` 仅扫描 `targetAppJars`，避免无意义的全局 JAR 遍历。
+        *   **验证点**：运行 `-m api`，对比生成的 `api.txt` 是否与 Soot 版本结构一致。
 
 ### 阶段 4：配置翻译与规则转换 (Step 4)
 *   **目标**：将 JByteScanner 的规则转换为 Tai-e 污点分析插件可读的配置。

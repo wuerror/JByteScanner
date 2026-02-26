@@ -12,15 +12,15 @@
         <maven.compiler.source>11</maven.compiler.source>
         <maven.compiler.target>11</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <soot.version>4.5.0</soot.version>
+        <taie.version>0.5.2</taie.version>
     </properties>
 
     <dependencies>
-        <!-- Soot for Bytecode Analysis -->
+        <!-- Tai-e for Bytecode Analysis -->
         <dependency>
-            <groupId>org.soot-oss</groupId>
-            <artifactId>soot</artifactId>
-            <version>${soot.version}</version>
+            <groupId>net.pascal-lab</groupId>
+            <artifactId>tai-e</artifactId>
+            <version>${taie.version}</version>
         </dependency>
 
         <!-- CLI Argument Parsing -->

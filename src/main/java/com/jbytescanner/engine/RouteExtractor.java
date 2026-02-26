@@ -1,18 +1,22 @@
 package com.jbytescanner.engine;
 
 import com.jbytescanner.model.ApiRoute;
-import soot.*;
-import soot.tagkit.AnnotationTag;
-import soot.tagkit.VisibilityAnnotationTag;
-import soot.tagkit.VisibilityParameterAnnotationTag;
+import pascal.taie.World;
+import pascal.taie.language.classes.JClass;
+import pascal.taie.language.classes.JMethod;
+import pascal.taie.language.annotation.Annotation;
+import pascal.taie.language.annotation.Element;
+import pascal.taie.language.annotation.ArrayElement;
+import pascal.taie.language.annotation.StringElement;
+import pascal.taie.language.type.Type;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
+import java.util.Collection;
 
 public class RouteExtractor {
     private static final Logger logger = LoggerFactory.getLogger(RouteExtractor.class);
@@ -69,12 +73,12 @@ public class RouteExtractor {
         // 0. Extract Routes from web.xml (Legacy/Hybrid)
         routes.addAll(extractWebXmlRoutes());
 
-        for (SootClass sc : Scene.v().getApplicationClasses()) {
-            if (sc.isPhantom()) continue;
+        // PERFORMANCE OPTIMIZATION 1: World.get().getClassHierarchy().applicationClasses() 
+        // Only returns classes from --app-class-path (targetAppJars) if configured correctly in TaieManager.
+        for (JClass sc : World.get().getClassHierarchy().applicationClasses().collect(Collectors.toList())) {
             
             // 1. Check Spring Controller
-            if (AnnotationHelper.hasAnnotation(sc, ANN_REST_CONTROLLER) || 
-                AnnotationHelper.hasAnnotation(sc, ANN_CONTROLLER)) {
+            if (hasAnnotation(sc, ANN_REST_CONTROLLER) || hasAnnotation(sc, ANN_CONTROLLER)) {
                 routes.addAll(extractSpringRoutes(sc));
             }
             
@@ -92,101 +96,131 @@ public class RouteExtractor {
         return routes;
     }
     
-    private boolean hasJaxRsAnnotations(SootClass sc) {
-        // Check if class has any JAX-RS annotations
-        if (AnnotationHelper.hasAnnotation(sc, ANN_PATH)) {
+    // Helper to check if a class has a specific annotation
+    private boolean hasAnnotation(JClass clazz, String annotationType) {
+        return clazz.hasAnnotation(annotationType);
+    }
+    
+    private boolean hasAnnotation(JMethod method, String annotationType) {
+        return method.hasAnnotation(annotationType);
+    }
+    
+    // Helper to get annotation values
+    private List<String> getAnnotationValues(Annotation annotation, String key) {
+        List<String> values = new ArrayList<>();
+        if (annotation == null) return values;
+        
+        Element element = annotation.getElement(key);
+        if (element != null) {
+            if (element instanceof ArrayElement) {
+                for (Element el : ((ArrayElement) element).getElements()) {
+                    if (el instanceof StringElement) {
+                        values.add(((StringElement) el).getValue());
+                    }
+                }
+            } else if (element instanceof StringElement) {
+                values.add(((StringElement) element).getValue());
+            }
+        }
+        return values;
+    }
+    
+    private boolean hasAnnotationContaining(JClass sc, List<String> filters) {
+        if (filters == null || filters.isEmpty()) return true;
+        Collection<Annotation> annotations = sc.getAnnotations();
+        for (Annotation a : annotations) {
+            String type = a.getType();
+            for (String f : filters) {
+                if (type.contains(f)) return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean hasAnnotationContaining(JMethod sm, List<String> filters) {
+        if (filters == null || filters.isEmpty()) return true;
+        Collection<Annotation> annotations = sm.getAnnotations();
+        for (Annotation a : annotations) {
+            String type = a.getType();
+            for (String f : filters) {
+                if (type.contains(f)) return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean hasJaxRsAnnotations(JClass sc) {
+        if (hasAnnotation(sc, ANN_PATH)) {
             return true;
         }
-        
-        // Check methods for JAX-RS annotations
-        for (SootMethod sm : sc.getMethods()) {
-            if (AnnotationHelper.hasAnnotation(sm, ANN_GET) ||
-                AnnotationHelper.hasAnnotation(sm, ANN_POST) ||
-                AnnotationHelper.hasAnnotation(sm, ANN_PUT) ||
-                AnnotationHelper.hasAnnotation(sm, ANN_DELETE) ||
-                AnnotationHelper.hasAnnotation(sm, ANN_HEAD) ||
-                AnnotationHelper.hasAnnotation(sm, ANN_OPTIONS) ||
-                AnnotationHelper.hasAnnotation(sm, ANN_PATCH) ||
-                AnnotationHelper.hasAnnotation(sm, ANN_PATH)) {
+        for (JMethod sm : sc.getDeclaredMethods()) {
+            if (hasAnnotation(sm, ANN_GET) ||
+                hasAnnotation(sm, ANN_POST) ||
+                hasAnnotation(sm, ANN_PUT) ||
+                hasAnnotation(sm, ANN_DELETE) ||
+                hasAnnotation(sm, ANN_HEAD) ||
+                hasAnnotation(sm, ANN_OPTIONS) ||
+                hasAnnotation(sm, ANN_PATCH) ||
+                hasAnnotation(sm, ANN_PATH)) {
                 return true;
             }
         }
         return false;
     }
 
-    private List<ApiRoute> extractJaxrsRoutes(SootClass sc) {
+    private List<ApiRoute> extractJaxrsRoutes(JClass sc) {
         List<ApiRoute> routes = new ArrayList<>();
 
-        // Check if class has @Path annotation (resource-level path)
-        AnnotationTag classPathAnnotation = AnnotationHelper.getAnnotation(sc, ANN_PATH);
+        Annotation classPathAnnotation = sc.getAnnotation(ANN_PATH);
         List<String> classPaths = new ArrayList<>();
         
         if (classPathAnnotation != null) {
-            classPaths.addAll(AnnotationHelper.getAnnotationValues(classPathAnnotation, "value"));
+            classPaths.addAll(getAnnotationValues(classPathAnnotation, "value"));
             if (classPaths.isEmpty()) {
-                classPaths.add(""); // Default to empty if no value specified
+                classPaths.add("");
             }
         } else {
-            // If class doesn't have @Path, we still check methods for resource methods
             classPaths.add("");
         }
 
-        // Check Class Level Filter
         boolean classMatchesFilter = false;
         if (filterAnnotations != null && !filterAnnotations.isEmpty()) {
-            classMatchesFilter = AnnotationHelper.hasAnnotationContaining(sc, filterAnnotations);
+            classMatchesFilter = hasAnnotationContaining(sc, filterAnnotations);
         }
 
-        // Iterate through methods to find JAX-RS annotated methods
-        for (SootMethod sm : sc.getMethods()) {
-            // Determine HTTP method from annotations
+        for (JMethod sm : sc.getDeclaredMethods()) {
             String httpMethod = null;
             List<String> methodPaths = new ArrayList<>();
             
-            // Check for HTTP method annotations
-            if (AnnotationHelper.hasAnnotation(sm, ANN_GET)) {
-                httpMethod = "GET";
-            } else if (AnnotationHelper.hasAnnotation(sm, ANN_POST)) {
-                httpMethod = "POST";
-            } else if (AnnotationHelper.hasAnnotation(sm, ANN_PUT)) {
-                httpMethod = "PUT";
-            } else if (AnnotationHelper.hasAnnotation(sm, ANN_DELETE)) {
-                httpMethod = "DELETE";
-            } else if (AnnotationHelper.hasAnnotation(sm, ANN_HEAD)) {
-                httpMethod = "HEAD";
-            } else if (AnnotationHelper.hasAnnotation(sm, ANN_OPTIONS)) {
-                httpMethod = "OPTIONS";
-            } else if (AnnotationHelper.hasAnnotation(sm, ANN_PATCH)) {
-                httpMethod = "PATCH";
-            }
+            if (hasAnnotation(sm, ANN_GET)) httpMethod = "GET";
+            else if (hasAnnotation(sm, ANN_POST)) httpMethod = "POST";
+            else if (hasAnnotation(sm, ANN_PUT)) httpMethod = "PUT";
+            else if (hasAnnotation(sm, ANN_DELETE)) httpMethod = "DELETE";
+            else if (hasAnnotation(sm, ANN_HEAD)) httpMethod = "HEAD";
+            else if (hasAnnotation(sm, ANN_OPTIONS)) httpMethod = "OPTIONS";
+            else if (hasAnnotation(sm, ANN_PATCH)) httpMethod = "PATCH";
 
-            // If method has a path annotation
-            AnnotationTag methodPathAnnotation = AnnotationHelper.getAnnotation(sm, ANN_PATH);
+            Annotation methodPathAnnotation = sm.getAnnotation(ANN_PATH);
             if (methodPathAnnotation != null) {
-                methodPaths.addAll(AnnotationHelper.getAnnotationValues(methodPathAnnotation, "value"));
+                methodPaths.addAll(getAnnotationValues(methodPathAnnotation, "value"));
                 if (methodPaths.isEmpty()) {
-                    methodPaths.add(""); // Default to empty if no value specified
+                    methodPaths.add(""); 
                 }
-                
-                // If we have @Path but no HTTP method, default to GET (common convention)
                 if (httpMethod == null) {
                     httpMethod = "GET";
                 }
             } else if (httpMethod != null) {
-                // Even without @Path, if it has HTTP method annotation, treat as root path
                 methodPaths.add("");
             }
 
-            // Filter Check: If filter is active, either Class OR Method must match
             if (filterAnnotations != null && !filterAnnotations.isEmpty()) {
-                boolean methodMatchesFilter = AnnotationHelper.hasAnnotationContaining(sm, filterAnnotations);
+                boolean methodMatchesFilter = hasAnnotationContaining(sm, filterAnnotations);
                 if (!classMatchesFilter && !methodMatchesFilter) {
-                    continue; // Skip this method
+                    continue; 
                 }
             }
 
             if (httpMethod != null && !methodPaths.isEmpty()) {
-                // Extract Parameters Info
                 RouteMetadata metadata = extractJaxrsRouteMetadata(sm);
 
                 for (String cp : classPaths) {
@@ -205,43 +239,37 @@ public class RouteExtractor {
         return routes;
     }
 
-    private boolean isServlet(SootClass sc) {
-        // Check annotation
-        if (AnnotationHelper.hasAnnotation(sc, ANN_WEB_SERVLET)) return true;
+    private boolean isServlet(JClass sc) {
+        if (hasAnnotation(sc, ANN_WEB_SERVLET)) return true;
         
-        // Check hierarchy
-        SootClass current = sc;
-        while (current.hasSuperclass()) {
-            current = current.getSuperclass();
+        JClass current = sc;
+        while (current != null && current.getSuperClass() != null) {
+            current = current.getSuperClass();
             if (current.getName().equals(CLASS_HTTP_SERVLET)) return true;
             if (current.getName().equals("java.lang.Object")) break;
         }
         return false;
     }
 
-    private List<ApiRoute> extractServletRoutes(SootClass sc) {
+    private List<ApiRoute> extractServletRoutes(JClass sc) {
         List<ApiRoute> routes = new ArrayList<>();
         
-        // Filter Check (Servlet is class-level mostly)
         if (filterAnnotations != null && !filterAnnotations.isEmpty()) {
-            if (!AnnotationHelper.hasAnnotationContaining(sc, filterAnnotations)) {
-                return routes; // Skip if class doesn't have the annotation
+            if (!hasAnnotationContaining(sc, filterAnnotations)) {
+                return routes;
             }
         }
 
-        AnnotationTag webServlet = AnnotationHelper.getAnnotation(sc, ANN_WEB_SERVLET);
+        Annotation webServlet = sc.getAnnotation(ANN_WEB_SERVLET);
         List<String> paths = new ArrayList<>();
         
         if (webServlet != null) {
-            // Try "value" or "urlPatterns"
-            paths.addAll(AnnotationHelper.getAnnotationValues(webServlet, "value"));
-            paths.addAll(AnnotationHelper.getAnnotationValues(webServlet, "urlPatterns"));
+            paths.addAll(getAnnotationValues(webServlet, "value"));
+            paths.addAll(getAnnotationValues(webServlet, "urlPatterns"));
         }
         
         if (paths.isEmpty()) {
-            // Fallback: If defined in web.xml (not implemented in Phase 2 lightweight scan), or default mapping
-            // We just return class name as path indicator for manual review
-            paths.add("/servlet/" + sc.getShortName()); 
+            paths.add("/servlet/" + sc.getSimpleName()); 
         }
 
         for (String path : paths) {
@@ -250,78 +278,70 @@ public class RouteExtractor {
         return routes;
     }
 
-    private List<ApiRoute> extractSpringRoutes(SootClass sc) {
+    private List<ApiRoute> extractSpringRoutes(JClass sc) {
         List<ApiRoute> routes = new ArrayList<>();
         
-        // Check Class Level Annotations for filter
         boolean classMatchesFilter = false;
         if (filterAnnotations != null && !filterAnnotations.isEmpty()) {
-            classMatchesFilter = AnnotationHelper.hasAnnotationContaining(sc, filterAnnotations);
+            classMatchesFilter = hasAnnotationContaining(sc, filterAnnotations);
         }
 
-        // Class-level path
         List<String> classPaths = new ArrayList<>();
-        AnnotationTag classMapping = AnnotationHelper.getAnnotation(sc, ANN_REQUEST_MAPPING);
+        Annotation classMapping = sc.getAnnotation(ANN_REQUEST_MAPPING);
         if (classMapping != null) {
-            classPaths.addAll(AnnotationHelper.getAnnotationValues(classMapping, "value"));
-            classPaths.addAll(AnnotationHelper.getAnnotationValues(classMapping, "path"));
+            classPaths.addAll(getAnnotationValues(classMapping, "value"));
+            classPaths.addAll(getAnnotationValues(classMapping, "path"));
         }
-        if (classPaths.isEmpty()) classPaths.add(""); // Default to root if no path at class level
+        if (classPaths.isEmpty()) classPaths.add("");
 
-        // Method-level paths
-        for (SootMethod sm : sc.getMethods()) {
+        for (JMethod sm : sc.getDeclaredMethods()) {
             
-            // Filter Check: If filter is active, either Class OR Method must match
             if (filterAnnotations != null && !filterAnnotations.isEmpty()) {
-                boolean methodMatchesFilter = AnnotationHelper.hasAnnotationContaining(sm, filterAnnotations);
+                boolean methodMatchesFilter = hasAnnotationContaining(sm, filterAnnotations);
                 if (!classMatchesFilter && !methodMatchesFilter) {
-                    continue; // Skip this method
+                    continue;
                 }
             }
 
             String httpMethod = null;
             List<String> methodPaths = new ArrayList<>();
             
-            if (AnnotationHelper.hasAnnotation(sm, ANN_REQUEST_MAPPING)) {
-                AnnotationTag tag = AnnotationHelper.getAnnotation(sm, ANN_REQUEST_MAPPING);
-                methodPaths.addAll(AnnotationHelper.getAnnotationValues(tag, "value"));
-                methodPaths.addAll(AnnotationHelper.getAnnotationValues(tag, "path"));
-                // Attempt to extract method from RequestMethod enum is complex in bytecode, 
-                // often defaults to ALL if not easily statically resolved.
-                // For PoC, we default to GET if unknown, or try to parse 'method' attribute.
-                List<String> methods = AnnotationHelper.getAnnotationValues(tag, "method");
+            if (hasAnnotation(sm, ANN_REQUEST_MAPPING)) {
+                Annotation tag = sm.getAnnotation(ANN_REQUEST_MAPPING);
+                methodPaths.addAll(getAnnotationValues(tag, "value"));
+                methodPaths.addAll(getAnnotationValues(tag, "path"));
+                List<String> methods = getAnnotationValues(tag, "method");
                 if (!methods.isEmpty()) {
                      httpMethod = methods.get(0).replace("RequestMethod.", "");
                 } else {
                      httpMethod = "ALL"; 
                 }
                 
-            } else if (AnnotationHelper.hasAnnotation(sm, ANN_GET_MAPPING)) {
-                AnnotationTag tag = AnnotationHelper.getAnnotation(sm, ANN_GET_MAPPING);
-                methodPaths.addAll(AnnotationHelper.getAnnotationValues(tag, "value"));
-                methodPaths.addAll(AnnotationHelper.getAnnotationValues(tag, "path"));
+            } else if (hasAnnotation(sm, ANN_GET_MAPPING)) {
+                Annotation tag = sm.getAnnotation(ANN_GET_MAPPING);
+                methodPaths.addAll(getAnnotationValues(tag, "value"));
+                methodPaths.addAll(getAnnotationValues(tag, "path"));
                 httpMethod = "GET";
-            } else if (AnnotationHelper.hasAnnotation(sm, ANN_POST_MAPPING)) {
-                AnnotationTag tag = AnnotationHelper.getAnnotation(sm, ANN_POST_MAPPING);
-                methodPaths.addAll(AnnotationHelper.getAnnotationValues(tag, "value"));
-                methodPaths.addAll(AnnotationHelper.getAnnotationValues(tag, "path"));
+            } else if (hasAnnotation(sm, ANN_POST_MAPPING)) {
+                Annotation tag = sm.getAnnotation(ANN_POST_MAPPING);
+                methodPaths.addAll(getAnnotationValues(tag, "value"));
+                methodPaths.addAll(getAnnotationValues(tag, "path"));
                 httpMethod = "POST";
-            } else if (AnnotationHelper.hasAnnotation(sm, ANN_PUT_MAPPING)) {
-                AnnotationTag tag = AnnotationHelper.getAnnotation(sm, ANN_PUT_MAPPING);
-                methodPaths.addAll(AnnotationHelper.getAnnotationValues(tag, "value"));
-                methodPaths.addAll(AnnotationHelper.getAnnotationValues(tag, "path"));
+            } else if (hasAnnotation(sm, ANN_PUT_MAPPING)) {
+                Annotation tag = sm.getAnnotation(ANN_PUT_MAPPING);
+                methodPaths.addAll(getAnnotationValues(tag, "value"));
+                methodPaths.addAll(getAnnotationValues(tag, "path"));
                 httpMethod = "PUT";
-            } else if (AnnotationHelper.hasAnnotation(sm, ANN_DELETE_MAPPING)) {
-                AnnotationTag tag = AnnotationHelper.getAnnotation(sm, ANN_DELETE_MAPPING);
-                methodPaths.addAll(AnnotationHelper.getAnnotationValues(tag, "value"));
-                methodPaths.addAll(AnnotationHelper.getAnnotationValues(tag, "path"));
+            } else if (hasAnnotation(sm, ANN_DELETE_MAPPING)) {
+                Annotation tag = sm.getAnnotation(ANN_DELETE_MAPPING);
+                methodPaths.addAll(getAnnotationValues(tag, "value"));
+                methodPaths.addAll(getAnnotationValues(tag, "path"));
                 httpMethod = "DELETE";
             }
 
             if (httpMethod != null) {
                 if (methodPaths.isEmpty()) methodPaths.add("");
                 
-                // Extract Parameters Info
                 RouteMetadata metadata = extractRouteMetadata(sm);
                 
                 for (String cp : classPaths) {
@@ -352,18 +372,13 @@ public class RouteExtractor {
                 String className = entry.getKey();
                 List<String> paths = entry.getValue();
                 
-                // Verify if class is in Soot (Optional, but good for validation)
-                // If the class is a library class, it might not be in "ApplicationClasses" but in "Scene.v().getClasses()"
-                // We add it regardless, because web.xml is an explicit definition.
-                
                 for (String path : paths) {
-                    // Create a route for ALL methods since web.xml maps the servlet generally
                     routes.add(new ApiRoute(
                         "ALL", 
                         path, 
                         className, 
-                        "service", // Method name placeholder
-                        new ArrayList<>(), // No params known from web.xml
+                        "service", 
+                        new ArrayList<>(), 
                         new HashMap<>(), 
                         "application/x-www-form-urlencoded"
                     ));
@@ -377,67 +392,41 @@ public class RouteExtractor {
         if (!p1.startsWith("/")) p1 = "/" + p1;
         if (!p2.startsWith("/") && !p2.isEmpty()) p2 = "/" + p2;
         if (p1.endsWith("/") && p2.startsWith("/")) return p1 + p2.substring(1);
-        if (p1.equals("/") && p2.startsWith("/")) return p2; // Avoid //api
+        if (p1.equals("/") && p2.startsWith("/")) return p2; 
         return p1 + p2;
     }
-    
-    // --- Phase 8.3 Metadata Extraction ---
     
     private static class RouteMetadata {
         List<String> parameters = new ArrayList<>();
         Map<String, String> paramAnnotations = new HashMap<>();
-        String contentType = "application/x-www-form-urlencoded"; // Default
+        String contentType = "application/x-www-form-urlencoded"; 
     }
 
-    private RouteMetadata extractRouteMetadata(SootMethod sm) {
+    private RouteMetadata extractRouteMetadata(JMethod sm) {
         RouteMetadata meta = new RouteMetadata();
         
-        // 1. Basic Parameter Info (Name:Type)
-        // Try to get names from ActiveBody (LocalVariableTable) if available
-        List<String> paramNames = new ArrayList<>();
-        try {
-            if (sm.hasActiveBody()) {
-                // Not reliable for interfaces/abstract, but Controllers usually have bodies
-                // However, without debug info (-g:vars), names are arg0, arg1...
-                // Spring uses -parameters flag usually.
-                // We rely on simple counting for now: arg0...
-            }
-        } catch (Exception e) {}
-        
-        // 2. Annotation Analysis (VisibilityParameterAnnotationTag)
-        // Format: Tag -> Annotations[] -> Annotation
-        VisibilityParameterAnnotationTag tag = (VisibilityParameterAnnotationTag) sm.getTag("VisibilityParameterAnnotationTag");
-        
-        int paramCount = sm.getParameterCount();
+        int paramCount = sm.getParamCount();
         for (int i = 0; i < paramCount; i++) {
+            // PERFORMANCE OPTIMIZATION 3: Do not call sm.getParamName() here!
+            // It triggers IR construction for the method, dramatically slowing down API extraction.
             String name = "arg" + i; 
-            Type type = sm.getParameterType(i);
-            meta.parameters.add(name + ":" + type.toString());
+            Type type = sm.getParamType(i);
+            meta.parameters.add(name + ":" + type.getName());
             
-            // Check for Multipart
-            if (type.toString().contains("MultipartFile")) {
+            if (type.getName().contains("MultipartFile")) {
                 meta.contentType = "multipart/form-data";
             }
 
-            if (tag != null && tag.getVisibilityAnnotations() != null && i < tag.getVisibilityAnnotations().size()) {
-                VisibilityAnnotationTag paramTags = tag.getVisibilityAnnotations().get(i);
-                if (paramTags != null && paramTags.getAnnotations() != null) {
-                    for (AnnotationTag at : paramTags.getAnnotations()) {
-                        String typeName = at.getType().replace("/", ".").replace(";", "");
-                        if (typeName.startsWith("L")) typeName = typeName.substring(1); // Remove L prefix
-
-                        if (typeName.equals(ANN_REQUEST_BODY)) {
-                            meta.paramAnnotations.put(name, "RequestBody");
-                            meta.contentType = "application/json";
-                        } else if (typeName.equals(ANN_REQUEST_PARAM)) {
-                            meta.paramAnnotations.put(name, "RequestParam");
-                            // If we have @RequestParam("alias"), we should extract it.
-                            // But parsing annotation values here is complex (requires searching elems).
-                            // For MVP, we stick to argX or rely on parameter name preservation.
-                        } else if (typeName.equals(ANN_PATH_VARIABLE)) {
-                            meta.paramAnnotations.put(name, "PathVariable");
-                        }
-                    }
+            Collection<Annotation> paramAnnos = sm.getParamAnnotations(i);
+            for (Annotation at : paramAnnos) {
+                String typeName = at.getType();
+                if (typeName.equals(ANN_REQUEST_BODY)) {
+                    meta.paramAnnotations.put(name, "RequestBody");
+                    meta.contentType = "application/json";
+                } else if (typeName.equals(ANN_REQUEST_PARAM)) {
+                    meta.paramAnnotations.put(name, "RequestParam");
+                } else if (typeName.equals(ANN_PATH_VARIABLE)) {
+                    meta.paramAnnotations.put(name, "PathVariable");
                 }
             }
         }
@@ -445,27 +434,21 @@ public class RouteExtractor {
         return meta;
     }
 
-    // JAX-RS specific metadata extraction
-    private RouteMetadata extractJaxrsRouteMetadata(SootMethod sm) {
+    private RouteMetadata extractJaxrsRouteMetadata(JMethod sm) {
         RouteMetadata meta = new RouteMetadata();
 
-        // 1. Basic Parameter Info (Name:Type)
-        VisibilityParameterAnnotationTag tag = (VisibilityParameterAnnotationTag) sm.getTag("VisibilityParameterAnnotationTag");
-
-        int paramCount = sm.getParameterCount();
+        int paramCount = sm.getParamCount();
         for (int i = 0; i < paramCount; i++) {
+            // PERFORMANCE OPTIMIZATION 3: Do not call sm.getParamName() here!
             String name = "arg" + i;
-            Type type = sm.getParameterType(i);
-            meta.parameters.add(name + ":" + type.toString());
+            Type type = sm.getParamType(i);
+            meta.parameters.add(name + ":" + type.getName());
 
-            // Check for JSON content type based on parameter type
-            // For POJO types (non-primitive, non-string, non-collection), assume JSON if no specific annotation
-            String typeStr = type.toString();
+            String typeStr = type.getName();
             if (!isPrimitiveOrBasicType(typeStr)) {
-                // If there's a @Consumes annotation with JSON, set content type
-                AnnotationTag consumesTag = AnnotationHelper.getAnnotation(sm, ANN_CONSUMES);
+                Annotation consumesTag = sm.getAnnotation(ANN_CONSUMES);
                 if (consumesTag != null) {
-                    List<String> consumesValues = AnnotationHelper.getAnnotationValues(consumesTag, "value");
+                    List<String> consumesValues = getAnnotationValues(consumesTag, "value");
                     for (String value : consumesValues) {
                         if (value.toLowerCase().contains("json")) {
                             meta.contentType = "application/json";
@@ -475,35 +458,28 @@ public class RouteExtractor {
                 }
             }
 
-            if (tag != null && tag.getVisibilityAnnotations() != null && i < tag.getVisibilityAnnotations().size()) {
-                VisibilityAnnotationTag paramTags = tag.getVisibilityAnnotations().get(i);
-                if (paramTags != null && paramTags.getAnnotations() != null) {
-                    for (AnnotationTag at : paramTags.getAnnotations()) {
-                        String typeName = at.getType().replace("/", ".").replace(";", "");
-                        if (typeName.startsWith("L")) typeName = typeName.substring(1); // Remove L prefix
-
-                        if (typeName.equals(ANN_QUERY_PARAM)) {
-                            meta.paramAnnotations.put(name, "QueryParam");
-                        } else if (typeName.equals(ANN_PATH_PARAM)) {
-                            meta.paramAnnotations.put(name, "PathParam");
-                        } else if (typeName.equals(ANN_HEADER_PARAM)) {
-                            meta.paramAnnotations.put(name, "HeaderParam");
-                        } else if (typeName.equals(ANN_FORM_PARAM)) {
-                            meta.paramAnnotations.put(name, "FormParam");
-                        } else if (typeName.equals(ANN_COOKIE_PARAM)) {
-                            meta.paramAnnotations.put(name, "CookieParam");
-                        } else if (typeName.equals(ANN_MATRIX_PARAM)) {
-                            meta.paramAnnotations.put(name, "MatrixParam");
-                        }
-                    }
+            Collection<Annotation> paramAnnos = sm.getParamAnnotations(i);
+            for (Annotation at : paramAnnos) {
+                String typeName = at.getType();
+                if (typeName.equals(ANN_QUERY_PARAM)) {
+                    meta.paramAnnotations.put(name, "QueryParam");
+                } else if (typeName.equals(ANN_PATH_PARAM)) {
+                    meta.paramAnnotations.put(name, "PathParam");
+                } else if (typeName.equals(ANN_HEADER_PARAM)) {
+                    meta.paramAnnotations.put(name, "HeaderParam");
+                } else if (typeName.equals(ANN_FORM_PARAM)) {
+                    meta.paramAnnotations.put(name, "FormParam");
+                } else if (typeName.equals(ANN_COOKIE_PARAM)) {
+                    meta.paramAnnotations.put(name, "CookieParam");
+                } else if (typeName.equals(ANN_MATRIX_PARAM)) {
+                    meta.paramAnnotations.put(name, "MatrixParam");
                 }
             }
         }
 
-        // Also check method-level @Consumes and @Produces annotations
-        AnnotationTag consumesTag = AnnotationHelper.getAnnotation(sm, ANN_CONSUMES);
+        Annotation consumesTag = sm.getAnnotation(ANN_CONSUMES);
         if (consumesTag != null) {
-            List<String> consumesValues = AnnotationHelper.getAnnotationValues(consumesTag, "value");
+            List<String> consumesValues = getAnnotationValues(consumesTag, "value");
             for (String value : consumesValues) {
                 if (value.toLowerCase().contains("json")) {
                     meta.contentType = "application/json";
@@ -525,7 +501,6 @@ public class RouteExtractor {
     }
     
     private boolean isPrimitiveOrBasicType(String typeStr) {
-        // Check if it's a primitive type, String, or common wrapper types
         return typeStr.equals("boolean") || typeStr.equals("char") || 
                typeStr.equals("byte") || typeStr.equals("short") || 
                typeStr.equals("int") || typeStr.equals("long") || 

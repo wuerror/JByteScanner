@@ -127,12 +127,12 @@ public class JByteScanner implements Callable<Integer> {
         }
 
         // Phase 2.5: Secret Scanner (Execute in BOTH api and scan modes)
-        // Ensure Soot is initialized if Discovery was skipped (e.g. in 'scan' mode with existing api.txt)
-        // Note: In 'api' mode, DiscoveryEngine.run() already initializes Soot.
+        // Ensure Tai-e is initialized if Discovery was skipped (e.g. in 'scan' mode with existing api.txt)
+        // Note: In 'api' mode, DiscoveryEngine.run() already initializes Tai-e.
         if (isScanMode && apiFile.exists() && !forceDiscovery) {
              List<String> combinedLibs = new java.util.ArrayList<>(loadedJars.libJars);
              if (loadedJars.depAppJars != null) combinedLibs.addAll(loadedJars.depAppJars);
-             com.jbytescanner.core.SootManager.initSoot(loadedJars.targetAppJars, combinedLibs, false);
+             com.jbytescanner.core.TaieManager.initTaie(loadedJars.targetAppJars, combinedLibs, true);
         }
 
         System.out.println("------------------------------------------");

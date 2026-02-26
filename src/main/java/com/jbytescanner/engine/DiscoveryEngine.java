@@ -1,6 +1,6 @@
 package com.jbytescanner.engine;
 
-import com.jbytescanner.core.SootManager;
+import com.jbytescanner.core.TaieManager;
 import com.jbytescanner.model.ApiRoute;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -8,8 +8,6 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -33,22 +31,18 @@ public class DiscoveryEngine {
     public void run() {
         logger.info("Starting Discovery Engine...");
         
-        // 1. Init Soot
-        // For discovery, we usually want to see everything in App Jars, 
-        // but strict isolation helps speed up here too if we only care about target packages.
-        // However, Discovery is lightweight (no bodies), so we can be more permissive or strict.
-        // Let's stick to strict if scanPackages are defined to avoid noise.
-        
-        List<String> combinedLibs = new ArrayList<>(libJars);
+        // 1. Init Tai-e
+        List<String> combinedLibs = new ArrayList<>();
+        if (libJars != null) combinedLibs.addAll(libJars);
         if (depAppJars != null) combinedLibs.addAll(depAppJars);
 
-        SootManager.initSoot(targetAppJars, combinedLibs, false);
+        // We pass false for isTaint to optimize initialization (no need for full JDK IR etc)
+        TaieManager.initTaie(targetAppJars, combinedLibs, false);
         
         // 2. Extract Routes
+        // OPTIMIZATION 4: Only scan targetAppJars for web.xml
         List<String> scanJars = new ArrayList<>();
         if (targetAppJars != null) scanJars.addAll(targetAppJars);
-        if (depAppJars != null) scanJars.addAll(depAppJars);
-        if (libJars != null) scanJars.addAll(libJars);
 
         RouteExtractor extractor = new RouteExtractor(filterAnnotations, scanJars);
         List<ApiRoute> routes = extractor.extract();
