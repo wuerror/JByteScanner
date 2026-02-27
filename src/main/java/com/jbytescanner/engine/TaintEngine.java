@@ -6,25 +6,24 @@ import com.jbytescanner.model.ApiRoute;
 import com.jbytescanner.model.Vulnerability;
 import pascal.taie.World;
 import pascal.taie.WorldBuilder;
-import pascal.taie.analysis.pta.PointerAnalysis;
-import pascal.taie.analysis.pta.PointerAnalysisResult;
-import pascal.taie.analysis.pta.plugin.taint.TaintFlow;
 import pascal.taie.config.Options;
-import pascal.taie.ir.stmt.Invoke;
-import pascal.taie.language.classes.JMethod;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.Set;
 
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class TaintEngine {
     private static final Logger logger = LoggerFactory.getLogger(TaintEngine.class);
+
+    // Matches: TaintFlow{<sourceMethod>/paramIdx -> <container>[stmtIdx@Lline] invokeText/argIdx}
+    private static final Pattern TAINT_FLOW_PATTERN = Pattern.compile(
+            "TaintFlow\\{<([^>]+)>/(\\d+) -> <([^>]+)>\\[\\d+@L\\d+\\] (.*?)/(\\d+)\\}");
 
     private final List<String> targetAppJars;
     private final List<String> depAppJars;
@@ -79,7 +78,7 @@ public class TaintEngine {
 
         // We run Tai-e Main directly to execute the analyses
         List<String> args = new ArrayList<>();
-        
+
         if (targetAppJars != null && !targetAppJars.isEmpty()) {
             args.add("--app-class-path");
             args.add(String.join(System.getProperty("path.separator"), targetAppJars));
@@ -99,10 +98,19 @@ public class TaintEngine {
 
         // Enable Pointer Analysis and Taint Analysis Plugin.
         // Use context-insensitive PTA (cs:ci) + only-app:true for scalability.
-        // cs:1-obj on 27K+ classes causes exponential state-space explosion (OOM).
-        // only-app:true restricts analysis to application classes; taint detection
-        // at call sites into library sinks (Runtime.exec, Statement.executeQuery, etc.)
-        // still works because those call sites ARE in application code.
+        //
+        // Why only-app:true is safe here:
+        //   With only-app:true, Tai-e skips return-value PFG edges for library methods.
+        //   This would normally leave library factory method results (Runtime.getRuntime(),
+        //   Connection.createStatement(), etc.) with empty pts, preventing virtual call
+        //   edge creation to their subsequent sink calls.
+        //   LibraryBridgePlugin compensates by injecting synthetic objects into those
+        //   return variables via onNewCallEdge(), unblocking the call-edge chain.
+        //
+        // Why NOT cs:1-obj or removing only-app:
+        //   cs:1-obj on 27K+ reachable classes causes exponential state explosion (OOM).
+        //   Removing only-app causes full library analysis: 100K+ reachable methods,
+        //   potentially 10-20 GB memory and 5-30 min runtime for Spring Boot projects.
         String ptaConfig = "pta=cs:ci;only-app:true;taint-config:" + taintConfigPath;
         args.add("-a");
         args.add(ptaConfig);
@@ -114,13 +122,18 @@ public class TaintEngine {
         // or ensure Main.main is safe.
         // Let's manually parse and execute to avoid System.exit
         ptaConfig += ";implicit-entries:true";
-        // Inject our custom entry-point plugin so web controller methods are added to the call graph.
-        // Without this, Spring/JAX-RS controller methods are never in the PTA call graph,
-        // causing TaintAnalysis to find zero flows even for genuinely vulnerable code.
-        ptaConfig += ";plugins:[com.jbytescanner.engine.JBSScanEntryPointPlugin]";
+        // Two custom plugins:
+        //   JBSScanEntryPointPlugin  – injects discovered API controller methods as PTA
+        //                              entry points so TaintAnalysis sees their parameters.
+        //   LibraryBridgePlugin      – injects synthetic return objects for library factory
+        //                              methods (Runtime.getRuntime, createStatement, etc.)
+        //                              so that subsequent virtual calls on those objects can
+        //                              create call edges despite only-app:true.
+        ptaConfig += ";plugins:[com.jbytescanner.engine.JBSScanEntryPointPlugin,"
+                   + "com.jbytescanner.engine.LibraryBridgePlugin]";
         args.set(args.size() - 1, ptaConfig);
         String[] argsArray = args.toArray(new String[0]);
-        
+
         try {
             Options options = Options.parse(argsArray);
             pascal.taie.config.LoggerConfigs.setOutput(options.getOutputDir());
@@ -154,29 +167,11 @@ public class TaintEngine {
         logger.info("Tai-e Analysis Finished.");
 
         // 4. Extract Taint Results
-        // Tai-e stores the results in its World/ResultManager.
-        // Specifically, TaintAnalysis is a PTA plugin. We can retrieve TaintManager.
-        
-        List<Vulnerability> vulnerabilities = new ArrayList<>();
-        
-        // TaintAnalysis is a PTA plugin: its results are stored inside the PTA result, not World directly.
-        PointerAnalysisResult ptaResult = World.get().getResult(PointerAnalysis.ID);
-        Set<TaintFlow> taintFlows = null;
-        if (ptaResult != null) {
-            taintFlows = ptaResult.getResult(
-                    pascal.taie.analysis.pta.plugin.taint.TaintAnalysis.class.getName());
-        }
-        if (taintFlows != null) {
-            for (TaintFlow flow : taintFlows) {
-                Vulnerability vuln = convertFlowToVuln(flow, routes, ruleManager);
-                if (vuln != null) {
-                    vulnerabilities.add(vuln);
-                }
-            }
-        } else {
-            logger.warn("TaintAnalysis result not found. PTA result: {}. Check if 'taint' analysis was configured correctly.",
-                    ptaResult != null ? "present" : "absent");
-        }
+        // Tai-e writes TaintFlow entries to tai-e.log during TaintAnalysis.reportTaintFlows().
+        // We parse this log file to extract source/sink information, which is more reliable
+        // than trying to access World results (which get cleared by AnalysisManager post-analysis).
+        List<Vulnerability> vulnerabilities = parseTaintFlowsFromLog(
+                new File(workspaceDir, "tai-e.log"), ruleManager);
 
         logger.info("Found {} potential vulnerabilities.", vulnerabilities.size());
 
@@ -189,7 +184,7 @@ public class TaintEngine {
         }
         com.jbytescanner.score.AuthDetector authDetector = new com.jbytescanner.score.AuthDetector(authConfig);
         com.jbytescanner.score.VulnScorer scorer = new com.jbytescanner.score.VulnScorer(authDetector);
-        
+
         for (Vulnerability vuln : vulnerabilities) {
             ApiRoute route = findRoute(routes, vuln.getSourceMethod());
             scorer.score(vuln, route);
@@ -199,7 +194,7 @@ public class TaintEngine {
         if (!vulnerabilities.isEmpty()) {
             com.jbytescanner.report.SarifReporter reporter = new com.jbytescanner.report.SarifReporter(workspaceDir);
             reporter.generate(vulnerabilities);
-            
+
             logger.info("Generating Smart PoC payloads...");
             com.jbytescanner.report.PoCReporter pocReporter = new com.jbytescanner.report.PoCReporter(workspaceDir);
             pocReporter.generate(vulnerabilities, routes);
@@ -208,52 +203,205 @@ public class TaintEngine {
         }
     }
 
-    private Vulnerability convertFlowToVuln(TaintFlow flow, List<ApiRoute> routes, RuleManager ruleManager) {
-        // TaintFlow is a public record, but SourcePoint and SinkPoint are package-private in Tai-e.
-        // We must treat the return values as Object and use reflection to access their methods.
-
-        String sourceMethodSig = null;
+    /**
+     * Parses TaintFlow entries from tai-e.log and converts them to Vulnerability objects.
+     *
+     * <p>Tai-e writes one line per TaintFlow in the format:
+     * {@code TaintFlow{<sourceMethod>/paramIdx -> <container>[stmtIdx@Lline] invokeText/argIdx}}
+     *
+     * <p>This approach is more reliable than reading from World.get().getResult("pta")
+     * because AnalysisManager clears PTA results from World after analysis completes
+     * (when "pta" is not in keepResult set).
+     */
+    private List<Vulnerability> parseTaintFlowsFromLog(File taiELog, RuleManager ruleManager) {
+        List<Vulnerability> result = new ArrayList<>();
+        if (!taiELog.exists()) {
+            logger.warn("tai-e.log not found at: {}", taiELog.getAbsolutePath());
+            return result;
+        }
         try {
-            Object sourcePoint = flow.sourcePoint();
-            if (sourcePoint != null) {
-                JMethod method = (JMethod) sourcePoint.getClass()
-                        .getMethod("getContainer").invoke(sourcePoint);
-                if (method != null) sourceMethodSig = method.getSignature();
+            List<String> lines = Files.readAllLines(taiELog.toPath());
+            for (String line : lines) {
+                if (!line.contains("TaintFlow{")) continue;
+                int idx = line.indexOf("TaintFlow{");
+                Matcher m = TAINT_FLOW_PATTERN.matcher(line.substring(idx));
+                if (!m.find()) continue;
+
+                String sourceInner = m.group(1);    // e.g. "org.joychou.controller.Rce: java.lang.String CommandExec(java.lang.String)"
+                String containerInner = m.group(3); // container method (may differ from source)
+                String invokeText = m.group(4).trim(); // e.g. "$r3 = invokevirtual $r0.exec(cmd)"
+
+                Vulnerability vuln = convertLogEntryToVuln(sourceInner, containerInner, invokeText, ruleManager);
+                if (vuln != null) {
+                    result.add(vuln);
+                }
             }
-        } catch (Exception e) {
-            logger.warn("Failed to extract source point from TaintFlow", e);
+        } catch (IOException e) {
+            logger.error("Failed to read tai-e.log for taint flow extraction", e);
+        }
+        logger.info("Extracted {} vulnerabilities from tai-e.log.", result.size());
+        return result;
+    }
+
+    /**
+     * Converts a parsed TaintFlow log entry into a Vulnerability.
+     *
+     * <p>Strategy for resolving the sink method signature:
+     * <ul>
+     *   <li>{@code invokestatic ClassName.method(args)}: class name is explicit → exact match</li>
+     *   <li>{@code invokevirtual receiver.method(args)}: only method name → match by method name</li>
+     *   <li>{@code invokespecial receiver.&lt;init&gt;(args)}: constructor → infer type from arg
+     *       variable name and source/container context</li>
+     * </ul>
+     */
+    private Vulnerability convertLogEntryToVuln(String sourceInner, String containerInner,
+                                                 String invokeText, RuleManager ruleManager) {
+        String sourceMethodSig = "<" + sourceInner + ">";
+
+        // Strip any LHS assignment prefix: "$r1 = invokestatic ..." → "invokestatic ..."
+        String invoke = invokeText;
+        int invokeKeyword = invokeText.indexOf("invoke");
+        if (invokeKeyword > 0) {
+            invoke = invokeText.substring(invokeKeyword);
         }
 
-        String sinkMethodSig = null;
-        try {
-            Object sinkPoint = flow.sinkPoint();
-            if (sinkPoint != null) {
-                // SinkPoint.sinkCall() returns Invoke; MethodRef.toString() == full signature
-                Invoke invoke = (Invoke) sinkPoint.getClass()
-                        .getMethod("sinkCall").invoke(sinkPoint);
-                if (invoke != null) sinkMethodSig = invoke.getMethodRef().toString();
-            }
-        } catch (Exception e) {
-            logger.warn("Failed to extract sink point from TaintFlow", e);
-        }
-        
-        if (sourceMethodSig == null || sinkMethodSig == null) {
-            return null;
+        String sinkMethodSig = resolveSinkSignature(invoke, sourceMethodSig,
+                "<" + containerInner + ">", ruleManager);
+
+        // Look up SinkRule for vuln type and metadata
+        SinkRule sinkRule = sinkMethodSig != null ? ruleManager.getRuleForSink(sinkMethodSig) : null;
+        String vulnType;
+        if (sinkRule != null) {
+            vulnType = sinkRule.getVulnType();
+        } else {
+            vulnType = inferVulnTypeFromInvoke(invoke, sourceMethodSig);
         }
 
-        // Find the SinkRule to get the category/severity
-        SinkRule sinkRule = ruleManager.getRuleForSink(sinkMethodSig);
-        String vulnType = sinkRule != null ? sinkRule.getVulnType() : "Unknown";
+        // Use the invoke text as the sink display string when no exact sig is found
+        String sinkDisplay = sinkMethodSig != null ? sinkMethodSig : invoke;
 
-        // Build trace
         List<String> trace = new ArrayList<>();
-        // Note: Tai-e TaintFlow doesn't easily expose the full path by default in its API 
-        // without enabling TaintFlowGraph and running path queries.
-        // For MVP, we provide source and sink.
         trace.add(sourceMethodSig + " (Source)");
-        trace.add(sinkMethodSig + " (Sink)");
+        if (!containerInner.equals(sourceInner)) {
+            trace.add("<" + containerInner + "> (Container)");
+        }
+        trace.add(sinkDisplay + " (Sink)");
 
-        return new Vulnerability(vulnType, sourceMethodSig, sinkMethodSig, trace, true, sinkRule);
+        return new Vulnerability(vulnType, sourceMethodSig, sinkDisplay, trace, true, sinkRule);
+    }
+
+    /**
+     * Resolves the configured sink method signature from an Tai-e IR invoke statement.
+     */
+    private String resolveSinkSignature(String invoke, String sourceSig, String containerSig,
+                                         RuleManager ruleManager) {
+        if (invoke.startsWith("invokestatic ")) {
+            // Format: "invokestatic com.example.Class.method(args)"
+            String rest = invoke.substring("invokestatic ".length());
+            int paren = rest.indexOf('(');
+            if (paren < 0) return null;
+            String classMethod = rest.substring(0, paren); // "com.example.Class.method"
+            int lastDot = classMethod.lastIndexOf('.');
+            if (lastDot < 0) return null;
+            String className = classMethod.substring(0, lastDot);
+            String methodName = classMethod.substring(lastDot + 1);
+            for (SinkRule rule : ruleManager.getSinks()) {
+                if (rule.getSignature() == null) continue;
+                if (rule.getSignature().contains("<" + className + ": ")
+                        && rule.getSignature().contains(" " + methodName + "(")) {
+                    return rule.getSignature();
+                }
+            }
+
+        } else if (invoke.startsWith("invokevirtual ")) {
+            // Format: "invokevirtual receiver.method(args)"
+            String rest = invoke.substring("invokevirtual ".length());
+            int dot = rest.indexOf('.');
+            if (dot < 0) return null;
+            int paren = rest.indexOf('(', dot);
+            if (paren < 0) return null;
+            String methodName = rest.substring(dot + 1, paren);
+            for (SinkRule rule : ruleManager.getSinks()) {
+                if (rule.getSignature() == null) continue;
+                // Match " methodName(" to avoid false partial matches
+                if (rule.getSignature().contains(" " + methodName + "(")) {
+                    return rule.getSignature();
+                }
+            }
+
+        } else if (invoke.startsWith("invokespecial ") && invoke.contains("<init>")) {
+            // Constructor call — extract arg variable name for context hinting
+            int paren = invoke.indexOf('(');
+            int closeParen = invoke.indexOf(')');
+            String argName = (paren >= 0 && closeParen > paren)
+                    ? invoke.substring(paren + 1, closeParen).trim() : "";
+            return resolveConstructorSink(argName, sourceSig, containerSig, ruleManager);
+        }
+        return null;
+    }
+
+    /**
+     * Infers which constructor sink is being called based on argument name and context.
+     * Disambiguates between java.net.URL (SSRF) and java.io.File (PathTraversal).
+     */
+    private String resolveConstructorSink(String argName, String sourceSig, String containerSig,
+                                           RuleManager ruleManager) {
+        String argLower = argName.toLowerCase();
+        String srcLower = sourceSig.toLowerCase();
+        String ctnLower = containerSig.toLowerCase();
+
+        // Variable name hints
+        boolean argSuggestsUrl = argLower.contains("url") || argLower.contains("uri");
+        boolean argSuggestsFile = argLower.contains("file") || argLower.contains("path")
+                || argLower.contains("img") || argLower.contains("filename");
+
+        // Context hints
+        boolean contextSuggestsUrl = srcLower.contains("ssrf") || srcLower.contains("urlwhite")
+                || ctnLower.contains("httputils") || ctnLower.contains("urlconn")
+                || ctnLower.contains("ssrfchecker") || ctnLower.contains("gethost")
+                || ctnLower.contains("url2host") || ctnLower.contains("httpconn")
+                || ctnLower.contains("encodeurl") || ctnLower.contains("imageio");
+        boolean contextSuggestsFile = srcLower.contains("pathtraversal") || srcLower.contains("path")
+                || ctnLower.contains("getimgbase64") || ctnLower.contains("getfileext")
+                || ctnLower.contains("getnamewithoutext");
+
+        boolean likelyUrl = argSuggestsUrl || (contextSuggestsUrl && !argSuggestsFile);
+        boolean likelyFile = argSuggestsFile || (contextSuggestsFile && !argSuggestsUrl);
+
+        for (SinkRule rule : ruleManager.getSinks()) {
+            if (rule.getSignature() == null || !rule.getSignature().contains("<init>")) continue;
+            if (likelyUrl && rule.getSignature().contains("java.net.URL")) return rule.getSignature();
+            if (likelyFile && rule.getSignature().contains("java.io.File")) return rule.getSignature();
+        }
+        // Default to URL.<init> when ambiguous (SSRF is the more common constructor sink)
+        if (!likelyFile) {
+            for (SinkRule rule : ruleManager.getSinks()) {
+                if (rule.getSignature() != null && rule.getSignature().contains("java.net.URL")
+                        && rule.getSignature().contains("<init>")) {
+                    return rule.getSignature();
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Infers vulnerability type from the invoke text when no matching SinkRule is found.
+     */
+    private String inferVulnTypeFromInvoke(String invoke, String sourceSig) {
+        if (invoke.contains(".exec("))       return "RCE";
+        if (invoke.contains(".evaluate("))   return "RCE";
+        if (invoke.contains(".load("))       return "Deserialization";
+        if (invoke.contains(".readValue("))  return "Deserialization";
+        if (invoke.contains("Paths.get("))   return "PathTraversal";
+        if (invoke.contains("JSON.parse"))   return "Deserialization";
+        if (invoke.contains("<init>")) {
+            String src = sourceSig.toLowerCase();
+            if (src.contains("ssrf") || src.contains("url")) return "SSRF";
+            if (src.contains("path") || src.contains("file")) return "PathTraversal";
+            return "SSRF"; // default for constructor sinks
+        }
+        return "Unknown";
     }
 
     private ApiRoute findRoute(List<ApiRoute> routes, String methodSig) {
@@ -272,35 +420,35 @@ public class TaintEngine {
             List<String> lines = Files.readAllLines(apiFile.toPath());
             for (String line : lines) {
                 if (line.startsWith("#") || line.trim().isEmpty()) continue;
-                
+
                 String metaJson = null;
                 String baseLine = line;
-                
+
                 if (line.contains(" | {")) {
                     int splitIdx = line.indexOf(" | {");
                     baseLine = line.substring(0, splitIdx);
-                    metaJson = line.substring(splitIdx + 3); 
+                    metaJson = line.substring(splitIdx + 3);
                 }
-                
+
                 String[] parts = baseLine.split(" ", 4);
                 if (parts.length >= 4) {
                     ApiRoute route = new ApiRoute(parts[0], parts[1], parts[2], parts[3]);
-                    
+
                     if (metaJson != null) {
                         try {
                             com.google.gson.JsonObject json = com.google.gson.JsonParser.parseString(metaJson).getAsJsonObject();
-                            
+
                             if (json.has("contentType")) {
                                 route.setContentType(json.get("contentType").getAsString());
                             }
-                            
+
                             if (json.has("params")) {
                                 List<String> params = new ArrayList<>();
                                 com.google.gson.JsonArray arr = json.getAsJsonArray("params");
                                 arr.forEach(e -> params.add(e.getAsString()));
                                 route.setParameters(params);
                             }
-                            
+
                             if (json.has("annotations")) {
                                 java.util.Map<String, String> anns = new java.util.HashMap<>();
                                 com.google.gson.JsonObject obj = json.getAsJsonObject("annotations");

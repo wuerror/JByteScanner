@@ -60,7 +60,50 @@ public class JarLoader {
 
         logger.info("Found {} raw JAR/WAR files in {}", rawJars.size(), path);
 
-        return processFatJars(rawJars, scanPackages);
+        LoadedJars result = processFatJars(rawJars, scanPackages);
+
+        // Detect obfuscated-dependency directories: some vendors (e.g. Landray) rename
+        // third-party library JARs to opaque names (mk.landray.xxx.jar) and place them
+        // in a sibling "ext/" directory alongside a file_mapping.txt manifest.
+        // Tai-e needs these real library JARs on --class-path to resolve sink method
+        // signatures; without them every sink reports "Cannot find" and analysis fails.
+        // We detect this pattern by looking for file_mapping.txt in sibling directories.
+        List<String> extLibJars = discoverObfuscatedExtLibs(root);
+        if (!extLibJars.isEmpty()) {
+            logger.info("Discovered {} obfuscated library JARs from ext directory.", extLibJars.size());
+            result.libJars.addAll(extLibJars);
+        }
+
+        return result;
+    }
+
+    /**
+     * Searches sibling directories of {@code root} for a {@code file_mapping.txt} file,
+     * which signals that the directory contains third-party JARs renamed to opaque names.
+     * All {@code *.jar} files in such directories are returned as library JARs.
+     */
+    private List<String> discoverObfuscatedExtLibs(File root) {
+        List<String> extJars = new ArrayList<>();
+        File parent = root.getParentFile();
+        if (parent == null || !parent.isDirectory()) return extJars;
+
+        File[] siblings = parent.listFiles(File::isDirectory);
+        if (siblings == null) return extJars;
+
+        for (File sibling : siblings) {
+            if (sibling.equals(root)) continue;
+            // Presence of file_mapping.txt is the signal for obfuscated dependency dirs
+            if (new File(sibling, "file_mapping.txt").exists()) {
+                logger.info("Found obfuscated dependency directory: {}", sibling.getAbsolutePath());
+                File[] jars = sibling.listFiles(f -> f.getName().endsWith(".jar"));
+                if (jars != null) {
+                    for (File jar : jars) {
+                        extJars.add(jar.getAbsolutePath());
+                    }
+                }
+            }
+        }
+        return extJars;
     }
 
     /**

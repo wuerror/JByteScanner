@@ -85,11 +85,12 @@ public class RuleManager {
                     taieSink.put("index", i);
                     taieSinks.add(taieSink);
                 }
-                // Also base object for some sinks (like Statement.executeQuery)
-                Map<String, Object> baseSink = new HashMap<>();
-                baseSink.put("method", sink.getSignature());
-                baseSink.put("index", "base");
-                taieSinks.add(baseSink);
+                // NOTE: We intentionally do NOT add index:"base" here.
+                // "base" means the receiver object is tainted, which is almost never
+                // the case for our target vuln patterns (XSS, SQLi, RCE, PathTraversal).
+                // More importantly, static sinks (Paths.get, Files.write, JSON.parse, etc.)
+                // would throw ClassCastException in InvokeUtils.getVar() when "base" is used,
+                // because InvokeStatic cannot be cast to InvokeInstanceExp.
             }
         }
         taieConfig.put("sinks", taieSinks);

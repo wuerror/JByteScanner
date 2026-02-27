@@ -11,7 +11,11 @@ import pascal.taie.language.classes.ClassHierarchy;
 import pascal.taie.language.classes.JClass;
 import pascal.taie.language.classes.JMethod;
 
+import pascal.taie.analysis.pta.plugin.taint.TaintAnalysis;
+import pascal.taie.analysis.pta.plugin.taint.TaintFlow;
+
 import java.util.List;
+import java.util.Set;
 
 /**
  * Tai-e PTA plugin that injects JByteScanner's discovered API entry methods
@@ -34,6 +38,14 @@ public class JBSScanEntryPointPlugin implements Plugin {
      * Format: {@code <com.example.Class: returnType methodName(paramTypes)>}
      */
     public static volatile List<String> entrySignatures = List.of();
+
+    /**
+     * Taint flows captured in onFinish(), after TaintAnalysis has stored its results.
+     * Plugin execution order: TaintAnalysis → ResultProcessor → JBSScanEntryPointPlugin.
+     * This field is populated BEFORE AnalysisManager clears the PTA result from World,
+     * which is why we capture here instead of reading World.get().getResult("pta") post-analysis.
+     */
+    public static volatile Set<TaintFlow> capturedTaintFlows = null;
 
     private Solver solver;
 
@@ -63,6 +75,18 @@ public class JBSScanEntryPointPlugin implements Plugin {
         }
         logger.info("[JBSScanEntryPointPlugin] Injected {}/{} API methods as PTA entry points ({} unresolved/phantom).",
                 added, entrySignatures.size(), unresolved);
+    }
+
+    @Override
+    public void onFinish() {
+        // Plugin order: TaintAnalysis → ResultProcessor → us (JBSScanEntryPointPlugin).
+        // By the time our onFinish() is called, TaintAnalysis has already called:
+        //   solver.getResult().storeResult(TaintAnalysis.class.getName(), taintFlows)
+        // We capture them here before AnalysisManager clears the PTA result from World.
+        Set<TaintFlow> flows = solver.getResult().getResult(TaintAnalysis.class.getName());
+        capturedTaintFlows = flows;
+        logger.info("[JBSScanEntryPointPlugin] Captured {} taint flow(s) from TaintAnalysis.",
+                flows != null ? flows.size() : 0);
     }
 
     /**
