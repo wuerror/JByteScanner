@@ -1,6 +1,5 @@
 package com.jbytescanner.engine;
 
-import com.jbytescanner.core.TaieManager;
 import com.jbytescanner.model.ApiRoute;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,40 +28,28 @@ public class DiscoveryEngine {
     }
 
     public void run() {
-        logger.info("Starting Discovery Engine...");
-        
-        // 1. Init Tai-e
-        List<String> combinedLibs = new ArrayList<>();
-        if (libJars != null) combinedLibs.addAll(libJars);
-        if (depAppJars != null) combinedLibs.addAll(depAppJars);
+        logger.info("Starting Discovery Engine (ASM mode)...");
 
-        // We pass false for isTaint to optimize initialization (no need for full JDK IR etc)
-        TaieManager.initTaie(targetAppJars, combinedLibs, false);
-        
-        // 2. Extract Routes
-        // OPTIMIZATION 4: Only scan targetAppJars for web.xml
+        // Use ASM-based extractor: reads class metadata directly from bytecode without
+        // building a Tai-e World, making discovery orders of magnitude faster.
+        // Only scan targetAppJars — web framework annotations live in business code, not libs.
         List<String> scanJars = new ArrayList<>();
         if (targetAppJars != null) scanJars.addAll(targetAppJars);
 
-        RouteExtractor extractor = new RouteExtractor(filterAnnotations, scanJars);
+        AsmRouteExtractor extractor = new AsmRouteExtractor(filterAnnotations, scanJars);
         List<ApiRoute> routes = extractor.extract();
-        
+
         logger.info("Found {} API Routes.", routes.size());
 
-        
-        // 3. Write Output
         writeApiTxt(routes);
     }
 
     private void writeApiTxt(List<ApiRoute> routes) {
         File apiFile = new File(workspaceDir, "api.txt");
-        List<String> lines = new ArrayList<>();
-        
-        lines.addAll(routes.stream()
+        List<String> lines = routes.stream()
                 .map(ApiRoute::toString)
-                .collect(Collectors.toList()));
+                .collect(Collectors.toList());
 
-        
         try {
             Files.write(apiFile.toPath(), lines);
             logger.info("API Dictionary written to: {}", apiFile.getAbsolutePath());

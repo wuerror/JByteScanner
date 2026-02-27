@@ -2,8 +2,9 @@ package com.jbytescanner.report;
 
 import com.jbytescanner.model.ApiRoute;
 import com.jbytescanner.model.Vulnerability;
-import soot.*;
-import soot.jimple.StringConstant;
+import pascal.taie.World;
+import pascal.taie.language.classes.JClass;
+import pascal.taie.language.classes.JField;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -170,9 +171,9 @@ public class PoCGenerator {
              return isArray ? "[\"" + payload + "\"]" : "\"" + payload + "\"";
         }
 
-        // Try to find SootClass
-        if (Scene.v().containsClass(baseType)) {
-            SootClass sc = Scene.v().getSootClass(baseType);
+        // Try to find JClass
+        JClass sc = World.get().getClassHierarchy().getClass(baseType);
+        if (sc != null) {
             
             // If it's a Map or List/Collection, return generic structure
             if (isCollection(sc)) return "[\"" + payload + "\"]";
@@ -190,7 +191,7 @@ public class PoCGenerator {
             }
             
             try {
-                for (SootField field : sc.getFields()) {
+                for (JField field : sc.getDeclaredFields()) {
                     if (!field.isStatic()) {
                         String fieldName = field.getName();
                         String fieldType = field.getType().toString();
@@ -230,31 +231,31 @@ public class PoCGenerator {
         return isPrimitive(type) || type.startsWith("java.lang.");
     }
 
-    private boolean isCollection(SootClass sc) {
+    private boolean isCollection(JClass sc) {
         // Simple hierarchy check
-        SootClass current = sc;
-        while (current.hasSuperclass()) {
+        JClass current = sc;
+        while (current.getSuperClass() != null) {
              if (current.getName().equals("java.util.Collection") || current.getName().equals("java.util.List") || current.getName().equals("java.util.Set")) return true;
              if (current.getName().equals("java.lang.Object")) break;
-             current = current.getSuperclass();
+             current = current.getSuperClass();
         }
         // Also check interfaces
-        for (SootClass iface : sc.getInterfaces()) {
+        for (JClass iface : sc.getInterfaces()) {
             if (iface.getName().equals("java.util.Collection")) return true;
         }
         return false;
     }
 
-    private boolean isMap(SootClass sc) {
-        for (SootClass iface : sc.getInterfaces()) {
+    private boolean isMap(JClass sc) {
+        for (JClass iface : sc.getInterfaces()) {
             if (iface.getName().equals("java.util.Map")) return true;
         }
         // Check superclass
-        SootClass current = sc;
-        while(current.hasSuperclass()) {
+        JClass current = sc;
+        while(current.getSuperClass() != null) {
              if (current.getName().equals("java.util.Map") || current.getName().equals("java.util.AbstractMap")) return true;
              if (current.getName().equals("java.lang.Object")) break;
-             current = current.getSuperclass();
+             current = current.getSuperClass();
         }
         return false;
     }

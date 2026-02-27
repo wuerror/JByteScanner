@@ -40,22 +40,17 @@ public class RuleManager {
         // 1. Convert Sources
         List<Map<String, Object>> taieSources = new ArrayList<>();
         
-        // Add entry points as parameter sources
+        // Add entry points as parameter sources.
+        // CRITICAL: only add indices that actually exist in the method's parameter list.
+        // Tai-e's taint config parser calls method.getParamType(index) which throws
+        // IndexOutOfBoundsException for out-of-range indices, aborting config loading.
         for (String entrySig : entryMethodSignatures) {
-            // For controllers, we treat all parameters as sources.
-            // In a more sophisticated setup, we could parse the parameter count.
-            // For now, let's treat the first few arguments as sources or wait for Tai-e's param matching.
-            // A common approach for web controllers is to taint all arguments:
-            // Since we don't statically know the param count easily without Tai-e's Method representation,
-            // we can define param sources for indexes 0-5 heuristically, or rely on Tai-e's entry method 
-            // tainting if it has a feature for it.
-            // Tai-e requires an explicit index for `param` source.
-            // Let's add indexes 0 to 5 for now as a safe over-approximation for web controllers.
-            for (int i = 0; i < 5; i++) {
+            int paramCount = parseParamCount(entrySig);
+            for (int i = 0; i < paramCount; i++) {
                 Map<String, Object> source = new HashMap<>();
                 source.put("kind", "param");
                 source.put("method", entrySig);
-                source.put("index", String.valueOf(i));
+                source.put("index", i);
                 taieSources.add(source);
             }
         }
@@ -81,13 +76,13 @@ public class RuleManager {
         List<Map<String, Object>> taieSinks = new ArrayList<>();
         for (SinkRule sink : sinks) {
             if (sink.getSignature() != null) {
-                // Taint all arguments as a safe default if index is not specified in JByteScanner config
-                // In JBS, if it hits the sink method, it checks if any arg is tainted.
-                // Tai-e requires specifying the index. We add multiple entries for indices 0-3.
-                for (int i = 0; i < 4; i++) {
+                // Only add index entries for params that actually exist in the sink method.
+                // Out-of-range indices cause IndexOutOfBoundsException in Tai-e's taint config parser.
+                int paramCount = parseParamCount(sink.getSignature());
+                for (int i = 0; i < paramCount; i++) {
                     Map<String, Object> taieSink = new HashMap<>();
                     taieSink.put("method", sink.getSignature());
-                    taieSink.put("index", String.valueOf(i));
+                    taieSink.put("index", i);
                     taieSinks.add(taieSink);
                 }
                 // Also base object for some sinks (like Statement.executeQuery)
@@ -146,5 +141,23 @@ public class RuleManager {
             }
         }
         return null;
+    }
+
+    /**
+     * Parses the number of parameters from a Tai-e method signature string.
+     * Format: {@code <com.example.Class: ReturnType methodName(paramType1,paramType2)>}
+     * <p>
+     * Returns 0 for incomplete signatures (e.g., {@code <Class: service>}) that
+     * lack parentheses — these are usually servlet "service" entries that should
+     * not have param sources generated.
+     */
+    static int parseParamCount(String methodSig) {
+        int openParen = methodSig.lastIndexOf('(');
+        int closeParen = methodSig.lastIndexOf(')');
+        if (openParen < 0 || closeParen <= openParen) return 0;
+        String paramStr = methodSig.substring(openParen + 1, closeParen).trim();
+        if (paramStr.isEmpty()) return 0;
+        // JVM param types use fully qualified names; commas only appear as param separators
+        return paramStr.split(",").length;
     }
 }

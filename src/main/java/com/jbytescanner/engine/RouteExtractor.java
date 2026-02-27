@@ -13,10 +13,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.HashMap;
-import java.util.Collection;
+import java.util.stream.Collectors;
 
 public class RouteExtractor {
     private static final Logger logger = LoggerFactory.getLogger(RouteExtractor.class);
@@ -113,13 +114,13 @@ public class RouteExtractor {
         Element element = annotation.getElement(key);
         if (element != null) {
             if (element instanceof ArrayElement) {
-                for (Element el : ((ArrayElement) element).getElements()) {
+                for (Element el : ((ArrayElement) element).elements()) {
                     if (el instanceof StringElement) {
-                        values.add(((StringElement) el).getValue());
+                        values.add(((StringElement) el).value());
                     }
                 }
             } else if (element instanceof StringElement) {
-                values.add(((StringElement) element).getValue());
+                values.add(((StringElement) element).value());
             }
         }
         return values;
@@ -228,7 +229,7 @@ public class RouteExtractor {
                         String fullPath = combinePaths(cp, mp);
 
                         ApiRoute route = new ApiRoute(
-                            httpMethod, fullPath, sc.getName(), sm.getSubSignature(),
+                            httpMethod, fullPath, sc.getName(), sm.getSubsignature().toString(),
                             metadata.parameters, metadata.paramAnnotations, metadata.contentType
                         );
                         routes.add(route);
@@ -349,7 +350,7 @@ public class RouteExtractor {
                         String fullPath = combinePaths(cp, mp);
                         
                         ApiRoute route = new ApiRoute(
-                            httpMethod, fullPath, sc.getName(), sm.getSubSignature(),
+                            httpMethod, fullPath, sc.getName(), sm.getSubsignature().toString(),
                             metadata.parameters, metadata.paramAnnotations, metadata.contentType
                         );
                         routes.add(route);

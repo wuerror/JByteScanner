@@ -14,7 +14,7 @@ import java.util.concurrent.Callable;
 import java.util.List;
 
 @Command(name = "JByteScanner", mixinStandardHelpOptions = true, version = "1.0",
-        description = "Java Bytecode Security Scanner based on Soot")
+        description = "Java Bytecode Security Scanner based on Tai-e")
 public class JByteScanner implements Callable<Integer> {
     private static final Logger logger = LoggerFactory.getLogger(JByteScanner.class);
 
@@ -124,15 +124,6 @@ public class JByteScanner implements Callable<Integer> {
             System.out.println("Phase 2 Complete. API list generated for project: " + projectName);
         } else {
             System.out.println("Phase 2 Skipped. Using existing api.txt for project: " + projectName);
-        }
-
-        // Phase 2.5: Secret Scanner (Execute in BOTH api and scan modes)
-        // Ensure Tai-e is initialized if Discovery was skipped (e.g. in 'scan' mode with existing api.txt)
-        // Note: In 'api' mode, DiscoveryEngine.run() already initializes Tai-e.
-        if (isScanMode && apiFile.exists() && !forceDiscovery) {
-             List<String> combinedLibs = new java.util.ArrayList<>(loadedJars.libJars);
-             if (loadedJars.depAppJars != null) combinedLibs.addAll(loadedJars.depAppJars);
-             com.jbytescanner.core.TaieManager.initTaie(loadedJars.targetAppJars, combinedLibs, true);
         }
 
         System.out.println("------------------------------------------");

@@ -49,6 +49,8 @@ public class JarLoader {
         List<String> rawJars = new ArrayList<>();
         try (Stream<Path> walk = Files.walk(root.toPath())) {
             rawJars = walk.filter(p -> !Files.isDirectory(p))
+                    // Skip the tool's own workspace directory to avoid re-scanning extracted jars
+                    .filter(p -> !p.toString().contains(".jbytescanner"))
                     .map(Path::toString)
                     .filter(f -> f.endsWith(".jar") || f.endsWith(".war"))
                     .collect(Collectors.toList());
@@ -298,10 +300,24 @@ public class JarLoader {
     }
 
     private File createTempDir() {
+        // IMPORTANT: Do NOT use the system temp dir (e.g. C:\Users\...\AppData\Local\Temp).
+        // Tai-e's Options serializer calls Path.relativize(classPathEntry) against CWD.
+        // If extracted jars live on a different drive (e.g. C:) than CWD (e.g. D:),
+        // the relativization throws IllegalArgumentException: 'other' has different root.
+        // Solution: create the temp dir under CWD so all paths share the same drive letter.
         try {
-            return Files.createTempDirectory(TEMP_DIR_PREFIX).toFile();
+            Path tempBase = Path.of(System.getProperty("user.dir")).resolve(".jbs_work");
+            Files.createDirectories(tempBase);
+            return Files.createTempDirectory(tempBase, TEMP_DIR_PREFIX).toFile();
         } catch (IOException e) {
-            throw new RuntimeException("Could not create temp directory for JAR unpacking", e);
+            // Fallback to system temp if the above fails (e.g. CWD is read-only)
+            try {
+                logger.warn("Could not create temp dir under CWD, falling back to system temp. " +
+                        "Cross-drive paths may cause issues with Tai-e on Windows.");
+                return Files.createTempDirectory(TEMP_DIR_PREFIX).toFile();
+            } catch (IOException ex) {
+                throw new RuntimeException("Could not create temp directory for JAR unpacking", ex);
+            }
         }
     }
 
