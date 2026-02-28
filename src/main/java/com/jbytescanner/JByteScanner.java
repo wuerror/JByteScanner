@@ -41,6 +41,16 @@ public class JByteScanner implements Callable<Integer> {
         System.out.println("   JByteScanner - Next Gen Static Analysis");
         System.out.println("==========================================");
 
+        // Memory check: warn if heap is too small for taint analysis
+        if ("scan".equalsIgnoreCase(mode)) {
+            long maxHeapMB = Runtime.getRuntime().maxMemory() / (1024 * 1024);
+            if (maxHeapMB < 4096) {
+                System.out.println("[WARN] Max heap is only " + maxHeapMB + " MB. Taint analysis on large projects may OOM.");
+                System.out.println("[WARN] Recommend: java -Xmx8g -jar JByteScanner.jar ...");
+                System.out.println("[WARN] For very large projects (1000+ JARs): java -Xmx16g -jar JByteScanner.jar ...");
+            }
+        }
+
         // 0. Determine Workspace Directory (.jbytescanner)
         File targetFile = new File(targetPath);
         File projectRoot = targetFile.isDirectory() ? targetFile : targetFile.getParentFile();

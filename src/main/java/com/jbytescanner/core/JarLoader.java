@@ -49,8 +49,14 @@ public class JarLoader {
         List<String> rawJars = new ArrayList<>();
         try (Stream<Path> walk = Files.walk(root.toPath())) {
             rawJars = walk.filter(p -> !Files.isDirectory(p))
-                    // Skip the tool's own workspace directory to avoid re-scanning extracted jars
-                    .filter(p -> !p.toString().contains(".jbytescanner"))
+                    // Skip hidden/tool directories (.jbytescanner, .woodpecker, .jbs_work, .git, etc.)
+                    .filter(p -> {
+                        Path rel = root.toPath().relativize(p);
+                        for (int i = 0; i < rel.getNameCount(); i++) {
+                            if (rel.getName(i).toString().startsWith(".")) return false;
+                        }
+                        return true;
+                    })
                     .map(Path::toString)
                     .filter(f -> f.endsWith(".jar") || f.endsWith(".war"))
                     .collect(Collectors.toList());

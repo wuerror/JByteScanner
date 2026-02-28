@@ -4,8 +4,6 @@ import com.jbytescanner.config.ConfigManager;
 import com.jbytescanner.config.SinkRule;
 import com.jbytescanner.model.ApiRoute;
 import com.jbytescanner.model.Vulnerability;
-import pascal.taie.World;
-import pascal.taie.WorldBuilder;
 import pascal.taie.config.Options;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -15,6 +13,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -65,8 +64,13 @@ public class TaintEngine {
         JBSScanEntryPointPlugin.entrySignatures = entrySignatures;
 
         // 2. Generate Tai-e Taint Config
+        // Pass all app JARs (target + dep) so RuleManager can ASM-pre-scan bytecode
+        // and only include sinks that are actually invoked in the application.
+        List<String> allAppJars = new ArrayList<>();
+        if (targetAppJars != null) allAppJars.addAll(targetAppJars);
+        if (depAppJars != null) allAppJars.addAll(depAppJars);
         RuleManager ruleManager = new RuleManager(configManager.getConfig());
-        String taintConfigPath = ruleManager.generateTaieConfig(entrySignatures, workspaceDir);
+        String taintConfigPath = ruleManager.generateTaieConfig(entrySignatures, workspaceDir, allAppJars);
         if (taintConfigPath == null) {
             logger.error("Failed to generate Tai-e taint configuration.");
             return;
@@ -151,17 +155,29 @@ public class TaintEngine {
             mgr.overwriteOptions(planConfigs);
             pascal.taie.config.Plan plan = planner.expandPlan(planConfigs, false);
 
-            // Build World: use the WorldBuilder class specified in options (defaults to SootWorldBuilder)
-            // World.reset() is called inside builder.build(), so no explicit reset is needed.
-            Class<? extends WorldBuilder> builderClass = options.getWorldBuilderClass();
-            WorldBuilder worldBuilder = builderClass.getDeclaredConstructor().newInstance();
+            // Build World using ResilientSootWorldBuilder which adds library exclusions
+            // to prevent Soot from crashing on classes with missing optional dependencies.
+            logger.info("Building Tai-e World with {} appClassPath + {} classPath entries...",
+                    targetAppJars.size(), combinedLibs.size());
+            long startTime = System.currentTimeMillis();
+            List<String> scanPkgs = configManager.getConfig().getScanConfig().getScanPackages();
+            Set<String> libExcludes = ResilientSootWorldBuilder.deriveLibExcludes(combinedLibs, scanPkgs);
+            ResilientSootWorldBuilder worldBuilder = new ResilientSootWorldBuilder();
+            worldBuilder.setExcludePatterns(libExcludes);
             worldBuilder.build(options, plan.analyses());
+            long worldTime = System.currentTimeMillis() - startTime;
+            logger.info("Tai-e World built in {} seconds.", worldTime / 1000);
 
             // Execute the analysis plan (runs PTA which internally triggers TaintAnalysis plugin)
             new pascal.taie.analysis.AnalysisManager(plan).execute();
             pascal.taie.config.LoggerConfigs.reconfigure();
-        } catch (Exception e) {
-            logger.error("Tai-e analysis failed", e);
+        } catch (Throwable t) {
+            // Catch Throwable (not just Exception) to capture Error types:
+            // StackOverflowError, NoClassDefFoundError, OutOfMemoryError, etc.
+            logger.error("Tai-e analysis failed: {}", t.toString());
+            System.err.println("[ERROR] Tai-e analysis failed: " + t.getClass().getName() + ": " + t.getMessage());
+            t.printStackTrace(System.err);
+            return;
         }
 
         logger.info("Tai-e Analysis Finished.");
