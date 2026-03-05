@@ -26,7 +26,7 @@ import java.util.regex.Pattern;
 
 public class CallGraphBuilder {
     private static final Logger logger = LoggerFactory.getLogger(CallGraphBuilder.class);
-    private static final int MAX_DANGLING_RESOLUTION = 25;
+    private static final int MAX_DANGLING_RESOLUTION = 10;
     private static final int BULK_PACKAGE_THRESHOLD = 3;
     private static final int BULK_MAX_CLASSES = 400;
     private static final Pattern DANGLING_PATTERN =
