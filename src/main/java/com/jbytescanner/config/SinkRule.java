@@ -28,6 +28,7 @@ public class SinkRule {
 
         switch (category.toLowerCase().trim()) {
             case "code-exec": return 10.0;
+            case "jdbc_driver_rce": return 10.0;
             case "cmd-exec": return 9.5;
             case "jndi": return 9.0;
             case "deserialization": return 8.5;

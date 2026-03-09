@@ -119,12 +119,6 @@ sinks:
     category: "deserialization"
     signature: "<com.alibaba.fastjson.JSON: com.alibaba.fastjson.JSONObject parseObject(java.lang.String)>"
   
-  # Jackson
-  - type: "method"
-    vuln_type: "Deserialization"
-    category: "deserialization"
-    signature: "<com.fasterxml.jackson.databind.ObjectMapper: java.lang.Object readValue(java.lang.String,java.lang.Class)>"
-
   # --- SQL Injection ---
   # Score: 8.0
   - type: "method"
@@ -150,16 +144,16 @@ sinks:
 
   # JDBC URL / Connection Abuse
   - type: "method"
-    vuln_type: "SSRF"
-    category: "ssrf"
+    vuln_type: "JDBC_Driver_RCE"
+    category: "jdbc_driver_rce"
     signature: "<java.sql.DriverManager: java.sql.Connection getConnection(java.lang.String)>"
   - type: "method"
-    vuln_type: "SSRF"
-    category: "ssrf"
+    vuln_type: "JDBC_Driver_RCE"
+    category: "jdbc_driver_rce"
     signature: "<java.sql.DriverManager: java.sql.Connection getConnection(java.lang.String,java.util.Properties)>"
   - type: "method"
-    vuln_type: "SSRF"
-    category: "ssrf"
+    vuln_type: "JDBC_Driver_RCE"
+    category: "jdbc_driver_rce"
     signature: "<java.sql.DriverManager: java.sql.Connection getConnection(java.lang.String,java.lang.String,java.lang.String)>"
 
   # --- SSRF ---
@@ -172,14 +166,6 @@ sinks:
     vuln_type: "SSRF"
     category: "ssrf"
     signature: "<java.net.URL: java.net.URLConnection openConnection()>"
-  - type: "method"
-    vuln_type: "SSRF"
-    category: "ssrf"
-    signature: "<java.net.URL: void <init>(java.lang.String)>"
-  - type: "method"
-    vuln_type: "SSRF"
-    category: "ssrf"
-    signature: "<java.net.URI: void <init>(java.lang.String)>"
   - type: "method"
     vuln_type: "SSRF"
     category: "ssrf"

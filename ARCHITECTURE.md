@@ -119,14 +119,30 @@ The tool supports two modes to balance precision and performance:
     *   *Reference*: *Lhoták, O., & Hendren, L. (2003). Scaling Java points-to analysis using Spark.*
 
 #### C. Taint Analysis (Vulnerability Detection)
-The engine implements a **Forward Taint Propagation** algorithm.
-1.  **Source Identification**: Based on `api.txt` and `rules.yaml`, mark return values of sources (e.g., `request.getParameter()`) as "Tainted".
-2.  **Propagation**: 
-    *   **Intra-procedural**: Use Soot's `SmartLocalDefs` or `FlowAnalysis` to track taint within a method body via assignments (`y = x` where x is tainted).
-    *   **Inter-procedural**: When a tainted variable is passed as an argument to a method call, query the Call Graph to find callee methods and map the argument to the callee's parameters, continuing the analysis recursively.
-3.  **Sink Matching**: If a tainted variable reaches a sink method (e.g., `Runtime.exec(tainted)`), a vulnerability is flagged.
+The engine implements a **Forward Taint Propagation** algorithm combining intra- and inter-procedural analysis.
 
-*Reference*: *Vallée-Rai, R., Co, P., Gagnon, E., Hendren, L., Lam, P., & Sundaresan, V. (1999). Soot - a Java optimization framework.*
+1.  **Source Identification**: Based on `api.txt` and `rules.yaml`, all parameters of API entry-point methods are marked as "Tainted" at method entry.
+2.  **Intra-procedural Propagation** (`IntraTaintAnalysis` — `ForwardBranchedFlowAnalysis<FlowSet<Value>>`):
+    *   **Direct assignment**: `y = x` → `y` tainted if `x` tainted.
+    *   **Binary/cast**: `y = x + z`, `y = (T) x` → `y` tainted if operand tainted.
+    *   **Instance field read**: `y = obj.f` → `y` tainted if `obj` tainted.
+    *   **Static field read**: `y = Cls.f` → `y` tainted if `Cls.f` was previously written with tainted data (tracked in `taintedStaticFields`).
+    *   **Array read**: `y = arr[i]` → `y` tainted if `arr` tainted.
+    *   **Instance field write**: `obj.f = x` → `obj` tainted if `x` tainted.
+    *   **Static field write**: `Cls.f = x` → `Cls.f` added to `taintedStaticFields` if `x` tainted.
+    *   **Method return (instance)**: `y = obj.m(...)` → `y` tainted if `obj` tainted; `arg → return` is additionally applied only to setter-like instance methods to reduce taint explosion.
+    *   **Method return (static/any)**: `y = Cls.m(...)` → `y` tainted if any arg tainted.
+    *   **Setter/constructor receiver**: `obj.set(x)` or `new Obj(x)` → `obj` tainted if any arg tainted, but this receiver-tainting heuristic is restricted to setter-like methods and constructors. This enables the `setter → field → getter → sink` chain without broadly tainting service objects.
+    *   **Path sensitivity**: Null-check branches (`if x == null`) kill taint on the null path.
+3.  **Inter-procedural Propagation** (`WorklistEngine`):
+    *   Tainted arguments are mapped to callee parameter locals before scheduling.
+    *   Tainted receiver (`obj` in `obj.m(...)`) is mapped to callee `this` local.
+    *   `AnalysisState` (method + tainted-param-bitset + `thisTainted`) is used for memoization to avoid redundant re-analysis.
+4.  **Sink Matching**: A vulnerability is flagged when:
+    *   Any **argument** of a sink method call is tainted, OR
+    *   The **receiver** of an instance sink call is tainted for sink categories that enable receiver-based triggering. This receiver-based check is intentionally disabled for `sqli` to avoid false positives on tainted `Statement` / `Connection` objects.
+
+*Reference*: *Vallée-Rai et al. (1999). Soot - a Java optimization framework.*
 
 ### 3.3 Internal Process Flows
 

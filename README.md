@@ -25,6 +25,7 @@
     *   **Worklist Engine**: 迭代式污点分析，避免栈溢出。
     *   **Leaf Optimization**: 智能摘要生成，大幅提升分析速度。
     *   **Strict Isolation**: 严格隔离业务代码与第三方库，防止分析引擎崩溃。
+    *   **Field-Sensitive Propagation**: 支持字段污点传播，覆盖 `setter → field → getter → sink`、`new Obj(tainted)` 和静态字段读写链路；receiver 型 sink 检测按漏洞类别启用，默认不会仅因 tainted `Statement/Connection` 就报 SQLi。
 
 ---
 
@@ -81,6 +82,8 @@ java -jar JByteScanner-1.0-SNAPSHOT.jar -m api --filter-annotation AnonymousVali
 
 对于sink,直接修改生成的rules.yaml。第二次跑，或者再跑全量时会首先加载当前项目目录.jbytescanner下的rules.yaml。也可以通过`-c`选项指定
 
+默认规则里，SSRF 更聚焦真正发起外连的通用 URL/HTTP API，例如 `openConnection`、`openStream`、HTTP client `execute(...)`；而 `DriverManager.getConnection(...)` 会单独归类为 `JDBC_Driver_RCE`，具体是否可利用交由人工判断。`new URL(...)` / `new URI(...)` 这类仅构造对象的调用默认不作为高置信 SSRF sink。
+
 **全量扫描 (漏洞挖掘):**
 
 -m scan或者什么都不带。如果.jbytescanner目录下已经有api.txt那么会跳过phase2
@@ -111,9 +114,15 @@ java -jar target/JByteScanner-1.0-SNAPSHOT-shaded.jar /path/to/app.jar --interac
 - [x] **Phase 1-5**: 基础架构、配置管理、资产发现、Soot 集成、SARIF 报告。
 - [x] **Phase 6**: 性能优化（结构化状态、反向剪枝、强依赖隔离）。
 - [x] **Phase 7**: 高级分析引擎（Worklist 迭代引擎、方法摘要、叶子节点优化）。
-- [x] **Phase 8: 战术情报 (Tactical Intelligence)**: Secret 扫描、漏洞评分、Smart PoC 生成。
+- [x] **Phase 8: 战术情报 (Tactical Intelligence)**:
+  - [x] 8.1 Secret 扫描（配置文件、常量池、Base64 编码）。
+  - [x] 8.2 漏洞评分（R-S-A-C 模型）与认证检测。
+  - [x] 8.3 Smart PoC 生成（Burp Suite 可直接导入）。
+  - [x] 8.4 Sink 覆盖扩展（JDBC URL / DriverManager.getConnection）。
+  - [x] 8.5 字段污点传播（setter 模式、静态字段、sink receiver 检测）。
 
 ### 进行中 (Advanced Exploitation)
+- [ ] **Phase 8.6**: Summary 完善（`param→this`、`this→return` 摘要生成与消费）。
 - [ ] **Phase 9: 深度利用链**
   - [ ] **Auth Bypass**: 鉴权绕过检测（Config vs Code）。
   - [ ] **Gadget Miner**: 反序列化利用链挖掘。
@@ -121,4 +130,3 @@ java -jar target/JByteScanner-1.0-SNAPSHOT-shaded.jar /path/to/app.jar --interac
 - [ ] **Phase 10: 交互与 SCA**
   - [ ] **Offensive SCA**: 攻击型组件指纹识别。
   - [ ] **Interactive Shell**: 内存调用图查询 REPL。
-

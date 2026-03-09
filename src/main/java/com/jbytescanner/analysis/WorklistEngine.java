@@ -60,12 +60,12 @@ public class WorklistEngine {
         // 1. Initialize Worklist
         for (SootMethod ep : entryPoints) {
             if (!ep.hasActiveBody()) continue;
-            
+
             FlowSet<Value> initialTaint = new ArraySparseSet<>();
             for (Local param : ep.getActiveBody().getParameterLocals()) {
                 initialTaint.add(param);
             }
-            
+
             schedule(ep, initialTaint, new ArrayList<>());
         }
 
@@ -276,13 +276,36 @@ public class WorklistEngine {
         }
     }
 
-    private void checkSink(SootMethod method, Unit unit, SootMethod callee, 
+    private void checkSink(SootMethod method, Unit unit, SootMethod callee,
                           InvokeExpr invokeExpr, FlowSet<Value> flowBefore, List<String> stack) {
+        // Check tainted arguments (applies to all vuln types)
         for (Value arg : invokeExpr.getArgs()) {
             if (flowBefore.contains(arg)) {
                 reportVulnerability(method, unit, callee.getSignature(), stack);
+                return;
             }
         }
+        // Receiver-tainted check: only for vuln types where the receiver carrying taint
+        // is a genuine exploitation signal (SSRF, Path_Traversal, RCE, Deserialization).
+        // For SQL_Injection we require the SQL string argument to be tainted, not just the
+        // Statement/Connection receiver, to avoid false positives from taint spreading onto
+        // database connection objects via field propagation.
+        if (invokeExpr instanceof InstanceInvokeExpr && receiverSinkEnabled(callee)) {
+            Value base = ((InstanceInvokeExpr) invokeExpr).getBase();
+            if (flowBefore.contains(base)) {
+                reportVulnerability(method, unit, callee.getSignature(), stack);
+            }
+        }
+    }
+
+    private boolean receiverSinkEnabled(SootMethod callee) {
+        com.jbytescanner.config.SinkRule rule = ruleManager.getSinkRule(callee.getSignature());
+        if (rule == null) return true; // Unknown rule: be conservative and check
+        String cat = rule.getCategory();
+        if (cat == null) return true;
+        // Disable receiver-based trigger for SQL injection: real SQLi requires a tainted
+        // SQL string argument, not merely a tainted Statement/Connection object.
+        return !cat.equalsIgnoreCase("sqli");
     }
 
     private void reportVulnerability(SootMethod sourceMethod, Unit sourceUnit, String sinkSig, List<String> stack) {

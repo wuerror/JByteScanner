@@ -41,13 +41,13 @@ public class InterproceduralTaintAnalysis {
         
         for (SootMethod ep : entryPoints) {
             if (!ep.hasActiveBody()) continue;
-            
+
             FlowSet<Value> initialTaint = new ArraySparseSet<>();
             Body body = ep.getActiveBody();
             for (Local param : body.getParameterLocals()) {
                 initialTaint.add(param);
             }
-            
+
             analyzeMethod(ep, initialTaint, new ArrayList<>());
         }
         
@@ -119,10 +119,24 @@ public class InterproceduralTaintAnalysis {
                 
                 // 1. Check Sink
                 if (ruleManager.isSink(callee)) {
+                    boolean sinkHit = false;
                     for (Value arg : invokeExpr.getArgs()) {
                         if (flowBefore.contains(arg)) {
-                            reportVulnerability(method, unit, callee, callStack);
+                            sinkHit = true;
+                            break;
                         }
+                    }
+                    // Receiver-tainted check: disabled for sqli to avoid FPs from taint
+                    // spreading onto Statement/Connection objects via field propagation.
+                    if (!sinkHit && invokeExpr instanceof InstanceInvokeExpr
+                            && receiverSinkEnabled(callee)) {
+                        Value base = ((InstanceInvokeExpr) invokeExpr).getBase();
+                        if (flowBefore.contains(base)) {
+                            sinkHit = true;
+                        }
+                    }
+                    if (sinkHit) {
+                        reportVulnerability(method, unit, callee, callStack);
                     }
                 } else {
                     // Debug Sink matching failure
@@ -177,6 +191,14 @@ public class InterproceduralTaintAnalysis {
                 }
             }
         }
+    }
+
+    private boolean receiverSinkEnabled(SootMethod callee) {
+        com.jbytescanner.config.SinkRule rule = ruleManager.getSinkRule(callee.getSignature());
+        if (rule == null) return true;
+        String cat = rule.getCategory();
+        if (cat == null) return true;
+        return !cat.equalsIgnoreCase("sqli");
     }
 
     private void reportVulnerability(SootMethod method, Unit unit, SootMethod sink, List<String> callStack) {

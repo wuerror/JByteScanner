@@ -7,7 +7,9 @@ import soot.toolkits.scalar.ArraySparseSet;
 import soot.toolkits.scalar.FlowSet;
 import soot.toolkits.scalar.ForwardBranchedFlowAnalysis;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Branched Forward Flow Analysis for Intra-procedural Taint Propagation
@@ -15,6 +17,8 @@ import java.util.List;
  */
 public class IntraTaintAnalysis extends ForwardBranchedFlowAnalysis<FlowSet<Value>> {
     private final FlowSet<Value> entrySet;
+    // Tracks tainted static fields across flow steps (monotone: only grows)
+    private final Set<SootField> taintedStaticFields = new HashSet<>();
 
     public IntraTaintAnalysis(ExceptionalUnitGraph graph, FlowSet<Value> entrySet) {
         super(graph);
@@ -91,24 +95,43 @@ public class IntraTaintAnalysis extends ForwardBranchedFlowAnalysis<FlowSet<Valu
             }
         }
 
+        // Field Taint: tainted arg passed to a setter-like instance method taints the receiver.
+        // Restricted to setter-like methods (set*/add*/put*/append*/insert*/with*) and constructors
+        // to prevent taint explosion through service-layer pass-through methods.
         if (unit instanceof InvokeStmt) {
             InvokeExpr invokeExpr = ((InvokeStmt) unit).getInvokeExpr();
-            if (invokeExpr instanceof SpecialInvokeExpr && invokeExpr.getMethod().isConstructor()) {
-                Value base = ((SpecialInvokeExpr) invokeExpr).getBase();
-                boolean taintedArg = false;
-                for (Value arg : invokeExpr.getArgs()) {
-                    if (in.contains(arg)) {
-                        taintedArg = true;
-                        break;
-                    }
-                }
-                if (taintedArg) {
-                    for (FlowSet<Value> out : fallOut) {
-                        out.add(base);
+            if (invokeExpr instanceof InstanceInvokeExpr) {
+                SootMethod calledMethod = invokeExpr.getMethod();
+                if (isSetterLike(calledMethod)) {
+                    Value base = ((InstanceInvokeExpr) invokeExpr).getBase();
+                    for (Value arg : invokeExpr.getArgs()) {
+                        if (in.contains(arg)) {
+                            for (FlowSet<Value> out : fallOut) {
+                                out.add(base);
+                            }
+                            break;
+                        }
                     }
                 }
             }
         }
+    }
+
+    /**
+     * Returns true if the method is setter-like: constructors or methods whose names begin with
+     * set/add/put/append/insert/with/push/enqueue/load/init/configure/update/register.
+     * These are the patterns where a tainted argument plausibly contaminates the receiver object.
+     */
+    private static boolean isSetterLike(SootMethod method) {
+        if (method.isConstructor()) return true;
+        String name = method.getName();
+        return name.startsWith("set") || name.startsWith("add")
+            || name.startsWith("put") || name.startsWith("append")
+            || name.startsWith("insert") || name.startsWith("with")
+            || name.startsWith("push") || name.startsWith("enqueue")
+            || name.startsWith("load") || name.startsWith("init")
+            || name.startsWith("configure") || name.startsWith("update")
+            || name.startsWith("register");
     }
     
     private void applyDefinition(DefinitionStmt def, FlowSet<Value> in, FlowSet<Value> out) {
@@ -137,9 +160,14 @@ public class IntraTaintAnalysis extends ForwardBranchedFlowAnalysis<FlowSet<Valu
             }
         }
         
-        // 4. Field Read: a = b.f (Field Sensitivity)
+        // 4. Field Read: a = b.f / a = SomeClass.f (Field Sensitivity)
         if (rhs instanceof InstanceFieldRef) {
             if (in.contains(((InstanceFieldRef) rhs).getBase())) {
+                isTainted = true;
+            }
+        } else if (rhs instanceof StaticFieldRef) {
+            // Static field read: tainted if the field was previously written with tainted data
+            if (taintedStaticFields.contains(((StaticFieldRef) rhs).getField())) {
                 isTainted = true;
             }
         } else if (rhs instanceof ArrayRef) {
@@ -147,20 +175,28 @@ public class IntraTaintAnalysis extends ForwardBranchedFlowAnalysis<FlowSet<Valu
                 isTainted = true;
             }
         }
-        // 5. Method Return Propagation (Object Taint)
-        // If base object is tainted, assume its method returns are tainted (e.g., getters)
+        // 5. Method Return Propagation
         else if (rhs instanceof InstanceInvokeExpr) {
             InstanceInvokeExpr invoke = (InstanceInvokeExpr) rhs;
+            // Receiver tainted -> return tainted (getter/chain calls, e.g. obj.getUrl())
             if (in.contains(invoke.getBase())) {
                 isTainted = true;
             }
-            for (Value arg : invoke.getArgs()) {
-                if (in.contains(arg)) {
-                    isTainted = true;
-                    break;
+            // Arg tainted -> return tainted only for setter-like methods (builder pattern,
+            // e.g. builder.setX(tainted).build() -> builder tainted -> build() return tainted).
+            // General pass-through methods are handled inter-procedurally by scheduling callees.
+            if (!isTainted && isSetterLike(invoke.getMethod())) {
+                for (Value arg : invoke.getArgs()) {
+                    if (in.contains(arg)) {
+                        isTainted = true;
+                        break;
+                    }
                 }
             }
         } else if (rhs instanceof InvokeExpr) {
+            // Static (and other non-instance) invocations: arg -> return is kept because static
+            // transformation functions (String.format, Paths.get, JSON.toJSON, etc.) correctly
+            // propagate taint through their arguments.
             InvokeExpr invoke = (InvokeExpr) rhs;
             for (Value arg : invoke.getArgs()) {
                 if (in.contains(arg)) {
@@ -172,11 +208,14 @@ public class IntraTaintAnalysis extends ForwardBranchedFlowAnalysis<FlowSet<Valu
         
         if (isTainted) {
             out.add(lhs);
-            // Field Write Propagation: x.f = tainted -> Taint x
+            // Field Write Propagation: x.f = tainted -> Taint x (instance field)
             if (lhs instanceof InstanceFieldRef) {
                 out.add(((InstanceFieldRef) lhs).getBase());
             } else if (lhs instanceof ArrayRef) {
                 out.add(((ArrayRef) lhs).getBase());
+            } else if (lhs instanceof StaticFieldRef) {
+                // Static field write: SomeClass.field = tainted -> remember for later reads
+                taintedStaticFields.add(((StaticFieldRef) lhs).getField());
             }
         } else {
             // Kill taint if overwritten by safe value
@@ -184,6 +223,8 @@ public class IntraTaintAnalysis extends ForwardBranchedFlowAnalysis<FlowSet<Valu
             if (lhs instanceof Local) {
                 out.remove(lhs);
             }
+            // Note: we do NOT kill tainted static fields on overwrite because a
+            // conservative MAY-analysis assumes any path may have tainted the field.
         }
     }
 }

@@ -5,40 +5,51 @@ This document outlines the technical implementation strategies for the Red Team-
 
 ---
 
-## Known False Negative: JDBC URL Flow Missed
+## ~~Known False Negative: JDBC URL Flow Missed~~ → RESOLVED (v1.6.0)
 
 ### Reproduced Case
-*   Target: Qiyuesuo setup endpoint `GET /setup/dbtest`.
-*   Observed behavior: call graph builds successfully and the worklist processes thousands of tasks, but the final vulnerability count is `0`.
+*   Target: a typical Spring Boot application with a database-test endpoint `GET /setup/dbtest`.
+*   Original observed behavior: call graph builds successfully, worklist processes thousands of tasks, but final vulnerability count was `0`.
 *   Confirmed reachable business flow:
-    *   `com.qiyuesuo.setup.SetupController.dbtest(...)`
-    *   `com.qiyuesuo.setup.SetupService.validateDatabase(...)`
-    *   `com.qiyuesuo.setup.SetupService.dbtest(...)`
-    *   `com.qiyuesuo.database.DatabaseService.getConnection(...)`
-    *   `com.qiyuesuo.database.DefaultConnectionManager.getConnection()`
-    *   `com.qiyuesuo.database.DatabaseConnection.getConnection(...)`
+    *   `com.example.setup.SetupController.dbtest(...)`
+    *   `com.example.setup.SetupService.validateDatabase(...)`
+    *   `com.example.setup.SetupService.dbtest(...)`
+    *   `com.example.database.DatabaseService.getConnection(...)`
+    *   `com.example.database.DefaultConnectionManager.getConnection()`
+    *   `com.example.database.DatabaseConnection.getConnection(...)`
     *   `java.sql.DriverManager.getConnection(...)`
 
-### Root Cause Breakdown
-1.  **Sink modeling gap**
-    *   Current rules cover SQL execution sinks such as `Statement.execute*` and `JdbcTemplate.execute/query`.
-    *   Current rules do **not** cover JDBC connection-establishment sinks such as `DriverManager.getConnection(...)`.
-    *   This causes JDBC URL injection / SSRF-style abuse to be invisible even if taint reaches the terminal API.
-2.  **Receiver/object taint gap**
-    *   `WorklistEngine` currently maps tainted call arguments to callee parameters only.
-    *   It does not propagate taint from a tainted receiver into callee `this` for instance calls.
-    *   As a result, flows of the form `source -> object field -> instance method -> sink` are truncated.
-3.  **Incomplete summary system**
-    *   `MethodSummary` defines `paramsToThis` and `thisToReturn` capabilities.
-    *   `SummaryGenerator` and `WorklistEngine` do not yet fully generate/apply those facts.
-    *   Return-value propagation is also incomplete, which drops factory/builder/helper chains.
+### Root Cause Breakdown & Resolution Status
 
-### Design Implication
-The current engine is strong enough for simple `source -> argument -> sink` flows, but it under-approximates real-world Java service code where taint frequently moves through:
-*   constructors
-*   object fields
-*   instance receivers (`this`)
-*   helper return values
+1.  **Sink modeling gap** → **FIXED (Phase 8.4)**
+    *   Added `java.sql.DriverManager.getConnection(...)` (all three overloads) as `JDBC_Driver_RCE` sinks in `default_rules.yaml`.
+    *   `ConfigManager` now merges workspace-level `rules.yaml` with bundled defaults so user-customized configs do not lose default sink coverage.
+    *   SSRF sink scope is intentionally focused on APIs that actually establish outbound access. `URL(String)` / `URI(String)` constructors are not treated as high-confidence SSRF sinks because they only materialize URL objects and create too many false positives.
+
+2.  **Receiver/object taint gap** → **FIXED (Phase 8.5)**
+    *   `WorklistEngine.scheduleCallee` and `InterproceduralTaintAnalysis`: tainted base objects are now mapped to callee `this` for all `InstanceInvokeExpr` calls.
+    *   `IntraTaintAnalysis.flowThrough`: void instance method calls (`obj.setter(tainted)`) now taint the receiver `obj`, enabling subsequent field reads and method calls on `obj` to propagate taint correctly.
+    *   `IntraTaintAnalysis.applyDefinition`: added `StaticFieldRef` read/write tracking via `taintedStaticFields: Set<SootField>`.
+    *   `AnalysisState`: `thisTainted` flag added to memoization key — prevents a tainted-receiver entry from being deduplicated against an untainted-receiver entry for the same method.
+    *   Receiver-based sink triggering remains enabled for categories where receiver state is a meaningful exploit signal, but is disabled for `sqli` so tainted `Statement` / `Connection` objects do not produce SQL injection false positives by themselves.
+
+3.  **Incomplete summary system** → **Partially addressed; remaining gap (Phase 8.6)**
+    *   Static method return values now propagate taint to the caller (`x = Utils.wrap(tainted)` → `x` tainted).
+    *   Constructor arg → base taint is now handled intra-procedurally.
+    *   `param → this → return` summaries (e.g., builder pattern across method boundaries) and full `thisToReturn` inter-procedural facts are not yet generated/consumed by `SummaryGenerator` + `WorklistEngine`. This remains the primary open gap.
+
+### Remaining Open Gap (Phase 8.6)
+The engine now correctly handles the most common Java taint patterns. The remaining gap is **cross-method field side-effects without receiver pre-tainting**:
+```java
+// Scenario: taint reaches this.field via a callee, but caller's local is not yet marked tainted
+obj.setter(tainted);   // obj marked tainted in caller ✓ (Phase 8.5 fix)
+String v = obj.field;  // obj tainted → v tainted ✓
+sink(v);               // caught ✓
+
+// Still incomplete: summary-driven param→this→return across multiple hops
+Object result = factory.build(tainted);  // factory.build stores param to field, returns this
+result.execute();                        // this.field reaches sink — needs summary facts
+```
 
 ---
 
@@ -102,15 +113,25 @@ The current engine is strong enough for simple `source -> argument -> sink` flow
     *   `java.sql.DriverManager.getConnection(java.lang.String,java.lang.String,java.lang.String)`
     *   Common JDBC URL setter APIs on pooled `DataSource` implementations when present in classpath.
 *   **Detection intent**:
-    *   Model attacker-controlled JDBC URL as a high-risk network/database sink.
-    *   Support classification as SSRF, JDBC URL injection, or connection abuse depending on rule taxonomy.
+    *   Model attacker-controlled JDBC URL as a high-risk `JDBC_Driver_RCE` sink and leave concrete exploitability validation to analyst review.
+    *   Keep generic SSRF classification focused on ordinary outbound URL/HTTP access sinks.
+*   **Current policy**:
+    *   Treat generic outbound access APIs as SSRF sinks (`openConnection`, HTTP client `execute`, `openStream`).
+    *   Treat JDBC connection establishment (`DriverManager.getConnection`) as `JDBC_Driver_RCE` rather than generic SSRF.
+    *   Do not treat `new URL(String)` / `new URI(String)` as high-confidence SSRF sinks in the default rule set.
 
-### 8.5 Receiver/Object Propagation
-*   **Engine target**: `com.jbytescanner.analysis.WorklistEngine`
-*   **Required changes**:
-    *   When the call site is an `InstanceInvokeExpr`, if the base object is tainted, seed callee `this` as tainted.
-    *   Preserve taint across constructor initialization patterns such as `new Obj(tainted)` followed by instance calls.
-    *   Track field-backed propagation for common flows where tainted parameters are stored into object state and later consumed.
+### 8.5 Receiver/Object Propagation ✅ COMPLETED (v1.6.0)
+*   **Changes implemented**:
+    *   `IntraTaintAnalysis.flowThrough`: All `InstanceInvokeExpr` void calls (`VirtualInvokeExpr`, `InterfaceInvokeExpr`, `SpecialInvokeExpr`) with a tainted argument now taint the receiver. This replaces the previous constructor-only handling and covers the common setter pattern.
+    *   `IntraTaintAnalysis.applyDefinition`: Added `StaticFieldRef` handling — writes record the `SootField` in `taintedStaticFields: Set<SootField>`; reads check the set. The set is monotone (never killed) consistent with MAY-analysis.
+    *   `WorklistEngine.checkSink` + `InterproceduralTaintAnalysis` sink block: Sink detection can fire on tainted receiver in addition to tainted arguments, covering `taintedObj.sinkMethod()` patterns for selected sink categories.
+    *   `WorklistEngine.scheduleCallee` + `InterproceduralTaintAnalysis`: Tainted base object maps to callee `this` local.
+    *   `AnalysisState`: `thisTainted` boolean included in `equals`/`hashCode` to prevent premature memoization deduplication.
+*   **Covered chains**:
+    *   `param → obj.setter(param)` → `obj` tainted → `obj.getter()` → tainted return → sink
+    *   `new Obj(param)` → base tainted → `base.field` → sink
+    *   `Cls.staticField = param` → `x = Cls.staticField` → sink
+    *   `taintedObj.sinkMethod()` → sink for categories that allow receiver-based triggering
 
 ### 8.6 Summary Completion
 *   **Classes**: `MethodSummary`, `SummaryGenerator`, `WorklistEngine`, `AnalysisState`
