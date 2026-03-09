@@ -90,6 +90,25 @@ public class IntraTaintAnalysis extends ForwardBranchedFlowAnalysis<FlowSet<Valu
                 }
             }
         }
+
+        if (unit instanceof InvokeStmt) {
+            InvokeExpr invokeExpr = ((InvokeStmt) unit).getInvokeExpr();
+            if (invokeExpr instanceof SpecialInvokeExpr && invokeExpr.getMethod().isConstructor()) {
+                Value base = ((SpecialInvokeExpr) invokeExpr).getBase();
+                boolean taintedArg = false;
+                for (Value arg : invokeExpr.getArgs()) {
+                    if (in.contains(arg)) {
+                        taintedArg = true;
+                        break;
+                    }
+                }
+                if (taintedArg) {
+                    for (FlowSet<Value> out : fallOut) {
+                        out.add(base);
+                    }
+                }
+            }
+        }
     }
     
     private void applyDefinition(DefinitionStmt def, FlowSet<Value> in, FlowSet<Value> out) {
@@ -134,6 +153,20 @@ public class IntraTaintAnalysis extends ForwardBranchedFlowAnalysis<FlowSet<Valu
             InstanceInvokeExpr invoke = (InstanceInvokeExpr) rhs;
             if (in.contains(invoke.getBase())) {
                 isTainted = true;
+            }
+            for (Value arg : invoke.getArgs()) {
+                if (in.contains(arg)) {
+                    isTainted = true;
+                    break;
+                }
+            }
+        } else if (rhs instanceof InvokeExpr) {
+            InvokeExpr invoke = (InvokeExpr) rhs;
+            for (Value arg : invoke.getArgs()) {
+                if (in.contains(arg)) {
+                    isTainted = true;
+                    break;
+                }
             }
         }
         

@@ -148,6 +148,20 @@ sinks:
     category: "sqli"
     signature: "<org.springframework.jdbc.core.JdbcTemplate: java.util.List query(java.lang.String,org.springframework.jdbc.core.RowMapper)>"
 
+  # JDBC URL / Connection Abuse
+  - type: "method"
+    vuln_type: "SSRF"
+    category: "ssrf"
+    signature: "<java.sql.DriverManager: java.sql.Connection getConnection(java.lang.String)>"
+  - type: "method"
+    vuln_type: "SSRF"
+    category: "ssrf"
+    signature: "<java.sql.DriverManager: java.sql.Connection getConnection(java.lang.String,java.util.Properties)>"
+  - type: "method"
+    vuln_type: "SSRF"
+    category: "ssrf"
+    signature: "<java.sql.DriverManager: java.sql.Connection getConnection(java.lang.String,java.lang.String,java.lang.String)>"
+
   # --- SSRF ---
   # Score: 7.5
   - type: "method"

@@ -44,6 +44,24 @@ This document tracks the evolution of JByteScanner into a specialized Red Team t
 - [x] **Burp Request Gen**: Generate raw HTTP requests.
 - [x] **Smart Payloads**: Context-aware placeholders (JSON vs Form).
 
+### Current Known Gaps
+- [ ] **False Negative: JDBC URL / Connection Sinks**:
+  - Case study: `GET /setup/dbtest` in the Qiyuesuo target is reachable from `com.qiyuesuo.setup.SetupController.dbtest(...)` to `java.sql.DriverManager.getConnection(...)`, but the engine reports 0 findings.
+  - Root cause 1: `default_rules.yaml` models SQL execution sinks such as `Statement.execute*` and `JdbcTemplate.execute/query`, but does not model JDBC connection-establishment sinks such as `DriverManager.getConnection(...)` or URL-setting APIs on common `DataSource` implementations.
+  - Root cause 2: the current worklist engine only propagates taint through callee parameters and does not propagate taint into instance receivers (`this`), constructors, object fields, or return values, so flows like `param -> field -> this.method() -> sink` are dropped.
+  - Root cause 3: method summaries define placeholders for `paramsToThis` and `thisToReturn`, but the summary generator and worklist engine do not yet produce and consume these facts.
+
+### Planned Fix Plan
+- [ ] **8.4 Sink Coverage Expansion**:
+  - Add JDBC URL / connection sinks to `default_rules.yaml`, starting with `java.sql.DriverManager.getConnection(...)` and common `DataSource` URL setters.
+  - Revisit sink taxonomy so JDBC URL control can be scored as SSRF / JDBC URL injection / connection abuse instead of being limited to SQL execution only.
+- [ ] **8.5 Receiver/Object Taint Propagation**:
+  - Extend `WorklistEngine.scheduleCallee()` to propagate tainted instance receivers into callee `this` for `InstanceInvokeExpr`.
+  - Add constructor and field-backed object flow support for chains like `source -> new Obj(tainted) -> this.field -> sink`.
+- [ ] **8.6 Summary Completion**:
+  - Implement `param -> this`, `this -> return`, and return-value propagation in `SummaryGenerator` and `WorklistEngine`.
+  - Upgrade memoization state to capture object/receiver taint facts in addition to tainted parameter indices.
+
 ---
 
 ## 🔮 Future Phases

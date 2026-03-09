@@ -14,11 +14,13 @@ public class AnalysisState {
     // BitSet representing indices of tainted parameters.
     // Index 0 = 1st parameter, Index 1 = 2nd parameter, etc.
     private final BitSet taintedParams;
+    private final boolean thisTainted;
 
-    public AnalysisState(SootMethod method, BitSet taintedParams) {
+    public AnalysisState(SootMethod method, BitSet taintedParams, boolean thisTainted) {
         this.method = method;
         // Store a clone to ensure immutability if the caller modifies the passed BitSet
         this.taintedParams = (BitSet) taintedParams.clone();
+        this.thisTainted = thisTainted;
     }
 
     @Override
@@ -27,16 +29,17 @@ public class AnalysisState {
         if (o == null || getClass() != o.getClass()) return false;
         AnalysisState that = (AnalysisState) o;
         return Objects.equals(method, that.method) &&
-               Objects.equals(taintedParams, that.taintedParams);
+               Objects.equals(taintedParams, that.taintedParams) &&
+               thisTainted == that.thisTainted;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(method, taintedParams);
+        return Objects.hash(method, taintedParams, thisTainted);
     }
 
     @Override
     public String toString() {
-        return method.getSignature() + " taintedArgs:" + taintedParams;
+        return method.getSignature() + " taintedArgs:" + taintedParams + " thisTainted:" + thisTainted;
     }
 }

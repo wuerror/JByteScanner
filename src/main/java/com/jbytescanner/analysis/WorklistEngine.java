@@ -106,7 +106,15 @@ public class WorklistEngine {
                 }
             }
         }
-        AnalysisState state = new AnalysisState(method, taintedIndices);
+        boolean thisTainted = false;
+        if (method.hasActiveBody() && !method.isStatic()) {
+            try {
+                thisTainted = taint.contains(method.getActiveBody().getThisLocal());
+            } catch (RuntimeException ignored) {
+                thisTainted = false;
+            }
+        }
+        AnalysisState state = new AnalysisState(method, taintedIndices, thisTainted);
         
         if (visitedStates.contains(state)) return;
         visitedStates.add(state);
@@ -242,6 +250,18 @@ public class WorklistEngine {
         List<Local> params = calleeBody.getParameterLocals();
 
         boolean anyTainted = false;
+        if (invokeExpr instanceof InstanceInvokeExpr && !callee.isStatic()) {
+            Value base = ((InstanceInvokeExpr) invokeExpr).getBase();
+            if (flowBefore.contains(base)) {
+                try {
+                    calleeTaint.add(calleeBody.getThisLocal());
+                    anyTainted = true;
+                } catch (RuntimeException ignored) {
+                    // No explicit this local available.
+                }
+            }
+        }
+
         for (int i = 0; i < invokeExpr.getArgCount(); i++) {
             if (i < params.size()) {
                 if (flowBefore.contains(invokeExpr.getArg(i))) {

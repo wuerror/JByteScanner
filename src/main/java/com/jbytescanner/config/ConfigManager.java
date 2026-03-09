@@ -10,6 +10,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
+import java.util.HashSet;
+import java.util.Set;
 
 public class ConfigManager {
     private static final Logger logger = LoggerFactory.getLogger(ConfigManager.class);
@@ -88,7 +90,9 @@ public class ConfigManager {
     private void loadConfig(File configFile) {
         ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
         try {
-            this.config = mapper.readValue(configFile, Config.class);
+            Config workspaceConfig = mapper.readValue(configFile, Config.class);
+            Config defaultConfig = loadDefaultConfig(mapper);
+            this.config = mergeWithDefaults(workspaceConfig, defaultConfig);
             // Default AuthConfig if null
             if (config.getScanConfig().getAuthConfig() == null) {
                 config.getScanConfig().setAuthConfig(new AuthConfig());
@@ -99,6 +103,63 @@ public class ConfigManager {
             logger.error("Failed to parse configuration file", e);
             throw new RuntimeException("Configuration load failed", e);
         }
+    }
+
+    private Config loadDefaultConfig(ObjectMapper mapper) throws IOException {
+        try (InputStream in = getClass().getResourceAsStream(DEFAULT_CONFIG_RESOURCE)) {
+            if (in == null) {
+                logger.warn("Default configuration resource unavailable during merge: {}", DEFAULT_CONFIG_RESOURCE);
+                return null;
+            }
+            return mapper.readValue(in, Config.class);
+        }
+    }
+
+    private Config mergeWithDefaults(Config workspaceConfig, Config defaultConfig) {
+        if (workspaceConfig == null) return defaultConfig;
+        if (defaultConfig == null) return workspaceConfig;
+
+        mergeMissingSourceRules(workspaceConfig, defaultConfig);
+        mergeMissingSinkRules(workspaceConfig, defaultConfig);
+        return workspaceConfig;
+    }
+
+    private void mergeMissingSourceRules(Config workspaceConfig, Config defaultConfig) {
+        Set<String> existing = new HashSet<>();
+        if (workspaceConfig.getSources() != null) {
+            for (SourceRule rule : workspaceConfig.getSources()) {
+                existing.add(ruleKey(rule.getType(), rule.getSignature(), rule.getValue()));
+            }
+        }
+
+        if (defaultConfig.getSources() == null) return;
+        for (SourceRule rule : defaultConfig.getSources()) {
+            String key = ruleKey(rule.getType(), rule.getSignature(), rule.getValue());
+            if (existing.add(key)) {
+                workspaceConfig.getSources().add(rule);
+            }
+        }
+    }
+
+    private void mergeMissingSinkRules(Config workspaceConfig, Config defaultConfig) {
+        Set<String> existing = new HashSet<>();
+        if (workspaceConfig.getSinks() != null) {
+            for (SinkRule rule : workspaceConfig.getSinks()) {
+                existing.add(ruleKey(rule.getType(), rule.getSignature(), null));
+            }
+        }
+
+        if (defaultConfig.getSinks() == null) return;
+        for (SinkRule rule : defaultConfig.getSinks()) {
+            String key = ruleKey(rule.getType(), rule.getSignature(), null);
+            if (existing.add(key)) {
+                workspaceConfig.getSinks().add(rule);
+            }
+        }
+    }
+
+    private String ruleKey(String type, String signature, String value) {
+        return String.valueOf(type) + "|" + String.valueOf(signature) + "|" + String.valueOf(value);
     }
 
     public Config getConfig() {

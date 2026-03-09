@@ -5,6 +5,43 @@ This document outlines the technical implementation strategies for the Red Team-
 
 ---
 
+## Known False Negative: JDBC URL Flow Missed
+
+### Reproduced Case
+*   Target: Qiyuesuo setup endpoint `GET /setup/dbtest`.
+*   Observed behavior: call graph builds successfully and the worklist processes thousands of tasks, but the final vulnerability count is `0`.
+*   Confirmed reachable business flow:
+    *   `com.qiyuesuo.setup.SetupController.dbtest(...)`
+    *   `com.qiyuesuo.setup.SetupService.validateDatabase(...)`
+    *   `com.qiyuesuo.setup.SetupService.dbtest(...)`
+    *   `com.qiyuesuo.database.DatabaseService.getConnection(...)`
+    *   `com.qiyuesuo.database.DefaultConnectionManager.getConnection()`
+    *   `com.qiyuesuo.database.DatabaseConnection.getConnection(...)`
+    *   `java.sql.DriverManager.getConnection(...)`
+
+### Root Cause Breakdown
+1.  **Sink modeling gap**
+    *   Current rules cover SQL execution sinks such as `Statement.execute*` and `JdbcTemplate.execute/query`.
+    *   Current rules do **not** cover JDBC connection-establishment sinks such as `DriverManager.getConnection(...)`.
+    *   This causes JDBC URL injection / SSRF-style abuse to be invisible even if taint reaches the terminal API.
+2.  **Receiver/object taint gap**
+    *   `WorklistEngine` currently maps tainted call arguments to callee parameters only.
+    *   It does not propagate taint from a tainted receiver into callee `this` for instance calls.
+    *   As a result, flows of the form `source -> object field -> instance method -> sink` are truncated.
+3.  **Incomplete summary system**
+    *   `MethodSummary` defines `paramsToThis` and `thisToReturn` capabilities.
+    *   `SummaryGenerator` and `WorklistEngine` do not yet fully generate/apply those facts.
+    *   Return-value propagation is also incomplete, which drops factory/builder/helper chains.
+
+### Design Implication
+The current engine is strong enough for simple `source -> argument -> sink` flows, but it under-approximates real-world Java service code where taint frequently moves through:
+*   constructors
+*   object fields
+*   instance receivers (`this`)
+*   helper return values
+
+---
+
 ## Phase 8: Tactical Intelligence Implementation
 
 ### 8.1 Secret Scanner (Tri-Layer Architecture)
@@ -53,9 +90,35 @@ This document outlines the technical implementation strategies for the Red Team-
     Content-Disposition: form-data; name="file"; filename="payload.jsp"
     Content-Type: application/octet-stream
     
-    {{SHELL_CODE}}
-    ------WebKitFormBoundary7MA4YWxkTrZu0gW--
-    ```
+     {{SHELL_CODE}}
+     ------WebKitFormBoundary7MA4YWxkTrZu0gW--
+     ```
+
+### 8.4 Sink Coverage Expansion
+*   **Goal**: Close false negatives caused by terminal sink under-modeling.
+*   **Planned additions**:
+    *   `java.sql.DriverManager.getConnection(java.lang.String)`
+    *   `java.sql.DriverManager.getConnection(java.lang.String,java.util.Properties)`
+    *   `java.sql.DriverManager.getConnection(java.lang.String,java.lang.String,java.lang.String)`
+    *   Common JDBC URL setter APIs on pooled `DataSource` implementations when present in classpath.
+*   **Detection intent**:
+    *   Model attacker-controlled JDBC URL as a high-risk network/database sink.
+    *   Support classification as SSRF, JDBC URL injection, or connection abuse depending on rule taxonomy.
+
+### 8.5 Receiver/Object Propagation
+*   **Engine target**: `com.jbytescanner.analysis.WorklistEngine`
+*   **Required changes**:
+    *   When the call site is an `InstanceInvokeExpr`, if the base object is tainted, seed callee `this` as tainted.
+    *   Preserve taint across constructor initialization patterns such as `new Obj(tainted)` followed by instance calls.
+    *   Track field-backed propagation for common flows where tainted parameters are stored into object state and later consumed.
+
+### 8.6 Summary Completion
+*   **Classes**: `MethodSummary`, `SummaryGenerator`, `WorklistEngine`, `AnalysisState`
+*   **Required changes**:
+    *   Generate and consume `param -> this` facts.
+    *   Generate and consume `this -> return` facts.
+    *   Support return-value taint propagation in callers.
+    *   Extend memoization beyond parameter bitsets so object/receiver taint does not collapse into false deduplication.
 
 ---
 
