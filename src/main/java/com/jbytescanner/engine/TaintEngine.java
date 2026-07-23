@@ -13,7 +13,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -93,8 +92,11 @@ public class TaintEngine {
             args.add(String.join(System.getProperty("path.separator"), combinedLibs));
         }
 
-        args.add("-pp"); // Prepend JVM classpath (required when embedded as library)
-        args.add("-ap"); // Allow phantom classes for incomplete classpaths
+        // Force Tai-e 0.5.4's new ASM-based frontend. The deprecated -pp and -ap
+        // switches are no longer needed: the current runtime JRE and phantom
+        // classes are now handled by default.
+        args.add("--world-builder");
+        args.add("pascal.taie.frontend.java.JavaWorldBuilder");
 
         // Direct Tai-e output files to the workspace dir
         args.add("--output-dir");
@@ -155,16 +157,17 @@ public class TaintEngine {
             mgr.overwriteOptions(planConfigs);
             pascal.taie.config.Plan plan = planner.expandPlan(planConfigs, false);
 
-            // Build World using ResilientSootWorldBuilder which adds library exclusions
-            // to prevent Soot from crashing on classes with missing optional dependencies.
-            logger.info("Building Tai-e World with {} appClassPath + {} classPath entries...",
-                    targetAppJars.size(), combinedLibs.size());
+            // Build World with the frontend selected by Options. In Tai-e 0.5.4
+            // this is JavaWorldBuilder, whose API is build(Options) and which does
+            // not run Soot packs over every library method.
+            logger.info("Building Tai-e World with {} appClassPath + {} classPath entries using {}...",
+                    targetAppJars.size(), combinedLibs.size(),
+                    options.getWorldBuilderClass().getName());
             long startTime = System.currentTimeMillis();
-            List<String> scanPkgs = configManager.getConfig().getScanConfig().getScanPackages();
-            Set<String> libExcludes = ResilientSootWorldBuilder.deriveLibExcludes(combinedLibs, scanPkgs);
-            ResilientSootWorldBuilder worldBuilder = new ResilientSootWorldBuilder();
-            worldBuilder.setExcludePatterns(libExcludes);
-            worldBuilder.build(options, plan.analyses());
+            pascal.taie.WorldBuilder worldBuilder = options.getWorldBuilderClass()
+                    .getConstructor()
+                    .newInstance();
+            worldBuilder.build(options);
             long worldTime = System.currentTimeMillis() - startTime;
             logger.info("Tai-e World built in {} seconds.", worldTime / 1000);
 

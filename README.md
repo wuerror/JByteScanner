@@ -22,9 +22,10 @@
     *   **Auth Bypass**: 分析 Spring Security 配置与 Controller 映射的差异，发现未授权访问接口。（未实现）
 *   **交互式审计**: 提供 REPL Shell，允许专家手动查询调用图（`path source sink`），弥补自动化工具的盲区。（未实现）
 *   **高性能引擎**:
-    *   **Worklist Engine**: 迭代式污点分析，避免栈溢出。
-    *   **Leaf Optimization**: 智能摘要生成，大幅提升分析速度。
-    *   **Strict Isolation**: 严格隔离业务代码与第三方库，防止分析引擎崩溃。
+    *   **ASM 资产发现**: 无需构建全局 IR 即可快速提取 API、字符串与组件信息。
+    *   **Tai-e 0.5.4 新前端**: 使用 OOPSLA'25 的 Java 字节码前端生成 Tai-e IR，不再依赖 Soot 前端。
+    *   **原生指针/污点分析**: 基于 Tai-e PTA 与 taint plugin 构建调用图和数据流。
+    *   **Phantom Class 容错**: 缺失可选依赖时保留 phantom class 并继续分析。
 
 ---
 
@@ -32,7 +33,7 @@
 
 ### 1. 构建项目
 
-确保已安装 Maven 和 JDK 11+。
+确保已安装 Maven 和 **JDK 17+**（Tai-e 0.5.4 的最低运行版本）。
 
 ```bash
 git clone https://github.com/wuerror/JByteScanner.git
@@ -40,7 +41,7 @@ cd JByteScanner
 mvn clean package -DskipTests
 ```
 
-构建完成后，在 `target/` 目录下会生成 `JByteScanner-1.0-SNAPSHOT-shaded.jar`。
+构建完成后，在 `target/` 目录下会生成 `JByteScanner-1.5.0.jar`。
 
 ### 2. 运行扫描
 
@@ -54,7 +55,7 @@ mvn clean package -DskipTests
 
 ```bash
 # 仅提取 API 路由列表 (api.txt)
-java -jar JByteScanner-1.0-SNAPSHOT.jar /path/to/app.jar -m api
+java -jar JByteScanner-1.5.0.jar /path/to/app.jar -m api
 ```
 
 api.txt格式如下
@@ -72,7 +73,7 @@ options /path methodsign | paramjson
 比如获取匿名可访问的接口
 
 ```
-java -jar JByteScanner-1.0-SNAPSHOT.jar -m api --filter-annotation AnonymousValidator /path/to/app.jar
+java -jar JByteScanner-1.5.0.jar -m api --filter-annotation AnonymousValidator /path/to/app.jar
 ```
 
 可存在多个关键词比如：`--filter-annotation aa --filter-annotation AnonymousValidator bb` 是或的关系
@@ -85,11 +86,11 @@ java -jar JByteScanner-1.0-SNAPSHOT.jar -m api --filter-annotation AnonymousVali
 
 -m scan或者什么都不带。如果.jbytescanner目录下已经有api.txt那么会跳过phase2
 
-soot生成call gragh阶段时间会比较久
+Tai-e 指针分析和调用图构建阶段在大型项目上可能耗时较久
 
 ```bash
 # 扫描单个 Jar或者一个目录 (执行完整扫描: 资产发现 + 漏洞分析 + 战术情报)
-java -jar JByteScanner-1.0-SNAPSHOT.jar /path
+java -jar JByteScanner-1.5.0.jar /path
 ```
 
 若存在漏洞，结果会输出到result.sarif文件
@@ -100,7 +101,7 @@ java -jar JByteScanner-1.0-SNAPSHOT.jar /path
 
 ```bash
 # 扫描结束后进入 REPL Shell
-java -jar target/JByteScanner-1.0-SNAPSHOT-shaded.jar /path/to/app.jar --interactive
+java -jar target/JByteScanner-1.5.0.jar /path/to/app.jar --interactive
 ```
 
 ---
@@ -108,7 +109,7 @@ java -jar target/JByteScanner-1.0-SNAPSHOT-shaded.jar /path/to/app.jar --interac
 ## 📅 开发路线图 (Roadmap)
 
 ### 已完成 (Core Engine)
-- [x] **Phase 1-5**: 基础架构、配置管理、资产发现、Soot 集成、SARIF 报告。
+- [x] **Phase 1-5**: 基础架构、配置管理、ASM 资产发现、Tai-e 集成、SARIF 报告。
 - [x] **Phase 6**: 性能优化（结构化状态、反向剪枝、强依赖隔离）。
 - [x] **Phase 7**: 高级分析引擎（Worklist 迭代引擎、方法摘要、叶子节点优化）。
 - [x] **Phase 8: 战术情报 (Tactical Intelligence)**: Secret 扫描、漏洞评分、Smart PoC 生成。

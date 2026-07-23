@@ -38,16 +38,16 @@ public class TaieManager {
             args.add(String.join(System.getProperty("path.separator"), libJars));
         }
 
-        // -pp: ALWAYS required when Tai-e is embedded as a library.
-        // Without it, Tai-e looks for 'java-benchmarks/JREs/' git submodule which doesn't
-        // exist in the packaged fat jar. With -pp, Soot uses the running JVM's classpath.
-        args.add("-pp");
+        // Tai-e 0.5.4 uses the new ASM-based Java frontend by default. Keep the
+        // selection explicit so embedded execution cannot accidentally fall back
+        // to the legacy Soot frontend.
+        args.add("--world-builder");
+        args.add("pascal.taie.frontend.java.JavaWorldBuilder");
 
-        // -ap: Allow phantom classes (referenced but not on classpath).
-        // Soot's closed-world assumption would fail on incomplete classpaths (e.g. slf4j,
-        // spring-web referenced by app classes but not included in libJars).
-        // This is one of Tai-e's core advantages over raw Soot.
-        args.add("-ap");
+        // Since 0.5.4, the current runtime JRE is selected automatically when
+        // neither -java nor --jre-dir is specified, and phantom classes are
+        // allowed by default. The deprecated -pp/-ap flags are intentionally
+        // omitted.
 
         // Direct Tai-e output (options.yml, plan files, etc.) to the workspace dir
         // to keep them co-located with JByteScanner results and away from the source tree.

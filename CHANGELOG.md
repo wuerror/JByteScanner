@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+### Changed
+- Upgraded Tai-e from 0.5.2 to 0.5.4 and raised the build/runtime baseline to Java 17.
+- Switched embedded World construction to the new `pascal.taie.frontend.java.JavaWorldBuilder` frontend.
+- Removed use of deprecated `-pp` and `-ap` options; Tai-e 0.5.4 now selects the current JRE and permits phantom classes by default.
+- Aligned ASM, Jackson, Picocli, SLF4J, and Commons IO versions with Tai-e 0.5.4; removed the duplicate Logback SLF4J provider.
+
+### Fixed
+- Removed the reflective Soot exclusion workaround that depended on the pre-0.5.4 `WorldBuilder` API.
+- Verified the new frontend can build HikariCP 4.0.3 with missing Dropwizard Metrics classes, including `com.codahale.metrics.Gauge`, while the legacy Soot frontend reproduces the original `HIERARCHY`/`DANGLING` crash from Tai-e issue #217.
+
 ## [1.5.0] - 2026-02-10
 
 ### Added
