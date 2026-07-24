@@ -9,10 +9,15 @@ All notable changes to this project will be documented in this file.
 - Switched embedded World construction to the new `pascal.taie.frontend.java.JavaWorldBuilder` frontend.
 - Removed use of deprecated `-pp` and `-ap` options; Tai-e 0.5.4 now selects the current JRE and permits phantom classes by default.
 - Aligned ASM, Jackson, Picocli, SLF4J, and Commons IO versions with Tai-e 0.5.4; removed the duplicate Logback SLF4J provider.
+- Added versioned `rules.yaml` migration that backs up legacy project rules and merges newly bundled sources/sinks without overwriting user overrides.
 
 ### Fixed
 - Removed the reflective Soot exclusion workaround that depended on the pre-0.5.4 `WorldBuilder` API.
 - Verified the new frontend can build HikariCP 4.0.3 with missing Dropwizard Metrics classes, including `com.codahale.metrics.Gauge`, while the legacy Soot frontend reproduces the original `HIERARCHY`/`DANGLING` crash from Tai-e issue #217.
+- Skip abstract, native, and phantom API methods when injecting web entry points into Tai-e PTA, preventing `JMethod.getIR()` failures for declaration-only interfaces such as Spring/Feign clients.
+- Restored ZIP-upload deserialization detection through call-site taint mode and upload/archive/byte-array transfer summaries, including `SerializationUtils.deserialize(byte[])`.
+- Added persistent cache-read modeling for stored taint and Groovy `parse`/`parseClass` sinks, restoring detection of Redis-backed Groovy script injection flows.
+- Parse Tai-e call-result sources and constructor signatures containing `<init>` correctly, and resolve ambiguous virtual sinks from the exact IR statement.
 
 ## [1.5.0] - 2026-02-10
 

@@ -19,7 +19,15 @@ public class SinkRule {
 
     @JsonProperty("signature")
     private String signature;
-    
+
+    /**
+     * Sensitive value consumed by the sink. Tai-e accepts numeric parameter indices
+     * as well as receiver/index references such as "base".
+     * When omitted, JByteScanner keeps the legacy behavior and marks every parameter.
+     */
+    @JsonProperty("index")
+    private Object index;
+
     // Computed property - ignore for serialization/deserialization
     @com.fasterxml.jackson.annotation.JsonIgnore
     public double getBaseScore() {

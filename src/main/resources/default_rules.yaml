@@ -1,5 +1,18 @@
+rules_version: 3
+
 config:
   max_depth: 15
+  # Tai-e 0.5.4 Spring DI/WEC modeling; disable for non-Spring targets or tight memory budgets.
+  spring_analysis: false
+  # Match taint rules at reachable invoke statements even when PTA cannot resolve
+  # an interface/abstract callee (for example MultipartFile.getInputStream()).
+  taint_call_site_mode: true
+  # Fallback for incomplete Spring classpaths where Tai-e's full Spring plugin is unsafe.
+  # Service parameters are not marked as request sources; this only makes their bodies reachable.
+  spring_service_entry_fallback: false
+  # Treat typed cache reads Object get(String, Class<T>) as stored-taint sources,
+  # using the class literal as the concrete taint type.
+  persistent_source_analysis: true
   # Scan packages: List package prefixes to include in the scan.
   # Important: If your business logic resides in dependencies (BOOT-INF/lib),
   # you MUST add their package prefixes here to promote them to Application Classes.
@@ -63,6 +76,13 @@ sinks:
     category: "cmd-exec"
     signature: "<java.lang.ProcessBuilder: java.lang.ProcessBuilder command(java.util.List)>"
 
+  # Attacker-controlled argument arrays passed to a dynamically selected method.
+  - type: "method"
+    vuln_type: "Reflection_RCE"
+    category: "code-exec"
+    signature: "<java.lang.reflect.Method: java.lang.Object invoke(java.lang.Object,java.lang.Object[])>"
+    index: 1
+
   # --- Code Injection / Expression Injection ---
   # Score: 10.0 (In-Memory Code Exec)
   
@@ -75,6 +95,17 @@ sinks:
     vuln_type: "Script_Engine_Injection"
     category: "code-exec"
     signature: "<groovy.lang.GroovyShell: java.lang.Object evaluate(java.lang.String)>"
+    index: 0
+  - type: "method"
+    vuln_type: "Script_Engine_Injection"
+    category: "code-exec"
+    signature: "<groovy.lang.GroovyShell: groovy.lang.Script parse(java.lang.String)>"
+    index: 0
+  - type: "method"
+    vuln_type: "Script_Engine_Injection"
+    category: "code-exec"
+    signature: "<groovy.lang.GroovyClassLoader: java.lang.Class parseClass(java.lang.String)>"
+    index: 0
 
   # OGNL/MVEL/SpEL expression evaluation
   - type: "method"
@@ -98,6 +129,19 @@ sinks:
     vuln_type: "Deserialization"
     category: "deserialization"
     signature: "<java.io.ObjectInputStream: java.lang.Object readObject()>"
+    index: "base"
+
+  # Common wrappers that perform native Java deserialization internally.
+  - type: "method"
+    vuln_type: "Deserialization"
+    category: "deserialization"
+    signature: "<org.apache.commons.lang3.SerializationUtils: java.lang.Object deserialize(byte[])>"
+    index: 0
+  - type: "method"
+    vuln_type: "Deserialization"
+    category: "deserialization"
+    signature: "<org.apache.commons.lang.SerializationUtils: java.lang.Object deserialize(byte[])>"
+    index: 0
   
   # SnakeYAML
   - type: "method"
@@ -229,3 +273,9 @@ sinks:
     vuln_type: "Log_Injection"
     category: "log-injection"
     signature: "<org.slf4j.Logger: void info(java.lang.String)>"
+
+
+# Optional project/library summaries. These are merged with JByteScanner's built-in
+# String and upload/archive summaries. Use these for wrappers whose bodies are not
+# analyzed under only-app:true.
+transfers: []

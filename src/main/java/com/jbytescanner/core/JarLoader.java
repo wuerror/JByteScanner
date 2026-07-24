@@ -68,6 +68,24 @@ public class JarLoader {
 
         LoadedJars result = processFatJars(rawJars, scanPackages);
 
+        // Exploded web applications and unpacked fat JARs keep application bytecode in
+        // directories rather than archives. Tai-e, ASM route discovery, and the secret
+        // scanner all accept class directories directly, so promote the known layouts to
+        // target application paths. Without this, scanning WEB-INF only analyzes lib/*.jar
+        // and silently misses WEB-INF/classes entirely.
+        List<String> looseClassDirectories = discoverLooseClassDirectories(root);
+        for (String classesDir : looseClassDirectories) {
+            if (!result.targetAppJars.contains(classesDir)) {
+                result.targetAppJars.add(classesDir);
+            }
+        }
+        if (!looseClassDirectories.isEmpty()) {
+            logger.info("Discovered {} loose application class director{}: {}",
+                    looseClassDirectories.size(),
+                    looseClassDirectories.size() == 1 ? "y" : "ies",
+                    looseClassDirectories);
+        }
+
         // Detect obfuscated-dependency directories: some vendors (e.g. Landray) rename
         // third-party library JARs to opaque names (mk.landray.xxx.jar) and place them
         // in a sibling "ext/" directory alongside a file_mapping.txt manifest.
@@ -81,6 +99,52 @@ public class JarLoader {
         }
 
         return result;
+    }
+
+    /**
+     * Discovers exploded application-class roots in common deployment layouts.
+     * Supported inputs include the deployment root, WEB-INF itself, BOOT-INF itself,
+     * or the classes directory directly.
+     */
+    private List<String> discoverLooseClassDirectories(File root) {
+        LinkedHashSet<Path> candidates = new LinkedHashSet<>();
+        Path rootPath = root.toPath().toAbsolutePath().normalize();
+
+        if (root.isDirectory() && "classes".equalsIgnoreCase(root.getName())) {
+            candidates.add(rootPath);
+        }
+        candidates.add(rootPath.resolve("classes"));
+        candidates.add(rootPath.resolve("WEB-INF").resolve("classes"));
+        candidates.add(rootPath.resolve("BOOT-INF").resolve("classes"));
+
+        List<String> discovered = new ArrayList<>();
+        for (Path candidate : candidates) {
+            if (Files.isDirectory(candidate) && containsClassFile(candidate)) {
+                discovered.add(candidate.toString());
+            }
+        }
+        return discovered;
+    }
+
+    private boolean containsClassFile(Path directory) {
+        try (Stream<Path> walk = Files.walk(directory)) {
+            return walk.filter(Files::isRegularFile)
+                    .filter(path -> !hasHiddenPathSegment(directory, path))
+                    .anyMatch(path -> path.getFileName().toString().endsWith(".class"));
+        } catch (IOException e) {
+            logger.warn("Failed to inspect loose class directory: {}", directory, e);
+            return false;
+        }
+    }
+
+    private boolean hasHiddenPathSegment(Path root, Path path) {
+        Path relative = root.relativize(path);
+        for (Path segment : relative) {
+            if (segment.toString().startsWith(".")) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**

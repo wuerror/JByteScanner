@@ -13,4 +13,12 @@ public class SourceRule {
 
     @JsonProperty("signature")
     private String signature; // For method type
+
+    /** Tai-e source index (for example result, base, or a numeric parameter index). */
+    @JsonProperty("index")
+    private Object index;
+
+    /** Optional concrete taint-object type when the declared API type is too generic. */
+    @JsonProperty("taint_type")
+    private String taintType;
 }

@@ -14,6 +14,7 @@ import pascal.taie.language.classes.JMethod;
 import pascal.taie.analysis.pta.plugin.taint.TaintAnalysis;
 import pascal.taie.analysis.pta.plugin.taint.TaintFlow;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -40,6 +41,16 @@ public class JBSScanEntryPointPlugin implements Plugin {
     public static volatile List<String> entrySignatures = List.of();
 
     /**
+     * Conservative fallback for incomplete Spring deployments: make concrete public
+     * methods of application @Service classes reachable without enabling Tai-e's full
+     * Spring DI/WEC plugin. Their parameters are deliberately not registered as sources.
+     */
+    public static volatile boolean springServiceEntryFallback = false;
+
+    /** Internal methods that contain inferred persistent-data reads. */
+    public static volatile List<String> supplementalEntrySignatures = List.of();
+
+    /**
      * Taint flows captured in onFinish(), after TaintAnalysis has stored its results.
      * Plugin execution order: TaintAnalysis → ResultProcessor → JBSScanEntryPointPlugin.
      * This field is populated BEFORE AnalysisManager clears the PTA result from World,
@@ -63,18 +74,76 @@ public class JBSScanEntryPointPlugin implements Plugin {
         ClassHierarchy ch = World.get().getClassHierarchy();
         int added = 0;
         int unresolved = 0;
+        int skippedNoBody = 0;
+        Set<JMethod> addedMethods = new HashSet<>();
         for (String sig : entrySignatures) {
             JMethod method = resolveMethod(ch, sig);
-            if (method != null) {
+            if (method == null) {
+                unresolved++;
+            } else if (method.isAbstract()
+                    || method.isNative()
+                    || method.getDeclaringClass().isPhantom()) {
+                // PTA plugins such as ExceptionAnalysis call JMethod.getIR() for
+                // every newly reachable method. Abstract, native, and phantom
+                // methods have no IR and therefore cannot be direct entry points.
+                skippedNoBody++;
+                logger.debug("[JBSScanEntryPointPlugin] Skipping API method without a body: {}", sig);
+            } else {
                 solver.addEntryPoint(new EntryPoint(method,
                         new DeclaredParamProvider(method, solver.getHeapModel())));
+                addedMethods.add(method);
                 added++;
-            } else {
-                unresolved++;
             }
         }
-        logger.info("[JBSScanEntryPointPlugin] Injected {}/{} API methods as PTA entry points ({} unresolved/phantom).",
-                added, entrySignatures.size(), unresolved);
+        logger.info("[JBSScanEntryPointPlugin] Injected {}/{} API methods as PTA entry points "
+                        + "({} unresolved, {} abstract/native/phantom skipped).",
+                added, entrySignatures.size(), unresolved, skippedNoBody);
+
+        int supplementalAdded = 0;
+        int supplementalSkipped = 0;
+        for (String sig : supplementalEntrySignatures) {
+            JMethod method = resolveMethod(ch, sig);
+            if (method == null || method.isAbstract() || method.isNative()
+                    || method.getDeclaringClass().isPhantom() || addedMethods.contains(method)) {
+                supplementalSkipped++;
+                continue;
+            }
+            solver.addEntryPoint(new EntryPoint(method,
+                    new DeclaredParamProvider(method, solver.getHeapModel())));
+            addedMethods.add(method);
+            supplementalAdded++;
+        }
+        if (!supplementalEntrySignatures.isEmpty()) {
+            logger.info("[JBSScanEntryPointPlugin] Injected {} inferred persistent-read "
+                            + "entry method(s) ({} skipped).",
+                    supplementalAdded, supplementalSkipped);
+        }
+
+        if (springServiceEntryFallback) {
+            int serviceClasses = 0;
+            int serviceMethods = 0;
+            for (JClass clazz : ch.applicationClasses().toList()) {
+                if (clazz.isPhantom() || clazz.isInterface() || clazz.isAbstract()
+                        || !clazz.hasAnnotation("org.springframework.stereotype.Service")) {
+                    continue;
+                }
+                serviceClasses++;
+                for (JMethod method : clazz.getDeclaredMethods()) {
+                    if (!method.isPublic() || method.isStatic() || method.isConstructor()
+                            || method.isStaticInitializer() || method.isAbstract()
+                            || method.isNative() || addedMethods.contains(method)) {
+                        continue;
+                    }
+                    solver.addEntryPoint(new EntryPoint(method,
+                            new DeclaredParamProvider(method, solver.getHeapModel())));
+                    addedMethods.add(method);
+                    serviceMethods++;
+                }
+            }
+            logger.info("[JBSScanEntryPointPlugin] Spring service fallback injected {} public "
+                            + "method(s) from {} concrete @Service class(es).",
+                    serviceMethods, serviceClasses);
+        }
     }
 
     @Override
@@ -87,6 +156,18 @@ public class JBSScanEntryPointPlugin implements Plugin {
         capturedTaintFlows = flows;
         logger.info("[JBSScanEntryPointPlugin] Captured {} taint flow(s) from TaintAnalysis.",
                 flows != null ? flows.size() : 0);
+
+        // Optional focused call-graph diagnostics for false-negative investigations.
+        // Example: -Djbs.reachability.filter=com.example.feature
+        String reachabilityFilter = System.getProperty("jbs.reachability.filter");
+        if (reachabilityFilter != null && !reachabilityFilter.isBlank()) {
+            solver.getCallGraph().reachableMethods()
+                    .map(csMethod -> csMethod.getMethod().getSignature())
+                    .filter(signature -> signature.contains(reachabilityFilter))
+                    .distinct()
+                    .sorted()
+                    .forEach(signature -> logger.info("[JBS-Reachable] {}", signature));
+        }
     }
 
     /**
@@ -96,7 +177,7 @@ public class JBSScanEntryPointPlugin implements Plugin {
      * @param sig format {@code <com.example.Class: returnType methodName(paramTypes)>}
      * @return the resolved JMethod, or {@code null} if not found
      */
-    private JMethod resolveMethod(ClassHierarchy ch, String sig) {
+    static JMethod resolveMethod(ClassHierarchy ch, String sig) {
         try {
             if (sig == null || !sig.startsWith("<") || !sig.endsWith(">")) return null;
             String inner = sig.substring(1, sig.length() - 1); // strip < >

@@ -5,19 +5,30 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.jbytescanner.config.Config;
 import com.jbytescanner.config.SinkRule;
 import com.jbytescanner.config.SourceRule;
+import com.jbytescanner.config.TransferRule;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
+import org.objectweb.asm.Type;
+import org.objectweb.asm.tree.AbstractInsnNode;
+import org.objectweb.asm.tree.ClassNode;
+import org.objectweb.asm.tree.LdcInsnNode;
+import org.objectweb.asm.tree.MethodInsnNode;
+import org.objectweb.asm.tree.MethodNode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.Enumeration;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -27,6 +38,12 @@ import java.util.jar.JarFile;
 
 public class RuleManager {
     private static final Logger logger = LoggerFactory.getLogger(RuleManager.class);
+    // SnakeYAML defaults to 3,145,728 code points per document. Keep generated
+    // documents comfortably below that limit (UTF-8 byte size is conservative).
+    static final int MAX_TAINT_CONFIG_SHARD_BYTES = 2_500_000;
+    private static final int TAINT_CONFIG_SECTION_BATCH_SIZE = 3_000;
+    private static final String TAINT_CONFIG_FILE = "taint-config.yml";
+    private static final String TAINT_CONFIG_DIRECTORY = "taint-config.d";
 
     private final Config jbsConfig;
     private final List<SinkRule> sinks;
@@ -57,6 +74,7 @@ public class RuleManager {
      */
     public String generateTaieConfig(List<String> entryMethodSignatures, File workspaceDir,
                                       List<String> appJars) {
+        JBSScanEntryPointPlugin.supplementalEntrySignatures = List.of();
         // Pre-scan: find which configured sinks are actually invoked in app bytecode.
         // Skips sinks not referenced → avoids "Cannot find sink method" in Tai-e.
         Set<String> confirmedSinkKeys = null;
@@ -66,6 +84,14 @@ public class RuleManager {
                     confirmedSinkKeys.size(), buildSinkKeySet().size());
         }
         Map<String, Object> taieConfig = new HashMap<>();
+        // Tai-e normally applies call sources/sinks/transfers only after PTA resolves a
+        // callee. Interface-typed framework values often have no concrete points-to
+        // object at synthetic Web entry points, so the call edge is absent even though
+        // the invoke statement is reachable. Call-site mode matches the declared method
+        // reference in reachable IR and keeps these flows analyzable.
+        boolean callSiteMode = jbsConfig.getScanConfig() == null
+                || jbsConfig.getScanConfig().isTaintCallSiteMode();
+        taieConfig.put("call-site-mode", callSiteMode);
 
         // 1. Convert Sources
         List<Map<String, Object>> taieSources = new ArrayList<>();
@@ -92,7 +118,14 @@ public class RuleManager {
                     Map<String, Object> source = new HashMap<>();
                     source.put("kind", "call");
                     source.put("method", src.getSignature());
-                    source.put("index", "result"); // Default to return value
+                    source.put("index", src.getIndex() != null
+                            ? normalizeIndex(src.getIndex())
+                            : "result");
+                    if (src.getTaintType() != null && !src.getTaintType().isBlank()) {
+                        // Useful for generic persistence APIs such as Object get(key, Class):
+                        // the concrete taint type can then survive casts to the requested model.
+                        source.put("type", src.getTaintType());
+                    }
                     taieSources.add(source);
                 }
                 // Tai-e doesn't directly support "annotation" sources out of the box in yaml
@@ -100,72 +133,276 @@ public class RuleManager {
                 // For MVP, we rely on the entry points which are derived from annotations anyway!
             }
         }
+        boolean persistentSourceAnalysis = jbsConfig.getScanConfig() == null
+                || jbsConfig.getScanConfig().isPersistentSourceAnalysis();
+        if (persistentSourceAnalysis && appJars != null && !appJars.isEmpty()) {
+            Set<TypedCallSource> persistentSources = scanAppJarsForTypedCacheSources(appJars);
+            Map<String, Set<String>> typesByGetter = new HashMap<>();
+            for (TypedCallSource persistentSource : persistentSources) {
+                typesByGetter.computeIfAbsent(persistentSource.method(), ignored -> new HashSet<>())
+                        .add(persistentSource.type());
+            }
+
+            // Tai-e 0.5.4 cannot reliably distinguish multiple differently typed call
+            // sources declared for the same method. In call-site mode those declarations
+            // all match every invocation, and SourcePoint ordering may retain an unrelated
+            // model type for a given call site. Emit the cache getter directly only when
+            // it has one inferred model type. For polymorphic typed getters, model the
+            // persisted model's accessor results instead (for example
+            // GroovyScript.getContent(): String), which is both call-site stable and
+            // semantically represents data read from persistent storage.
+            Set<String> polymorphicGetterTypes = new HashSet<>();
+            Set<String> emittedSources = new HashSet<>();
+            int directSourceCount = 0;
+            for (TypedCallSource persistentSource : persistentSources) {
+                Set<String> getterTypes = typesByGetter.get(persistentSource.method());
+                if (getterTypes != null && getterTypes.size() > 1) {
+                    polymorphicGetterTypes.add(persistentSource.type());
+                    continue;
+                }
+                if (addCallSource(taieSources, emittedSources,
+                        persistentSource.method(), persistentSource.type())) {
+                    directSourceCount++;
+                }
+            }
+
+            Set<ModelAccessorSource> accessorSources = polymorphicGetterTypes.isEmpty()
+                    ? Set.of()
+                    : scanAppJarsForModelAccessors(appJars, polymorphicGetterTypes);
+            int accessorSourceCount = 0;
+            for (ModelAccessorSource accessorSource : accessorSources) {
+                if (addCallSource(taieSources, emittedSources,
+                        accessorSource.method(), accessorSource.type())) {
+                    accessorSourceCount++;
+                }
+            }
+
+            JBSScanEntryPointPlugin.supplementalEntrySignatures = persistentSources.stream()
+                    .map(TypedCallSource::containerMethod)
+                    .distinct()
+                    .toList();
+            long polymorphicGetterCount = typesByGetter.values().stream()
+                    .filter(types -> types.size() > 1)
+                    .count();
+            logger.info("ASM pre-scan inferred {} typed persistent-data read pattern(s) "
+                            + "in {} containing method(s); emitted {} direct getter source(s) "
+                            + "and {} model accessor source(s) for {} polymorphic getter(s).",
+                    persistentSources.size(),
+                    JBSScanEntryPointPlugin.supplementalEntrySignatures.size(),
+                    directSourceCount, accessorSourceCount, polymorphicGetterCount);
+        }
         taieConfig.put("sources", taieSources);
 
         // 2. Convert Sinks
         List<Map<String, Object>> taieSinks = new ArrayList<>();
         for (SinkRule sink : sinks) {
-            if (sink.getSignature() != null) {
-                // Filter: skip sinks not invoked in app bytecode (avoids "Cannot find" in Tai-e)
-                if (confirmedSinkKeys != null) {
-                    String sinkKey = extractSinkKey(sink.getSignature());
-                    if (sinkKey == null || !confirmedSinkKeys.contains(sinkKey)) {
-                        logger.debug("Skipping sink not referenced in app bytecode: {}", sink.getSignature());
-                        continue;
-                    }
+            if (sink.getSignature() == null) {
+                continue;
+            }
+
+            // Filter: skip sinks not invoked in app bytecode (avoids "Cannot find" in Tai-e).
+            if (confirmedSinkKeys != null) {
+                String sinkKey = extractSinkKey(sink.getSignature());
+                if (sinkKey == null || !confirmedSinkKeys.contains(sinkKey)) {
+                    logger.debug("Skipping sink not referenced in app bytecode: {}", sink.getSignature());
+                    continue;
                 }
-                // Only add index entries for params that actually exist in the sink method.
-                // Out-of-range indices cause IndexOutOfBoundsException in Tai-e's taint config parser.
-                int paramCount = parseParamCount(sink.getSignature());
-                for (int i = 0; i < paramCount; i++) {
-                    Map<String, Object> taieSink = new HashMap<>();
-                    taieSink.put("method", sink.getSignature());
-                    taieSink.put("index", i);
-                    taieSinks.add(taieSink);
-                }
-                // NOTE: We intentionally do NOT add index:"base" here.
-                // "base" means the receiver object is tainted, which is almost never
-                // the case for our target vuln patterns (XSS, SQLi, RCE, PathTraversal).
-                // More importantly, static sinks (Paths.get, Files.write, JSON.parse, etc.)
-                // would throw ClassCastException in InvokeUtils.getVar() when "base" is used,
-                // because InvokeStatic cannot be cast to InvokeInstanceExp.
+            }
+
+            // Prefer an explicitly configured sensitive index. This is required for
+            // receiver-based, zero-argument sinks such as ObjectInputStream.readObject().
+            if (sink.getIndex() != null) {
+                addSink(taieSinks, sink.getSignature(), normalizeIndex(sink.getIndex()));
+                continue;
+            }
+
+            // Legacy compatibility: if no index is configured, mark every parameter.
+            int paramCount = parseParamCount(sink.getSignature());
+            for (int i = 0; i < paramCount; i++) {
+                addSink(taieSinks, sink.getSignature(), i);
+            }
+            if (paramCount == 0) {
+                logger.warn("Zero-argument sink has no configured index and is inactive: {}. " +
+                        "Use index: base for an instance receiver sink.", sink.getSignature());
             }
         }
         taieConfig.put("sinks", taieSinks);
 
-        // 3. Transfers (Basic String transfers for standard operation)
+        // 3. Transfers
         List<Map<String, Object>> transfers = new ArrayList<>();
-        
-        // StringBuilder
-        addTransfer(transfers, "<java.lang.StringBuilder: java.lang.StringBuilder append(java.lang.String)>", "0", "base");
-        addTransfer(transfers, "<java.lang.StringBuilder: java.lang.String toString()>", "base", "result");
-        // StringBuffer
-        addTransfer(transfers, "<java.lang.StringBuffer: java.lang.StringBuffer append(java.lang.String)>", "0", "base");
-        addTransfer(transfers, "<java.lang.StringBuffer: java.lang.String toString()>", "base", "result");
-        // String
-        addTransfer(transfers, "<java.lang.String: java.lang.String concat(java.lang.String)>", "base", "result");
-        addTransfer(transfers, "<java.lang.String: java.lang.String concat(java.lang.String)>", "0", "result");
-        
+
+        // Core String propagation.
+        addTransfer(transfers, "<java.lang.StringBuilder: java.lang.StringBuilder append(java.lang.String)>", "0", "base", null);
+        addTransfer(transfers, "<java.lang.StringBuilder: java.lang.String toString()>", "base", "result", null);
+        addTransfer(transfers, "<java.lang.StringBuffer: java.lang.StringBuffer append(java.lang.String)>", "0", "base", null);
+        addTransfer(transfers, "<java.lang.StringBuffer: java.lang.String toString()>", "base", "result", null);
+        addTransfer(transfers, "<java.lang.String: java.lang.String concat(java.lang.String)>", "base", "result", null);
+        addTransfer(transfers, "<java.lang.String: java.lang.String concat(java.lang.String)>", "0", "result", null);
+        addTransfer(transfers, "<java.lang.String: java.lang.String replaceAll(java.lang.String,java.lang.String)>", "base", "result", null);
+
+        // Common upload/archive wrappers used before deserialization. With only-app:true,
+        // Tai-e does not analyze these library bodies, so their value-flow summaries must
+        // be explicit or the MultipartFile -> InputStream -> byte[] chain is broken.
+        addTransfer(transfers, "<org.springframework.web.multipart.MultipartFile: java.io.InputStream getInputStream()>", "base", "result", null);
+        addTransfer(transfers, "<org.apache.commons.compress.archivers.zip.ZipArchiveInputStream: void <init>(java.io.InputStream)>", "0", "base", null);
+        addTransfer(transfers, "<org.apache.commons.compress.archivers.zip.ZipArchiveInputStream: void <init>(java.io.InputStream,java.lang.String)>", "0", "base", null);
+        addTransfer(transfers, "<org.apache.commons.io.IOUtils: byte[] toByteArray(java.io.InputStream)>", "0", "result", null);
+
+        // Collection/JSON transformations commonly used by reflection-based debug APIs.
+        // These library bodies are not analyzed with only-app:true, so preserve taint as
+        // request strings are parsed, collected, converted, and passed to Method.invoke.
+        addTransfer(transfers, "<com.alibaba.fastjson.JSON: com.alibaba.fastjson.JSONArray parseArray(java.lang.String)>", "0", "result", null);
+        addTransfer(transfers, "<com.alibaba.fastjson.JSON: java.lang.Object parseObject(java.lang.String,java.lang.reflect.Type,com.alibaba.fastjson.parser.Feature[])>", "0", "result", null);
+        addTransfer(transfers, "<com.alibaba.fastjson.JSONArray: java.util.stream.Stream stream()>", "base", "result", null);
+        addTransfer(transfers, "<java.util.stream.Stream: java.util.stream.Stream map(java.util.function.Function)>", "base", "result", null);
+        addTransfer(transfers, "<java.util.stream.Stream: java.lang.Object collect(java.util.stream.Collector)>", "base", "result", null);
+        addTransfer(transfers, "<java.util.List: java.lang.Object get(int)>", "base", "result", null);
+        addTransfer(transfers, "<java.util.List: boolean add(java.lang.Object)>", "0", "base", null);
+        addTransfer(transfers, "<java.util.List: java.lang.Object[] toArray()>", "base", "result", null);
+
+        // Project-specific summaries can be supplied in rules.yaml without changing Java.
+        if (jbsConfig.getTransfers() != null) {
+            for (TransferRule transfer : jbsConfig.getTransfers()) {
+                if (transfer.getMethod() == null || transfer.getFrom() == null || transfer.getTo() == null) {
+                    logger.warn("Skipping incomplete transfer rule: {}", transfer);
+                    continue;
+                }
+                addTransfer(transfers, transfer.getMethod(), transfer.getFrom(), transfer.getTo(), transfer.getType());
+            }
+        }
+
         taieConfig.put("transfers", transfers);
 
-        // Write to file
-        File configFile = new File(workspaceDir, "taint-config.yml");
+        return writeTaieConfig(workspaceDir, taieConfig);
+    }
+
+    /**
+     * Writes a small Tai-e configuration as one YAML document. Large applications can
+     * generate tens of thousands of entry-point sources, which exceed SnakeYAML's
+     * per-document code-point limit. Tai-e 0.5.4 accepts a directory of YAML files and
+     * merges them, so large configurations are emitted as bounded shards instead.
+     */
+    private String writeTaieConfig(File workspaceDir, Map<String, Object> taieConfig) {
+        File configFile = new File(workspaceDir, TAINT_CONFIG_FILE);
+        Path configDirectory = new File(workspaceDir, TAINT_CONFIG_DIRECTORY).toPath();
         ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
         try {
-            mapper.writeValue(configFile, taieConfig);
-            logger.info("Tai-e taint-config.yml generated at: {}", configFile.getAbsolutePath());
-            return configFile.getAbsolutePath();
+            byte[] completeDocument = mapper.writeValueAsBytes(taieConfig);
+            if (completeDocument.length <= MAX_TAINT_CONFIG_SHARD_BYTES) {
+                deleteRecursively(configDirectory);
+                Files.write(configFile.toPath(), completeDocument);
+                logger.info("Tai-e taint config generated at: {} ({} bytes)",
+                        configFile.getAbsolutePath(), completeDocument.length);
+                return configFile.getAbsolutePath();
+            }
+
+            Files.deleteIfExists(configFile.toPath());
+            deleteRecursively(configDirectory);
+            Files.createDirectories(configDirectory);
+
+            int sequence = 0;
+            Map<String, Object> options = new LinkedHashMap<>();
+            options.put("call-site-mode", taieConfig.get("call-site-mode"));
+            sequence = writeShard(mapper, configDirectory, sequence, "options", options);
+            sequence = writeSectionShards(mapper, configDirectory, sequence,
+                    "sources", asList(taieConfig.get("sources")));
+            sequence = writeSectionShards(mapper, configDirectory, sequence,
+                    "sinks", asList(taieConfig.get("sinks")));
+            sequence = writeSectionShards(mapper, configDirectory, sequence,
+                    "transfers", asList(taieConfig.get("transfers")));
+
+            logger.info("Tai-e taint config exceeded {} bytes ({} bytes); generated {} YAML shard(s) at: {}",
+                    MAX_TAINT_CONFIG_SHARD_BYTES, completeDocument.length, sequence,
+                    configDirectory.toAbsolutePath());
+            return configDirectory.toAbsolutePath().toString();
         } catch (IOException e) {
-            logger.error("Failed to write Tai-e taint-config.yml", e);
+            logger.error("Failed to write Tai-e taint config", e);
             return null;
         }
     }
+
+    @SuppressWarnings("unchecked")
+    private List<Object> asList(Object value) {
+        return value instanceof List<?> list ? (List<Object>) list : List.of();
+    }
+
+    private int writeSectionShards(ObjectMapper mapper, Path directory, int sequence,
+                                   String key, List<?> values) throws IOException {
+        for (int start = 0; start < values.size(); start += TAINT_CONFIG_SECTION_BATCH_SIZE) {
+            int end = Math.min(values.size(), start + TAINT_CONFIG_SECTION_BATCH_SIZE);
+            sequence = writeSectionChunk(mapper, directory, sequence, key,
+                    new ArrayList<>(values.subList(start, end)));
+        }
+        return sequence;
+    }
+
+    private int writeSectionChunk(ObjectMapper mapper, Path directory, int sequence,
+                                  String key, List<?> values) throws IOException {
+        Map<String, Object> section = new LinkedHashMap<>();
+        section.put(key, values);
+        byte[] yaml = mapper.writeValueAsBytes(section);
+        if (yaml.length > MAX_TAINT_CONFIG_SHARD_BYTES && values.size() > 1) {
+            int middle = values.size() / 2;
+            sequence = writeSectionChunk(mapper, directory, sequence, key,
+                    new ArrayList<>(values.subList(0, middle)));
+            return writeSectionChunk(mapper, directory, sequence, key,
+                    new ArrayList<>(values.subList(middle, values.size())));
+        }
+        if (yaml.length > MAX_TAINT_CONFIG_SHARD_BYTES) {
+            throw new IOException("Single " + key + " entry exceeds Tai-e YAML shard limit");
+        }
+        return writeShard(mapper, directory, sequence, key, section);
+    }
+
+    private int writeShard(ObjectMapper mapper, Path directory, int sequence,
+                           String label, Map<String, Object> content) throws IOException {
+        byte[] yaml = mapper.writeValueAsBytes(content);
+        if (yaml.length > MAX_TAINT_CONFIG_SHARD_BYTES) {
+            throw new IOException("Tai-e YAML shard exceeds safe limit: " + label);
+        }
+        Path output = directory.resolve(String.format("%03d-%s.yml", sequence, label));
+        Files.write(output, yaml);
+        return sequence + 1;
+    }
+
+    private void deleteRecursively(Path path) throws IOException {
+        if (!Files.exists(path)) {
+            return;
+        }
+        try (var walk = Files.walk(path)) {
+            for (Path item : walk.sorted(Comparator.reverseOrder()).toList()) {
+                Files.deleteIfExists(item);
+            }
+        }
+    }
     
-    private void addTransfer(List<Map<String, Object>> transfers, String method, String from, String to) {
+    private void addSink(List<Map<String, Object>> sinks, String method, Object index) {
+        Map<String, Object> sink = new HashMap<>();
+        sink.put("method", method);
+        sink.put("index", index);
+        sinks.add(sink);
+    }
+
+    private Object normalizeIndex(Object index) {
+        if (index instanceof Number number) {
+            return number.intValue();
+        }
+        String value = String.valueOf(index).trim();
+        if (value.matches("\\d+")) {
+            return Integer.parseInt(value);
+        }
+        return value;
+    }
+
+    private void addTransfer(List<Map<String, Object>> transfers, String method,
+                             String from, String to, String type) {
         Map<String, Object> t = new HashMap<>();
         t.put("method", method);
         t.put("from", from);
         t.put("to", to);
+        if (type != null && !type.isBlank()) {
+            t.put("type", type);
+        }
         transfers.add(t);
     }
 
@@ -296,6 +533,236 @@ public class RuleManager {
                 }
             }
         }
+    }
+
+    private boolean addCallSource(List<Map<String, Object>> taieSources,
+                                  Set<String> emittedSources,
+                                  String method, String type) {
+        String sourceKey = method + "\0" + type;
+        if (!emittedSources.add(sourceKey)) {
+            return false;
+        }
+        Map<String, Object> source = new HashMap<>();
+        source.put("kind", "call");
+        source.put("method", method);
+        source.put("index", "result");
+        source.put("type", type);
+        taieSources.add(source);
+        return true;
+    }
+
+    /** A call source whose runtime model type is conveyed by a Class literal argument. */
+    private record TypedCallSource(String method, String type, String containerMethod) {
+    }
+
+    /** A reference-valued accessor declared by a model loaded from persistent storage. */
+    private record ModelAccessorSource(String method, String type) {
+    }
+
+    /**
+     * Finds typed cache reads of the common form {@code Object get(String, Class<T>)}.
+     * The returned Object is modeled with the adjacent class literal's concrete type,
+     * allowing stored taint to survive the bytecode CHECKCAST to the requested model.
+     */
+    private Set<TypedCallSource> scanAppJarsForTypedCacheSources(List<String> appJars) {
+        Set<TypedCallSource> sources = new HashSet<>();
+        for (String jarPath : appJars) {
+            File file = new File(jarPath);
+            if (file.isDirectory()) {
+                scanDirectoryForTypedCacheSources(file, sources);
+            } else if (jarPath.endsWith(".jar") || jarPath.endsWith(".war")) {
+                scanJarForTypedCacheSources(jarPath, sources);
+            }
+        }
+        return sources;
+    }
+
+    private Set<ModelAccessorSource> scanAppJarsForModelAccessors(
+            List<String> appJars, Set<String> modelTypes) {
+        Set<ModelAccessorSource> sources = new HashSet<>();
+        Set<String> internalModelNames = modelTypes.stream()
+                .map(type -> type.replace('.', '/'))
+                .collect(java.util.stream.Collectors.toSet());
+        for (String jarPath : appJars) {
+            File file = new File(jarPath);
+            if (file.isDirectory()) {
+                scanDirectoryForModelAccessors(file, internalModelNames, sources);
+            } else if (jarPath.endsWith(".jar") || jarPath.endsWith(".war")) {
+                scanJarForModelAccessors(jarPath, internalModelNames, sources);
+            }
+        }
+        return sources;
+    }
+
+    private void scanJarForModelAccessors(String jarPath, Set<String> modelTypes,
+                                          Set<ModelAccessorSource> sources) {
+        try (JarFile jar = new JarFile(jarPath)) {
+            Enumeration<JarEntry> entries = jar.entries();
+            while (entries.hasMoreElements()) {
+                JarEntry entry = entries.nextElement();
+                if (!entry.getName().endsWith(".class")
+                        || !modelTypes.contains(entry.getName()
+                        .substring(0, entry.getName().length() - ".class".length()))) {
+                    continue;
+                }
+                try (InputStream in = jar.getInputStream(entry)) {
+                    scanClassForModelAccessors(in, modelTypes, sources);
+                } catch (Exception e) {
+                    logger.debug("Persistent model-accessor scan skipped malformed class {} in {}",
+                            entry.getName(), jarPath, e);
+                }
+            }
+        } catch (IOException e) {
+            logger.warn("Persistent model-accessor scan: failed to open JAR: {}", jarPath);
+        }
+    }
+
+    private void scanDirectoryForModelAccessors(File dir, Set<String> modelTypes,
+                                                Set<ModelAccessorSource> sources) {
+        File[] files = dir.listFiles();
+        if (files == null) {
+            return;
+        }
+        for (File file : files) {
+            if (file.isDirectory()) {
+                scanDirectoryForModelAccessors(file, modelTypes, sources);
+            } else if (file.getName().endsWith(".class")) {
+                try (InputStream in = new java.io.FileInputStream(file)) {
+                    scanClassForModelAccessors(in, modelTypes, sources);
+                } catch (Exception e) {
+                    logger.debug("Persistent model-accessor scan skipped malformed class {}", file, e);
+                }
+            }
+        }
+    }
+
+    private void scanClassForModelAccessors(InputStream classBytes, Set<String> modelTypes,
+                                            Set<ModelAccessorSource> sources) throws IOException {
+        ClassNode classNode = new ClassNode(Opcodes.ASM9);
+        new ClassReader(classBytes).accept(classNode,
+                ClassReader.SKIP_CODE | ClassReader.SKIP_DEBUG | ClassReader.SKIP_FRAMES);
+        if (!modelTypes.contains(classNode.name)) {
+            return;
+        }
+        for (MethodNode method : classNode.methods) {
+            if ((method.access & (Opcodes.ACC_STATIC | Opcodes.ACC_ABSTRACT | Opcodes.ACC_NATIVE)) != 0
+                    || Type.getArgumentTypes(method.desc).length != 0
+                    || !(method.name.startsWith("get") || method.name.startsWith("is"))
+                    || "getClass".equals(method.name)) {
+                continue;
+            }
+            Type returnType = Type.getReturnType(method.desc);
+            if (returnType.getSort() != Type.OBJECT && returnType.getSort() != Type.ARRAY) {
+                continue;
+            }
+            sources.add(new ModelAccessorSource(
+                    toMethodSignature(classNode.name, method.name, method.desc),
+                    returnType.getClassName()));
+        }
+    }
+
+    private void scanJarForTypedCacheSources(String jarPath, Set<TypedCallSource> sources) {
+        try (JarFile jar = new JarFile(jarPath)) {
+            Enumeration<JarEntry> entries = jar.entries();
+            while (entries.hasMoreElements()) {
+                JarEntry entry = entries.nextElement();
+                if (!entry.getName().endsWith(".class")) {
+                    continue;
+                }
+                try (InputStream in = jar.getInputStream(entry)) {
+                    scanClassForTypedCacheSources(in, sources);
+                } catch (Exception e) {
+                    logger.debug("Typed cache-source scan skipped malformed class {} in {}",
+                            entry.getName(), jarPath, e);
+                }
+            }
+        } catch (IOException e) {
+            logger.warn("Typed cache-source scan: failed to open JAR: {}", jarPath);
+        }
+    }
+
+    private void scanDirectoryForTypedCacheSources(File dir, Set<TypedCallSource> sources) {
+        File[] files = dir.listFiles();
+        if (files == null) {
+            return;
+        }
+        for (File file : files) {
+            if (file.isDirectory()) {
+                scanDirectoryForTypedCacheSources(file, sources);
+            } else if (file.getName().endsWith(".class")) {
+                try (InputStream in = new java.io.FileInputStream(file)) {
+                    scanClassForTypedCacheSources(in, sources);
+                } catch (Exception e) {
+                    logger.debug("Typed cache-source scan skipped malformed class {}", file, e);
+                }
+            }
+        }
+    }
+
+    private void scanClassForTypedCacheSources(InputStream classBytes,
+                                                Set<TypedCallSource> sources) throws IOException {
+        ClassNode classNode = new ClassNode(Opcodes.ASM9);
+        new ClassReader(classBytes).accept(classNode,
+                ClassReader.SKIP_DEBUG | ClassReader.SKIP_FRAMES);
+        for (MethodNode method : classNode.methods) {
+            for (AbstractInsnNode insn : method.instructions) {
+                if (!(insn instanceof MethodInsnNode invoke) || !isTypedCacheGetter(invoke)) {
+                    continue;
+                }
+                AbstractInsnNode previous = previousRealInstruction(insn);
+                if (!(previous instanceof LdcInsnNode ldc) || !(ldc.cst instanceof Type modelType)) {
+                    continue;
+                }
+                if (modelType.getSort() != Type.OBJECT && modelType.getSort() != Type.ARRAY) {
+                    continue;
+                }
+                String owner = invoke.owner.replace('/', '.');
+                Type[] args = Type.getArgumentTypes(invoke.desc);
+                String params = java.util.Arrays.stream(args)
+                        .map(Type::getClassName)
+                        .reduce((left, right) -> left + "," + right)
+                        .orElse("");
+                String signature = "<" + owner + ": "
+                        + Type.getReturnType(invoke.desc).getClassName() + " "
+                        + invoke.name + "(" + params + ")>";
+                String containerSignature = toMethodSignature(
+                        classNode.name, method.name, method.desc);
+                sources.add(new TypedCallSource(signature, modelType.getClassName(),
+                        containerSignature));
+            }
+        }
+    }
+
+    private String toMethodSignature(String owner, String methodName, String descriptor) {
+        Type[] args = Type.getArgumentTypes(descriptor);
+        String params = java.util.Arrays.stream(args)
+                .map(Type::getClassName)
+                .reduce((left, right) -> left + "," + right)
+                .orElse("");
+        return "<" + owner.replace('/', '.') + ": "
+                + Type.getReturnType(descriptor).getClassName() + " "
+                + methodName + "(" + params + ")>";
+    }
+
+    private boolean isTypedCacheGetter(MethodInsnNode invoke) {
+        String ownerSimpleName = invoke.owner.substring(invoke.owner.lastIndexOf('/') + 1)
+                .toLowerCase(java.util.Locale.ROOT);
+        if (!"get".equals(invoke.name) || !ownerSimpleName.contains("cache")) {
+            return false;
+        }
+        Type[] args = Type.getArgumentTypes(invoke.desc);
+        return args.length == 2
+                && "java.lang.String".equals(args[0].getClassName())
+                && "java.lang.Class".equals(args[1].getClassName())
+                && "java.lang.Object".equals(Type.getReturnType(invoke.desc).getClassName());
+    }
+
+    private AbstractInsnNode previousRealInstruction(AbstractInsnNode insn) {
+        AbstractInsnNode previous = insn.getPrevious();
+        while (previous != null && previous.getOpcode() < 0) {
+            previous = previous.getPrevious();
+        }
+        return previous;
     }
 
     private void scanClassForSinks(InputStream classBytes, Set<String> sinkKeys,

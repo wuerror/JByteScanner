@@ -4,7 +4,11 @@ import com.jbytescanner.config.ConfigManager;
 import com.jbytescanner.config.SinkRule;
 import com.jbytescanner.model.ApiRoute;
 import com.jbytescanner.model.Vulnerability;
+import pascal.taie.World;
 import pascal.taie.config.Options;
+import pascal.taie.ir.stmt.Invoke;
+import pascal.taie.ir.stmt.Stmt;
+import pascal.taie.language.classes.JMethod;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -19,9 +23,13 @@ import java.util.regex.Pattern;
 public class TaintEngine {
     private static final Logger logger = LoggerFactory.getLogger(TaintEngine.class);
 
-    // Matches: TaintFlow{<sourceMethod>/paramIdx -> <container>[stmtIdx@Lline] invokeText/argIdx}
+    // Matches both parameter sources (/0) and call/receiver sources (/result, /base):
+    // Parameter source: TaintFlow{<sourceMethod>/0 -> ...}
+    // Call source:      TaintFlow{<sourceMethod>[stmt@line] invoke/result -> ...}
     private static final Pattern TAINT_FLOW_PATTERN = Pattern.compile(
-            "TaintFlow\\{<([^>]+)>/(\\d+) -> <([^>]+)>\\[\\d+@L\\d+\\] (.*?)/(\\d+)\\}");
+            "TaintFlow\\{<(.+?)>(?:\\[(\\d+)@L\\d+\\] .*?)?"
+                    + "/(\\d+|base|result) -> <(.+?)>"
+                    + "\\[(\\d+)@L\\d+\\] (.*?)/(\\d+|base|result)\\}");
 
     private final List<String> targetAppJars;
     private final List<String> depAppJars;
@@ -61,6 +69,9 @@ public class TaintEngine {
         // Publish entry signatures to the PTA plugin BEFORE any Tai-e World is built.
         // JBSScanEntryPointPlugin.onStart() reads this static field when PTA initializes.
         JBSScanEntryPointPlugin.entrySignatures = entrySignatures;
+        JBSScanEntryPointPlugin.springServiceEntryFallback =
+                configManager.getConfig().getScanConfig() == null
+                        || configManager.getConfig().getScanConfig().isSpringServiceEntryFallback();
 
         // 2. Generate Tai-e Taint Config
         // Pass all app JARs (target + dep) so RuleManager can ASM-pre-scan bytecode
@@ -118,6 +129,13 @@ public class TaintEngine {
         //   Removing only-app causes full library analysis: 100K+ reachable methods,
         //   potentially 10-20 GB memory and 5-30 min runtime for Spring Boot projects.
         String ptaConfig = "pta=cs:ci;only-app:true;taint-config:" + taintConfigPath;
+        if (configManager.getConfig().getScanConfig() != null &&
+                configManager.getConfig().getScanConfig().isSpringAnalysis()) {
+            // Tai-e 0.5.4 models Spring bean discovery, dependency injection and
+            // endpoint receiver objects. Without this, @Autowired interface calls
+            // frequently have an empty receiver points-to set and the call graph stops.
+            ptaConfig += ";spring:true";
+        }
         args.add("-a");
         args.add(ptaConfig);
 
@@ -242,15 +260,12 @@ public class TaintEngine {
             List<String> lines = Files.readAllLines(taiELog.toPath());
             for (String line : lines) {
                 if (!line.contains("TaintFlow{")) continue;
-                int idx = line.indexOf("TaintFlow{");
-                Matcher m = TAINT_FLOW_PATTERN.matcher(line.substring(idx));
-                if (!m.find()) continue;
+                ParsedTaintFlow flow = parseTaintFlowLine(line);
+                if (flow == null) continue;
 
-                String sourceInner = m.group(1);    // e.g. "org.joychou.controller.Rce: java.lang.String CommandExec(java.lang.String)"
-                String containerInner = m.group(3); // container method (may differ from source)
-                String invokeText = m.group(4).trim(); // e.g. "$r3 = invokevirtual $r0.exec(cmd)"
-
-                Vulnerability vuln = convertLogEntryToVuln(sourceInner, containerInner, invokeText, ruleManager);
+                Vulnerability vuln = convertLogEntryToVuln(
+                        flow.sourceMethod(), flow.containerMethod(), flow.sinkStmtIndex(),
+                        flow.invokeText(), ruleManager);
                 if (vuln != null) {
                     result.add(vuln);
                 }
@@ -260,6 +275,28 @@ public class TaintEngine {
         }
         logger.info("Extracted {} vulnerabilities from tai-e.log.", result.size());
         return result;
+    }
+
+    /**
+     * Parses one Tai-e TaintFlow log line. Method signatures may themselves contain
+     * angle brackets (notably constructors named {@code <init>}), so the signature
+     * groups cannot stop at the first {@code '>'} character.
+     */
+    static ParsedTaintFlow parseTaintFlowLine(String line) {
+        if (line == null) return null;
+        int idx = line.indexOf("TaintFlow{");
+        if (idx < 0) return null;
+        Matcher matcher = TAINT_FLOW_PATTERN.matcher(line.substring(idx));
+        if (!matcher.find()) return null;
+        return new ParsedTaintFlow(
+                matcher.group(1),
+                matcher.group(4),
+                Integer.parseInt(matcher.group(5)),
+                matcher.group(6).trim());
+    }
+
+    record ParsedTaintFlow(String sourceMethod, String containerMethod,
+                           int sinkStmtIndex, String invokeText) {
     }
 
     /**
@@ -274,7 +311,8 @@ public class TaintEngine {
      * </ul>
      */
     private Vulnerability convertLogEntryToVuln(String sourceInner, String containerInner,
-                                                 String invokeText, RuleManager ruleManager) {
+                                                 int sinkStmtIndex, String invokeText,
+                                                 RuleManager ruleManager) {
         String sourceMethodSig = "<" + sourceInner + ">";
 
         // Strip any LHS assignment prefix: "$r1 = invokestatic ..." → "invokestatic ..."
@@ -284,8 +322,13 @@ public class TaintEngine {
             invoke = invokeText.substring(invokeKeyword);
         }
 
-        String sinkMethodSig = resolveSinkSignature(invoke, sourceMethodSig,
-                "<" + containerInner + ">", ruleManager);
+        String containerSig = "<" + containerInner + ">";
+        String sinkMethodSig = resolveSinkSignatureFromIR(
+                containerSig, sinkStmtIndex, ruleManager);
+        if (sinkMethodSig == null) {
+            sinkMethodSig = resolveSinkSignature(
+                    invoke, sourceMethodSig, containerSig, ruleManager);
+        }
 
         // Look up SinkRule for vuln type and metadata
         SinkRule sinkRule = sinkMethodSig != null ? ruleManager.getRuleForSink(sinkMethodSig) : null;
@@ -307,6 +350,38 @@ public class TaintEngine {
         trace.add(sinkDisplay + " (Sink)");
 
         return new Vulnerability(vulnType, sourceMethodSig, sinkDisplay, trace, true, sinkRule);
+    }
+
+    /**
+     * Resolves the sink from the exact Tai-e IR statement recorded in TaintFlow.
+     * This avoids ambiguous method-name-only matching (for example GroovyShell.parse
+     * versus JSON.parse) for virtual calls whose textual receiver is only a local variable.
+     */
+    private String resolveSinkSignatureFromIR(String containerSig, int stmtIndex,
+                                              RuleManager ruleManager) {
+        try {
+            JMethod container = JBSScanEntryPointPlugin.resolveMethod(
+                    World.get().getClassHierarchy(), containerSig);
+            if (container == null || container.isAbstract() || container.isNative()) {
+                return null;
+            }
+            Stmt stmt = container.getIR().getStmt(stmtIndex);
+            if (!(stmt instanceof Invoke invoke)) {
+                return null;
+            }
+            JMethod target = invoke.getMethodRef().resolveNullable();
+            if (target != null && ruleManager.getRuleForSink(target.getSignature()) != null) {
+                return target.getSignature();
+            }
+            String declaredRef = invoke.getMethodRef().toString();
+            if (ruleManager.getRuleForSink(declaredRef) != null) {
+                return declaredRef;
+            }
+        } catch (RuntimeException e) {
+            logger.debug("Could not resolve sink from IR statement {} in {}",
+                    stmtIndex, containerSig, e);
+        }
+        return null;
     }
 
     /**
