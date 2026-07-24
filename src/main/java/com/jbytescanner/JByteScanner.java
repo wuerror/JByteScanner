@@ -1,6 +1,7 @@
 package com.jbytescanner;
 
 import com.jbytescanner.config.ConfigManager;
+import com.jbytescanner.core.ClasspathPlanner;
 import com.jbytescanner.core.JarLoader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -99,6 +100,11 @@ public class JByteScanner implements Callable<Integer> {
                 logger.warn("Could not infer base package. Analysis will cover ALL application classes (slower).");
             }
         }
+
+        // P0.2: classpath preflight, SHA/version mediation, mixed-JAR package scope.
+        ClasspathPlanner.PlanResult classpathPlan =
+                new ClasspathPlanner().plan(loadedJars, scanPackages, workspaceDir);
+        loadedJars = classpathPlan.jars;
         
         System.out.println("------------------------------------------");
         System.out.println("Target: " + targetPath);
@@ -106,6 +112,11 @@ public class JByteScanner implements Callable<Integer> {
         System.out.println("Target App Jars (Analysis Scope): " + loadedJars.targetAppJars.size());
         System.out.println("Dependency App Jars: " + loadedJars.depAppJars.size());
         System.out.println("Lib Jars: " + loadedJars.libJars.size());
+        if (classpathPlan.report != null) {
+            System.out.println("Classpath preflight: droppedDup=" + classpathPlan.report.droppedDuplicateCount
+                    + ", mixedExtract=" + classpathPlan.report.mixedJarExtractions
+                    + ", warnings=" + classpathPlan.report.warnings.size());
+        }
         System.out.println("------------------------------------------");
 
         // 3. Phase 2: Asset Discovery
