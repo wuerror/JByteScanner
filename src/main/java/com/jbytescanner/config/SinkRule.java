@@ -38,6 +38,7 @@ public class SinkRule {
             case "code-exec": return 10.0;
             case "cmd-exec": return 9.5;
             case "jndi": return 9.0;
+            case "jdbc": return 9.0;
             case "deserialization": return 8.5;
             case "sqli": return 8.0;
             case "ssrf": return 7.5;

@@ -260,6 +260,54 @@ public class RuleManager {
         addTransfer(transfers, "<java.util.List: boolean add(java.lang.Object)>", "0", "base", null);
         addTransfer(transfers, "<java.util.List: java.lang.Object[] toArray()>", "base", "result", null);
 
+        // Formatting helpers used when building JDBC URLs, SQL fragments, file paths, etc.
+        // Library bodies are not analyzed under only-app:true, so keep explicit summaries.
+        addTransfer(transfers,
+                "<org.slf4j.helpers.MessageFormatter: org.slf4j.helpers.FormattingTuple format(java.lang.String,java.lang.Object)>",
+                "1", "result", null);
+        addTransfer(transfers,
+                "<org.slf4j.helpers.MessageFormatter: org.slf4j.helpers.FormattingTuple format(java.lang.String,java.lang.Object,java.lang.Object)>",
+                "1", "result", null);
+        addTransfer(transfers,
+                "<org.slf4j.helpers.MessageFormatter: org.slf4j.helpers.FormattingTuple format(java.lang.String,java.lang.Object,java.lang.Object)>",
+                "2", "result", null);
+        addTransfer(transfers,
+                "<org.slf4j.helpers.MessageFormatter: org.slf4j.helpers.FormattingTuple arrayFormat(java.lang.String,java.lang.Object[])>",
+                "1", "result", null);
+        addTransfer(transfers,
+                "<org.slf4j.helpers.MessageFormatter: org.slf4j.helpers.FormattingTuple arrayFormat(java.lang.String,java.lang.Object[],java.lang.Throwable)>",
+                "1", "result", null);
+        addTransfer(transfers,
+                "<org.slf4j.helpers.FormattingTuple: java.lang.String getMessage()>",
+                "base", "result", null);
+        addTransfer(transfers,
+                "<java.lang.String: java.lang.String format(java.lang.String,java.lang.Object[])>",
+                "1", "result", null);
+        addTransfer(transfers,
+                "<java.text.MessageFormat: java.lang.String format(java.lang.String,java.lang.Object[])>",
+                "1", "result", null);
+        addTransfer(transfers, "<java.lang.String: java.lang.String valueOf(java.lang.Object)>", "0", "result", null);
+        addTransfer(transfers, "<java.util.Objects: java.lang.String toString(java.lang.Object)>", "0", "result", null);
+        addTransfer(transfers,
+                "<java.lang.String: java.lang.String join(java.lang.CharSequence,java.lang.CharSequence[])>",
+                "1", "result", null);
+        addTransfer(transfers,
+                "<java.lang.String: java.lang.String join(java.lang.CharSequence,java.lang.Iterable)>",
+                "1", "result", null);
+
+        // Request-bean getters: controller/DTO parameters are commonly whole-object
+        // sources. Field values are only exposed via getXxx()/isXxx(), so emit
+        // base→result transfers for getters of entry-parameter types present in app jars.
+        if (appJars != null && !appJars.isEmpty() && entryMethodSignatures != null) {
+            Set<String> beanTypes = extractAppEntryBeanTypes(entryMethodSignatures, appJars);
+            Set<String> getterTransfers = scanAppJarsForBeanGetterTransfers(appJars, beanTypes);
+            for (String method : getterTransfers) {
+                addTransfer(transfers, method, "base", "result", null);
+            }
+            logger.info("Emitted {} request-bean getter transfer(s) for {} entry bean type(s).",
+                    getterTransfers.size(), beanTypes.size());
+        }
+
         // Project-specific summaries can be supplied in rules.yaml without changing Java.
         if (jbsConfig.getTransfers() != null) {
             for (TransferRule transfer : jbsConfig.getTransfers()) {
@@ -450,6 +498,247 @@ public class RuleManager {
      *       → {@code java/net/URL.<init>}</li>
      * </ul>
      */
+
+    /**
+     * Collects non-JDK parameter types of entry methods that exist as application classes.
+     * These are treated as request beans whose getters should propagate object-level taint.
+     */
+    static Set<String> extractAppEntryBeanTypes(List<String> entryMethodSignatures, List<String> appJars) {
+        Set<String> candidates = new HashSet<>();
+        for (String signature : entryMethodSignatures) {
+            for (String typeName : parseParamTypes(signature)) {
+                if (isFrameworkOrJdkType(typeName)) {
+                    continue;
+                }
+                candidates.add(typeName);
+            }
+        }
+        if (candidates.isEmpty()) {
+            return Set.of();
+        }
+        Set<String> present = findPresentClassNames(appJars, candidates);
+        return present;
+    }
+
+    /**
+     * Scans application classes for zero-argument getters of the given bean types and
+     * returns Tai-e method signatures suitable for base→result transfers.
+     */
+    private Set<String> scanAppJarsForBeanGetterTransfers(List<String> appJars, Set<String> beanTypes) {
+        Set<String> transfers = new HashSet<>();
+        if (beanTypes == null || beanTypes.isEmpty()) {
+            return transfers;
+        }
+        Set<String> internalNames = beanTypes.stream()
+                .map(type -> type.replace('.', '/'))
+                .collect(java.util.stream.Collectors.toSet());
+        for (String jarPath : appJars) {
+            File file = new File(jarPath);
+            if (file.isDirectory()) {
+                scanDirectoryForBeanGetters(file, internalNames, transfers);
+            } else if (jarPath.endsWith(".jar") || jarPath.endsWith(".war")) {
+                scanJarForBeanGetters(jarPath, internalNames, transfers);
+            }
+        }
+        return transfers;
+    }
+
+    private void scanJarForBeanGetters(String jarPath, Set<String> internalNames,
+                                       Set<String> transfers) {
+        try (JarFile jar = new JarFile(jarPath)) {
+            Enumeration<JarEntry> entries = jar.entries();
+            while (entries.hasMoreElements()) {
+                JarEntry entry = entries.nextElement();
+                if (!entry.getName().endsWith(".class")) {
+                    continue;
+                }
+                String internal = entry.getName().substring(0, entry.getName().length() - ".class".length());
+                if (!internalNames.contains(internal)) {
+                    continue;
+                }
+                try (InputStream in = jar.getInputStream(entry)) {
+                    collectBeanGetterTransfers(in, transfers);
+                } catch (Exception e) {
+                    logger.debug("Bean-getter transfer scan skipped malformed class {} in {}",
+                            entry.getName(), jarPath, e);
+                }
+            }
+        } catch (IOException e) {
+            logger.warn("Bean-getter transfer scan: failed to open JAR: {}", jarPath);
+        }
+    }
+
+    private void scanDirectoryForBeanGetters(File dir, Set<String> internalNames,
+                                             Set<String> transfers) {
+        File[] files = dir.listFiles();
+        if (files == null) {
+            return;
+        }
+        for (File file : files) {
+            if (file.isDirectory()) {
+                scanDirectoryForBeanGetters(file, internalNames, transfers);
+            } else if (file.getName().endsWith(".class")) {
+                try (InputStream in = new java.io.FileInputStream(file)) {
+                    // Directory layout may not equal package path; filter inside visitor.
+                    collectBeanGetterTransfers(in, internalNames, transfers);
+                } catch (Exception e) {
+                    logger.debug("Bean-getter transfer scan skipped malformed class {}", file, e);
+                }
+            }
+        }
+    }
+
+    private void collectBeanGetterTransfers(InputStream classBytes, Set<String> transfers)
+            throws IOException {
+        collectBeanGetterTransfers(classBytes, null, transfers);
+    }
+
+    private void collectBeanGetterTransfers(InputStream classBytes, Set<String> internalNames,
+                                            Set<String> transfers) throws IOException {
+        ClassNode classNode = new ClassNode(Opcodes.ASM9);
+        new ClassReader(classBytes).accept(classNode,
+                ClassReader.SKIP_CODE | ClassReader.SKIP_DEBUG | ClassReader.SKIP_FRAMES);
+        if (internalNames != null && !internalNames.contains(classNode.name)) {
+            return;
+        }
+        for (MethodNode method : classNode.methods) {
+            if (!isBeanGetter(method)) {
+                continue;
+            }
+            transfers.add(toMethodSignature(classNode.name, method.name, method.desc));
+        }
+    }
+
+    static boolean isBeanGetter(MethodNode method) {
+        if ((method.access & (Opcodes.ACC_STATIC | Opcodes.ACC_ABSTRACT | Opcodes.ACC_NATIVE)) != 0) {
+            return false;
+        }
+        if (Type.getArgumentTypes(method.desc).length != 0) {
+            return false;
+        }
+        if ("getClass".equals(method.name) || "<init>".equals(method.name) || "<clinit>".equals(method.name)) {
+            return false;
+        }
+        if (!(method.name.startsWith("get") || method.name.startsWith("is"))) {
+            return false;
+        }
+        // Require JavaBeans-style property name: getX... / isX... with an upper-case property head.
+        if (method.name.startsWith("get") && method.name.length() > 3
+                && !Character.isUpperCase(method.name.charAt(3))) {
+            return false;
+        }
+        if (method.name.startsWith("is") && method.name.length() > 2
+                && !Character.isUpperCase(method.name.charAt(2))) {
+            return false;
+        }
+        Type returnType = Type.getReturnType(method.desc);
+        return returnType.getSort() == Type.OBJECT || returnType.getSort() == Type.ARRAY;
+    }
+
+    /**
+     * Parses fully-qualified parameter type names from a Tai-e method signature.
+     */
+    static List<String> parseParamTypes(String methodSig) {
+        if (methodSig == null) {
+            return List.of();
+        }
+        int openParen = methodSig.lastIndexOf('(');
+        int closeParen = methodSig.lastIndexOf(')');
+        if (openParen < 0 || closeParen <= openParen) {
+            return List.of();
+        }
+        String paramStr = methodSig.substring(openParen + 1, closeParen).trim();
+        if (paramStr.isEmpty()) {
+            return List.of();
+        }
+        List<String> types = new ArrayList<>();
+        for (String part : paramStr.split(",")) {
+            String typeName = part.trim();
+            if (!typeName.isEmpty()) {
+                types.add(typeName);
+            }
+        }
+        return types;
+    }
+
+    static boolean isFrameworkOrJdkType(String typeName) {
+        if (typeName == null || typeName.isEmpty()) {
+            return true;
+        }
+        // Arrays / primitives never appear as FQCN object beans in entry signatures.
+        if (typeName.endsWith("[]") || typeName.indexOf('.') < 0) {
+            return true;
+        }
+        return typeName.startsWith("java.")
+                || typeName.startsWith("javax.")
+                || typeName.startsWith("jakarta.")
+                || typeName.startsWith("jdk.")
+                || typeName.startsWith("sun.")
+                || typeName.startsWith("com.sun.")
+                || typeName.startsWith("org.springframework.")
+                || typeName.startsWith("org.slf4j.")
+                || typeName.startsWith("org.apache.logging.")
+                || typeName.startsWith("org.apache.commons.logging.");
+    }
+
+    private static Set<String> findPresentClassNames(List<String> appJars, Set<String> candidates) {
+        Set<String> internalCandidates = candidates.stream()
+                .map(type -> type.replace('.', '/'))
+                .collect(java.util.stream.Collectors.toSet());
+        Set<String> foundInternal = new HashSet<>();
+        for (String jarPath : appJars) {
+            File file = new File(jarPath);
+            if (file.isDirectory()) {
+                findPresentClassesInDirectory(file, "", internalCandidates, foundInternal);
+            } else if (jarPath.endsWith(".jar") || jarPath.endsWith(".war")) {
+                try (JarFile jar = new JarFile(jarPath)) {
+                    Enumeration<JarEntry> entries = jar.entries();
+                    while (entries.hasMoreElements()) {
+                        JarEntry entry = entries.nextElement();
+                        if (!entry.getName().endsWith(".class")) {
+                            continue;
+                        }
+                        String internal = entry.getName().substring(0, entry.getName().length() - ".class".length());
+                        if (internalCandidates.contains(internal)) {
+                            foundInternal.add(internal);
+                        }
+                    }
+                } catch (IOException e) {
+                    // best-effort presence check
+                }
+            }
+        }
+        Set<String> found = new HashSet<>();
+        for (String internal : foundInternal) {
+            found.add(internal.replace('/', '.'));
+        }
+        return found;
+    }
+
+    private static void findPresentClassesInDirectory(File dir, String relativeInternal,
+                                                      Set<String> internalCandidates,
+                                                      Set<String> foundInternal) {
+        File[] files = dir.listFiles();
+        if (files == null) {
+            return;
+        }
+        for (File file : files) {
+            if (file.isDirectory()) {
+                String next = relativeInternal.isEmpty()
+                        ? file.getName()
+                        : relativeInternal + "/" + file.getName();
+                findPresentClassesInDirectory(file, next, internalCandidates, foundInternal);
+            } else if (file.getName().endsWith(".class")) {
+                String simple = file.getName().substring(0, file.getName().length() - ".class".length());
+                String internal = relativeInternal.isEmpty() ? simple : relativeInternal + "/" + simple;
+                if (internalCandidates.contains(internal)) {
+                    foundInternal.add(internal);
+                }
+            }
+        }
+    }
+
+
     private String extractSinkKey(String signature) {
         if (signature == null) return null;
         // Format: <com.example.Class: ReturnType methodName(...)>

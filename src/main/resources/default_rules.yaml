@@ -3,7 +3,7 @@ rules_version: 3
 config:
   max_depth: 15
   # Tai-e 0.5.4 Spring DI/WEC modeling; disable for non-Spring targets or tight memory budgets.
-  spring_analysis: false
+  spring_analysis: true
   # Match taint rules at reachable invoke statements even when PTA cannot resolve
   # an interface/abstract callee (for example MultipartFile.getInputStream()).
   taint_call_site_mode: true
@@ -191,6 +191,70 @@ sinks:
     vuln_type: "SQL_Injection"
     category: "sqli"
     signature: "<org.springframework.jdbc.core.JdbcTemplate: java.util.List query(java.lang.String,org.springframework.jdbc.core.RowMapper)>"
+
+  # --- JDBC URL Injection (connect-time RCE / SSRF / deserialization via malicious jdbc:) ---
+  # Distinct from classic SQLi: attacker controls the JDBC URL (or host/path fragments
+  # concatenated into it), not a SQL statement string.
+  - type: "method"
+    vuln_type: "JDBC_Injection"
+    category: "jdbc"
+    signature: "<java.sql.DriverManager: java.sql.Connection getConnection(java.lang.String)>"
+    index: 0
+  - type: "method"
+    vuln_type: "JDBC_Injection"
+    category: "jdbc"
+    signature: "<java.sql.DriverManager: java.sql.Connection getConnection(java.lang.String,java.lang.String,java.lang.String)>"
+    index: 0
+  - type: "method"
+    vuln_type: "JDBC_Injection"
+    category: "jdbc"
+    signature: "<java.sql.DriverManager: java.sql.Connection getConnection(java.lang.String,java.util.Properties)>"
+    index: 0
+  - type: "method"
+    vuln_type: "JDBC_Injection"
+    category: "jdbc"
+    signature: "<com.zaxxer.hikari.HikariConfig: void setJdbcUrl(java.lang.String)>"
+    index: 0
+  - type: "method"
+    vuln_type: "JDBC_Injection"
+    category: "jdbc"
+    signature: "<com.zaxxer.hikari.HikariDataSource: void setJdbcUrl(java.lang.String)>"
+    index: 0
+  - type: "method"
+    vuln_type: "JDBC_Injection"
+    category: "jdbc"
+    signature: "<org.apache.commons.dbcp2.BasicDataSource: void setUrl(java.lang.String)>"
+    index: 0
+  - type: "method"
+    vuln_type: "JDBC_Injection"
+    category: "jdbc"
+    signature: "<org.apache.commons.dbcp.BasicDataSource: void setUrl(java.lang.String)>"
+    index: 0
+  - type: "method"
+    vuln_type: "JDBC_Injection"
+    category: "jdbc"
+    signature: "<org.apache.tomcat.dbcp.dbcp2.BasicDataSource: void setUrl(java.lang.String)>"
+    index: 0
+  - type: "method"
+    vuln_type: "JDBC_Injection"
+    category: "jdbc"
+    signature: "<com.alibaba.druid.pool.DruidDataSource: void setUrl(java.lang.String)>"
+    index: 0
+  - type: "method"
+    vuln_type: "JDBC_Injection"
+    category: "jdbc"
+    signature: "<com.alibaba.druid.pool.DruidDataSource: void setJdbcUrl(java.lang.String)>"
+    index: 0
+  - type: "method"
+    vuln_type: "JDBC_Injection"
+    category: "jdbc"
+    signature: "<org.springframework.boot.jdbc.DataSourceBuilder: org.springframework.boot.jdbc.DataSourceBuilder url(java.lang.String)>"
+    index: 0
+  - type: "method"
+    vuln_type: "JDBC_Injection"
+    category: "jdbc"
+    signature: "<org.springframework.jdbc.datasource.DriverManagerDataSource: void setUrl(java.lang.String)>"
+    index: 0
 
   # --- SSRF ---
   # Score: 7.5

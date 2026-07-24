@@ -19,7 +19,7 @@ public class ScanConfig {
 
     /** Enable Tai-e 0.5.4 built-in Spring DI and Web endpoint modeling. */
     @JsonProperty("spring_analysis")
-    private boolean springAnalysis = false;
+    private boolean springAnalysis = true;
 
     /**
      * Match taint sources, sinks, and transfers at reachable call sites even when
