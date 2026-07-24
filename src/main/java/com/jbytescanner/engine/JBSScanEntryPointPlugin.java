@@ -72,11 +72,14 @@ public class JBSScanEntryPointPlugin implements Plugin {
             return;
         }
         ClassHierarchy ch = World.get().getClassHierarchy();
+        int raw = 0;
         int added = 0;
+        int duplicate = 0;
         int unresolved = 0;
         int skippedNoBody = 0;
         Set<JMethod> addedMethods = new HashSet<>();
         for (String sig : entrySignatures) {
+            raw++;
             JMethod method = resolveMethod(ch, sig);
             if (method == null) {
                 unresolved++;
@@ -88,29 +91,38 @@ public class JBSScanEntryPointPlugin implements Plugin {
                 // methods have no IR and therefore cannot be direct entry points.
                 skippedNoBody++;
                 logger.debug("[JBSScanEntryPointPlugin] Skipping API method without a body: {}", sig);
-            } else {
+            } else if (addedMethods.add(method)) {
+                // Record before inject so repeated signatures never double-inject.
                 solver.addEntryPoint(new EntryPoint(method,
                         new DeclaredParamProvider(method, solver.getHeapModel())));
-                addedMethods.add(method);
                 added++;
+            } else {
+                duplicate++;
             }
         }
-        logger.info("[JBSScanEntryPointPlugin] Injected {}/{} API methods as PTA entry points "
-                        + "({} unresolved, {} abstract/native/phantom skipped).",
-                added, entrySignatures.size(), unresolved, skippedNoBody);
+        // raw/duplicate here are post route-level EntryPointKey dedup (TaintEngine).
+        // duplicateSkipped counts JMethod-identity collisions (same method, different sig strings
+        // should be rare) and is mainly useful vs supplemental/service fallback paths.
+        logger.info("[JBSScanEntryPointPlugin] Entry inject (postEntryKeyDedup): candidates={}, "
+                        + "uniqueInjected={}, methodIdentityDupSkipped={}, unresolved={}, "
+                        + "noBodySkipped={}.",
+                raw, added, duplicate, unresolved, skippedNoBody);
 
         int supplementalAdded = 0;
         int supplementalSkipped = 0;
         for (String sig : supplementalEntrySignatures) {
             JMethod method = resolveMethod(ch, sig);
             if (method == null || method.isAbstract() || method.isNative()
-                    || method.getDeclaringClass().isPhantom() || addedMethods.contains(method)) {
+                    || method.getDeclaringClass().isPhantom()) {
+                supplementalSkipped++;
+                continue;
+            }
+            if (!addedMethods.add(method)) {
                 supplementalSkipped++;
                 continue;
             }
             solver.addEntryPoint(new EntryPoint(method,
                     new DeclaredParamProvider(method, solver.getHeapModel())));
-            addedMethods.add(method);
             supplementalAdded++;
         }
         if (!supplementalEntrySignatures.isEmpty()) {
@@ -131,12 +143,14 @@ public class JBSScanEntryPointPlugin implements Plugin {
                 for (JMethod method : clazz.getDeclaredMethods()) {
                     if (!method.isPublic() || method.isStatic() || method.isConstructor()
                             || method.isStaticInitializer() || method.isAbstract()
-                            || method.isNative() || addedMethods.contains(method)) {
+                            || method.isNative()) {
+                        continue;
+                    }
+                    if (!addedMethods.add(method)) {
                         continue;
                     }
                     solver.addEntryPoint(new EntryPoint(method,
                             new DeclaredParamProvider(method, solver.getHeapModel())));
-                    addedMethods.add(method);
                     serviceMethods++;
                 }
             }

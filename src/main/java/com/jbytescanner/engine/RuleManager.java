@@ -75,6 +75,14 @@ public class RuleManager {
     public String generateTaieConfig(List<String> entryMethodSignatures, File workspaceDir,
                                       List<String> appJars) {
         JBSScanEntryPointPlugin.supplementalEntrySignatures = List.of();
+        // Entry lists may arrive undeduped from tests or alternate callers; canonicalize here.
+        CanonicalIdentity.DedupResult entryDedup =
+                CanonicalIdentity.dedupeOrdered(entryMethodSignatures);
+        entryMethodSignatures = entryDedup.uniqueItems();
+        if (entryDedup.duplicate() > 0) {
+            logger.info("generateTaieConfig entry dedup: raw={}, unique={}, duplicate={}",
+                    entryDedup.raw(), entryDedup.unique(), entryDedup.duplicate());
+        }
         // Pre-scan: find which configured sinks are actually invoked in app bytecode.
         // Skips sinks not referenced → avoids "Cannot find sink method" in Tai-e.
         Set<String> confirmedSinkKeys = null;
@@ -93,16 +101,25 @@ public class RuleManager {
                 || jbsConfig.getScanConfig().isTaintCallSiteMode();
         taieConfig.put("call-site-mode", callSiteMode);
 
-        // 1. Convert Sources
+        // 1. Convert Sources into a single canonical set.
+        // SourceKey = (kind, method signature, index, taint type)
         List<Map<String, Object>> taieSources = new ArrayList<>();
-        
+        CanonicalIdentity.SourceCanonicalizer sourceCanon = new CanonicalIdentity.SourceCanonicalizer();
+
         // Add entry points as parameter sources.
         // CRITICAL: only add indices that actually exist in the method's parameter list.
         // Tai-e's taint config parser calls method.getParamType(index) which throws
         // IndexOutOfBoundsException for out-of-range indices, aborting config loading.
+        int apiParamRaw = 0;
+        int apiParamUnique = 0;
         for (String entrySig : entryMethodSignatures) {
             int paramCount = parseParamCount(entrySig);
             for (int i = 0; i < paramCount; i++) {
+                apiParamRaw++;
+                if (!sourceCanon.add("param", entrySig, i, null)) {
+                    continue;
+                }
+                apiParamUnique++;
                 Map<String, Object> source = new HashMap<>();
                 source.put("kind", "param");
                 source.put("method", entrySig);
@@ -115,16 +132,23 @@ public class RuleManager {
         if (jbsConfig.getSources() != null) {
             for (SourceRule src : jbsConfig.getSources()) {
                 if ("method".equals(src.getType()) && src.getSignature() != null) {
+                    Object index = src.getIndex() != null
+                            ? normalizeIndex(src.getIndex())
+                            : "result";
+                    String taintType = src.getTaintType() != null && !src.getTaintType().isBlank()
+                            ? src.getTaintType()
+                            : null;
+                    if (!sourceCanon.add("call", src.getSignature(), index, taintType)) {
+                        continue;
+                    }
                     Map<String, Object> source = new HashMap<>();
                     source.put("kind", "call");
                     source.put("method", src.getSignature());
-                    source.put("index", src.getIndex() != null
-                            ? normalizeIndex(src.getIndex())
-                            : "result");
-                    if (src.getTaintType() != null && !src.getTaintType().isBlank()) {
+                    source.put("index", index);
+                    if (taintType != null) {
                         // Useful for generic persistence APIs such as Object get(key, Class):
                         // the concrete taint type can then survive casts to the requested model.
-                        source.put("type", src.getTaintType());
+                        source.put("type", taintType);
                     }
                     taieSources.add(source);
                 }
@@ -152,7 +176,6 @@ public class RuleManager {
             // GroovyScript.getContent(): String), which is both call-site stable and
             // semantically represents data read from persistent storage.
             Set<String> polymorphicGetterTypes = new HashSet<>();
-            Set<String> emittedSources = new HashSet<>();
             int directSourceCount = 0;
             for (TypedCallSource persistentSource : persistentSources) {
                 Set<String> getterTypes = typesByGetter.get(persistentSource.method());
@@ -160,7 +183,7 @@ public class RuleManager {
                     polymorphicGetterTypes.add(persistentSource.type());
                     continue;
                 }
-                if (addCallSource(taieSources, emittedSources,
+                if (addCallSource(taieSources, sourceCanon,
                         persistentSource.method(), persistentSource.type())) {
                     directSourceCount++;
                 }
@@ -171,7 +194,7 @@ public class RuleManager {
                     : scanAppJarsForModelAccessors(appJars, polymorphicGetterTypes);
             int accessorSourceCount = 0;
             for (ModelAccessorSource accessorSource : accessorSources) {
-                if (addCallSource(taieSources, emittedSources,
+                if (addCallSource(taieSources, sourceCanon,
                         accessorSource.method(), accessorSource.type())) {
                     accessorSourceCount++;
                 }
@@ -191,6 +214,10 @@ public class RuleManager {
                     JBSScanEntryPointPlugin.supplementalEntrySignatures.size(),
                     directSourceCount, accessorSourceCount, polymorphicGetterCount);
         }
+        logger.info("SourceKey canonicalization: raw={}, unique={}, duplicate={}; "
+                        + "apiParam raw/unique={}/{}",
+                sourceCanon.raw(), sourceCanon.unique(), sourceCanon.duplicate(),
+                apiParamRaw, apiParamUnique);
         taieConfig.put("sources", taieSources);
 
         // 2. Convert Sinks
@@ -825,10 +852,9 @@ public class RuleManager {
     }
 
     private boolean addCallSource(List<Map<String, Object>> taieSources,
-                                  Set<String> emittedSources,
+                                  CanonicalIdentity.SourceCanonicalizer sourceCanon,
                                   String method, String type) {
-        String sourceKey = method + "\0" + type;
-        if (!emittedSources.add(sourceKey)) {
+        if (!sourceCanon.add("call", method, "result", type)) {
             return false;
         }
         Map<String, Object> source = new HashMap<>();

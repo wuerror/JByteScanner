@@ -60,13 +60,19 @@ public class TaintEngine {
             return;
         }
 
-        List<String> entrySignatures = new ArrayList<>();
+        // Routes stay 1:N (same Java method may map to many HTTP paths).
+        // PTA entry points and param sources use EntryPointKey = full method signature.
+        List<String> rawEntrySignatures = new ArrayList<>(routes.size());
         for (ApiRoute route : routes) {
-            String fullSig = String.format("<%s: %s>", route.getClassName(), route.getMethodSig());
-            entrySignatures.add(fullSig);
+            rawEntrySignatures.add(String.format("<%s: %s>", route.getClassName(), route.getMethodSig()));
         }
+        CanonicalIdentity.DedupResult entryDedup = CanonicalIdentity.dedupeOrdered(rawEntrySignatures);
+        List<String> entrySignatures = new ArrayList<>(entryDedup.uniqueItems());
+        logger.info("EntryPointKey dedup: raw={}, unique={}, duplicate={}; top duplicates: {}",
+                entryDedup.raw(), entryDedup.unique(), entryDedup.duplicate(),
+                entryDedup.formatTopDuplicates(10));
 
-        // Publish entry signatures to the PTA plugin BEFORE any Tai-e World is built.
+        // Publish unique entry signatures to the PTA plugin BEFORE any Tai-e World is built.
         // JBSScanEntryPointPlugin.onStart() reads this static field when PTA initializes.
         JBSScanEntryPointPlugin.entrySignatures = entrySignatures;
         JBSScanEntryPointPlugin.springServiceEntryFallback =
