@@ -58,6 +58,9 @@ public class JBSScanEntryPointPlugin implements Plugin {
      */
     public static volatile Set<TaintFlow> capturedTaintFlows = null;
 
+    /** Last onStart/onFinish inject and capture counts for expansion metrics. */
+    public static volatile ExpansionMetrics lastInjectMetrics = new ExpansionMetrics();
+
     private Solver solver;
 
     @Override
@@ -67,6 +70,7 @@ public class JBSScanEntryPointPlugin implements Plugin {
 
     @Override
     public void onStart() {
+        lastInjectMetrics = new ExpansionMetrics();
         if (entrySignatures.isEmpty()) {
             logger.warn("[JBSScanEntryPointPlugin] entrySignatures is empty — no API entry points will be injected.");
             return;
@@ -107,6 +111,12 @@ public class JBSScanEntryPointPlugin implements Plugin {
                         + "uniqueInjected={}, methodIdentityDupSkipped={}, unresolved={}, "
                         + "noBodySkipped={}.",
                 raw, added, duplicate, unresolved, skippedNoBody);
+        ExpansionMetrics injectMetrics = new ExpansionMetrics();
+        injectMetrics.entryCandidates = raw;
+        injectMetrics.entryInjected = added;
+        injectMetrics.entryMethodIdentityDupSkipped = duplicate;
+        injectMetrics.entryUnresolved = unresolved;
+        injectMetrics.entryNoBodySkipped = skippedNoBody;
 
         int supplementalAdded = 0;
         int supplementalSkipped = 0;
@@ -130,6 +140,8 @@ public class JBSScanEntryPointPlugin implements Plugin {
                             + "entry method(s) ({} skipped).",
                     supplementalAdded, supplementalSkipped);
         }
+        injectMetrics.supplementalEntriesInjected = supplementalAdded;
+        injectMetrics.supplementalEntriesSkipped = supplementalSkipped;
 
         if (springServiceEntryFallback) {
             int serviceClasses = 0;
@@ -157,7 +169,10 @@ public class JBSScanEntryPointPlugin implements Plugin {
             logger.info("[JBSScanEntryPointPlugin] Spring service fallback injected {} public "
                             + "method(s) from {} concrete @Service class(es).",
                     serviceMethods, serviceClasses);
+            injectMetrics.serviceFallbackClasses = serviceClasses;
+            injectMetrics.serviceFallbackMethodsInjected = serviceMethods;
         }
+        lastInjectMetrics = injectMetrics;
     }
 
     @Override
@@ -168,8 +183,12 @@ public class JBSScanEntryPointPlugin implements Plugin {
         // We capture them here before AnalysisManager clears the PTA result from World.
         Set<TaintFlow> flows = solver.getResult().getResult(TaintAnalysis.class.getName());
         capturedTaintFlows = flows;
+        int flowCount = flows != null ? flows.size() : 0;
         logger.info("[JBSScanEntryPointPlugin] Captured {} taint flow(s) from TaintAnalysis.",
-                flows != null ? flows.size() : 0);
+                flowCount);
+        if (lastInjectMetrics != null) {
+            lastInjectMetrics.capturedTaintFlows = flowCount;
+        }
 
         // Optional focused call-graph diagnostics for false-negative investigations.
         // Example: -Djbs.reachability.filter=com.example.feature

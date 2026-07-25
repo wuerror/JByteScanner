@@ -275,7 +275,10 @@ public class JarLoader {
                     logger.info("Detected Spring Boot Fat JAR: {}", jarPath);
                     
                     // 1. BOOT-INF/classes -> Target App Jar (Assume it contains main logic)
-                    File classesDir = new File(tempDir, new File(jarPath).getName() + "_classes");
+                    // Use stripJarExtension so names are foo_classes / foo_libs, not foo.jar_classes.
+                    // Missing paths that end with ".jar*" can confuse Tai-e PathUtils.isJarFile heuristics.
+                    String fatBase = stripJarExtension(new File(jarPath).getName());
+                    File classesDir = new File(tempDir, fatBase + "_classes");
                     classesDir.mkdirs();
                     extractBootInfClasses(jarPath, classesDir);
                     
@@ -283,7 +286,7 @@ public class JarLoader {
                     result.targetAppJars.add(classesDir.getAbsolutePath());
 
                     // 2. BOOT-INF/lib/*.jar
-                    File libDir = new File(tempDir, new File(jarPath).getName() + "_libs");
+                    File libDir = new File(tempDir, fatBase + "_libs");
                     libDir.mkdirs();
                     List<String> libs = extractBootInfLibs(jarPath, libDir);
                     
@@ -410,6 +413,18 @@ public class JarLoader {
             }
         }
         return extractedLibs;
+    }
+
+    /** {@code app.jar} -> {@code app}; already extensionless names unchanged. */
+    static String stripJarExtension(String fileName) {
+        if (fileName == null || fileName.isBlank()) {
+            return "artifact";
+        }
+        String lower = fileName.toLowerCase(java.util.Locale.ROOT);
+        if (lower.endsWith(".jar") || lower.endsWith(".war")) {
+            return fileName.substring(0, fileName.length() - 4);
+        }
+        return fileName;
     }
 
     private File createTempDir() {

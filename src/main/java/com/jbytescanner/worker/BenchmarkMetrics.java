@@ -79,6 +79,9 @@ public class BenchmarkMetrics {
     @JsonProperty("phases")
     public List<PhaseMetrics> phases = new ArrayList<>();
 
+    @JsonProperty("expansion")
+    public Map<String, Object> expansion = new LinkedHashMap<>();
+
     public static BenchmarkMetrics fromWorker(TaieWorkerResult worker,
                                               Map<String, Object> budgetSnapshot) {
         BenchmarkMetrics m = new BenchmarkMetrics();

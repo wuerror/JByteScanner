@@ -4,6 +4,7 @@ import com.jbytescanner.config.ResourceBudget;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
+import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
@@ -78,5 +79,35 @@ class TaieWorkerLauncherTest {
         assertTrue(json.contains("8192"));
         assertEquals(1, metrics.partitionsFailed);
         assertEquals(0, metrics.partitionsCompleted);
+    }
+
+    @Test
+    void absolutizeClasspathExpandsRelativeEntries() {
+        Path rel = tempDir.resolve("JByteScanner-1.5.0-shaded.jar");
+        // file need not exist for path absolutization
+        String abs = TaieWorkerLauncher.absolutizeClasspath(rel.getFileName().toString());
+        assertTrue(Path.of(abs).isAbsolute());
+        assertTrue(abs.replace('\\', '/').endsWith("JByteScanner-1.5.0-shaded.jar"));
+    }
+
+    @Test
+    void buildCommandClasspathIsAbsolute() {
+        ResourceBudget budget = new ResourceBudget();
+        budget.setMaxHeapMb(1024);
+        budget.setGcLog(false);
+        budget.setHeapDumpOnOom(false);
+        TaieWorkerLauncher launcher = new TaieWorkerLauncher(budget);
+        List<String> cmd = launcher.buildCommand(
+                tempDir.resolve("req.json"),
+                tempDir.resolve("dump.hprof"),
+                tempDir.resolve("gc.log"));
+        int cpIdx = cmd.indexOf("-cp");
+        assertTrue(cpIdx >= 0);
+        String cp = cmd.get(cpIdx + 1);
+        for (String part : cp.split(java.util.regex.Pattern.quote(File.pathSeparator))) {
+            if (!part.isBlank()) {
+                assertTrue(Path.of(part).isAbsolute(), () -> "not absolute: " + part);
+            }
+        }
     }
 }

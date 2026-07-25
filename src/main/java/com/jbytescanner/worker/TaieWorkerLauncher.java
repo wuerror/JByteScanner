@@ -54,14 +54,18 @@ public class TaieWorkerLauncher {
         logger.info("Launching Tai-e worker: {}", String.join(" ", command));
 
         ProcessBuilder pb = new ProcessBuilder(command);
-        pb.directory(workerDir.toFile());
+        // Keep the host process CWD. Fat-jar extracts and relative user.dir paths
+        // are resolved against it; also relative -cp entries (java -jar from target/)
+        // must not be re-resolved under the workspace worker directory.
         pb.redirectErrorStream(true);
 
         long start = System.currentTimeMillis();
         Process process = pb.start();
         AtomicBoolean timedOut = new AtomicBoolean(false);
 
-        Thread logPump = new Thread(() -> pumpOutput(process), "taie-worker-log");
+        java.util.concurrent.ConcurrentLinkedQueue<String> outputTail =
+                new java.util.concurrent.ConcurrentLinkedQueue<>();
+        Thread logPump = new Thread(() -> pumpOutput(process, outputTail), "taie-worker-log");
         logPump.setDaemon(true);
         logPump.start();
 
@@ -87,7 +91,7 @@ public class TaieWorkerLauncher {
 
         int exitCode = finished ? process.exitValue() : TaieWorkerMain.EXIT_TIMEOUT;
         TaieWorkerResult result = readResult(resultPath, exitCode, timedOut.get(),
-                heapDumpPath, gcLogPath, start);
+                heapDumpPath, gcLogPath, start, outputTail);
         logger.info("Tai-e worker finished: status={}, exitCode={}, worldMs={}, ptaMs={}, peakHeapMB={}",
                 result.status, result.exitCode, result.worldMs, result.ptaMs,
                 result.peakHeapBytes / (1024 * 1024));
@@ -136,24 +140,57 @@ public class TaieWorkerLauncher {
     static String resolveClasspath() {
         String cp = System.getProperty("java.class.path");
         if (cp != null && !cp.isBlank()) {
-            return cp;
+            return absolutizeClasspath(cp);
         }
         // Fallback for unusual launchers: use the protection domain of this class.
         try {
             Path location = Path.of(TaieWorkerLauncher.class.getProtectionDomain()
                     .getCodeSource().getLocation().toURI());
-            return location.toAbsolutePath().toString();
+            return location.toAbsolutePath().normalize().toString();
         } catch (Exception e) {
             throw new IllegalStateException("Cannot resolve classpath for Tai-e worker", e);
         }
     }
 
-    private static void pumpOutput(Process process) {
+    /**
+     * Expand each classpath entry to an absolute path so a worker ProcessBuilder can
+     * safely change directories (or run under a different shell CWD) without losing the
+     * shaded jar / IDE multi-entry classpath.
+     */
+    static String absolutizeClasspath(String cp) {
+        String sep = File.pathSeparator;
+        String[] parts = cp.split(java.util.regex.Pattern.quote(sep), -1);
+        List<String> abs = new ArrayList<>(parts.length);
+        Path cwd = Path.of("").toAbsolutePath().normalize();
+        for (String part : parts) {
+            if (part == null || part.isBlank()) {
+                continue;
+            }
+            Path p = Path.of(part);
+            if (!p.isAbsolute()) {
+                p = cwd.resolve(p);
+            }
+            abs.add(p.toAbsolutePath().normalize().toString());
+        }
+        if (abs.isEmpty()) {
+            throw new IllegalStateException("Resolved empty classpath for Tai-e worker from: " + cp);
+        }
+        return String.join(sep, abs);
+    }
+
+    private static void pumpOutput(Process process,
+                                   java.util.concurrent.ConcurrentLinkedQueue<String> outputTail) {
         try (BufferedReader reader = new BufferedReader(
                 new InputStreamReader(process.getInputStream(), StandardCharsets.UTF_8))) {
             String line;
             while ((line = reader.readLine()) != null) {
                 logger.info("[worker-out] {}", line);
+                if (outputTail != null) {
+                    outputTail.add(line);
+                    while (outputTail.size() > 80) {
+                        outputTail.poll();
+                    }
+                }
             }
         } catch (Exception e) {
             logger.debug("Worker output pump stopped: {}", e.toString());
@@ -161,7 +198,8 @@ public class TaieWorkerLauncher {
     }
 
     private TaieWorkerResult readResult(Path resultPath, int exitCode, boolean timedOut,
-                                        Path heapDumpPath, Path gcLogPath, long startMs) {
+                                        Path heapDumpPath, Path gcLogPath, long startMs,
+                                        java.util.concurrent.ConcurrentLinkedQueue<String> outputTail) {
         TaieWorkerResult result = null;
         if (Files.exists(resultPath)) {
             try {
@@ -180,6 +218,11 @@ public class TaieWorkerLauncher {
             result.errorMessage = timedOut
                     ? "Worker process timed out"
                     : "Worker exited without writing worker-result.json (exitCode=" + exitCode + ")";
+            if (outputTail != null && !outputTail.isEmpty()) {
+                String tail = String.join("\n", outputTail);
+                result.errorMessage = result.errorMessage + "; worker output tail:\n" + tail;
+                result.errorStackTrace = tail;
+            }
         }
         result.exitCode = exitCode;
         if (timedOut) {

@@ -1,6 +1,7 @@
 package com.jbytescanner.worker;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.jbytescanner.engine.ExpansionMetrics;
 import com.jbytescanner.engine.JBSScanEntryPointPlugin;
 import com.jbytescanner.engine.LibraryBridgePlugin;
 import org.slf4j.Logger;
@@ -198,9 +199,34 @@ public final class TaieWorkerMain {
                 result.peakRssBytes = maxLong(result.peakRssBytes, ptaPhase.peakRssBytes);
             }
             logger.info("[worker] Analysis finished in {} ms", ptaPhase.durationMs);
+            copyInjectMetrics(result);
         } catch (Throwable t) {
             ptaPhase.finish(isOomRelated(t) ? "OOM" : "FAILED", t.toString());
+            copyInjectMetrics(result);
             throw t;
+        }
+    }
+
+    private static void copyInjectMetrics(TaieWorkerResult result) {
+        try {
+            ExpansionMetrics inj = JBSScanEntryPointPlugin.lastInjectMetrics;
+            if (inj == null) {
+                return;
+            }
+            result.expansionInject.put("entryCandidates", inj.entryCandidates);
+            result.expansionInject.put("entryInjected", inj.entryInjected);
+            result.expansionInject.put("entryMethodIdentityDupSkipped", inj.entryMethodIdentityDupSkipped);
+            result.expansionInject.put("entryUnresolved", inj.entryUnresolved);
+            result.expansionInject.put("entryNoBodySkipped", inj.entryNoBodySkipped);
+            result.expansionInject.put("supplementalEntriesInjected", inj.supplementalEntriesInjected);
+            result.expansionInject.put("supplementalEntriesSkipped", inj.supplementalEntriesSkipped);
+            result.expansionInject.put("serviceFallbackClasses", inj.serviceFallbackClasses);
+            result.expansionInject.put("serviceFallbackMethodsInjected", inj.serviceFallbackMethodsInjected);
+            if (inj.capturedTaintFlows != null) {
+                result.expansionInject.put("capturedTaintFlows", inj.capturedTaintFlows);
+            }
+        } catch (Throwable ignored) {
+            // metrics are best-effort
         }
     }
 

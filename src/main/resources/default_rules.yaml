@@ -10,9 +10,12 @@ config:
   # Fallback for incomplete Spring classpaths where Tai-e's full Spring plugin is unsafe.
   # Service parameters are not marked as request sources; this only makes their bodies reachable.
   spring_service_entry_fallback: false
-  # Treat typed cache reads Object get(String, Class<T>) as stored-taint sources,
-  # using the class literal as the concrete taint type.
-  persistent_source_analysis: true
+  # Persistent/cache typed-source inference: off | on | auto (default on for common projects).
+  # auto disables when app classpath entries exceed persistent_source_auto_max_app_classpath.
+  persistent_source_analysis: on
+  persistent_source_max_patterns: 10000
+  persistent_source_max_supplemental_entries: 5000
+  persistent_source_auto_max_app_classpath: 120
   # P0.3: isolate Tai-e World/PTA in a worker JVM with explicit heap and diagnostics.
   resource_budget:
     worker_enabled: true

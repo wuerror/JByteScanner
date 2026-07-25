@@ -4,7 +4,9 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class TaieWorkerResult {
@@ -71,6 +73,10 @@ public class TaieWorkerResult {
 
     @JsonProperty("taiELogPath")
     public String taiELogPath;
+
+    /** Entry inject / flow capture counts from JBSScanEntryPointPlugin (child JVM). */
+    @JsonProperty("expansionInject")
+    public Map<String, Object> expansionInject = new LinkedHashMap<>();
 
     public PhaseMetrics phase(String name) {
         for (PhaseMetrics p : phases) {

@@ -47,10 +47,15 @@ public class RuleManager {
 
     private final Config jbsConfig;
     private final List<SinkRule> sinks;
+    private ExpansionMetrics lastExpansionMetrics = new ExpansionMetrics();
 
     public RuleManager(Config config) {
         this.jbsConfig = config;
         this.sinks = config.getSinks() != null ? config.getSinks() : new ArrayList<>();
+    }
+
+    public ExpansionMetrics getLastExpansionMetrics() {
+        return lastExpansionMetrics;
     }
 
     /**
@@ -74,6 +79,7 @@ public class RuleManager {
      */
     public String generateTaieConfig(List<String> entryMethodSignatures, File workspaceDir,
                                       List<String> appJars) {
+        lastExpansionMetrics = new ExpansionMetrics();
         JBSScanEntryPointPlugin.supplementalEntrySignatures = List.of();
         // Entry lists may arrive undeduped from tests or alternate callers; canonicalize here.
         CanonicalIdentity.DedupResult entryDedup =
@@ -100,6 +106,11 @@ public class RuleManager {
         boolean callSiteMode = jbsConfig.getScanConfig() == null
                 || jbsConfig.getScanConfig().isTaintCallSiteMode();
         taieConfig.put("call-site-mode", callSiteMode);
+        lastExpansionMetrics.taintCallSiteMode = callSiteMode;
+        lastExpansionMetrics.springAnalysis = jbsConfig.getScanConfig() == null
+                || jbsConfig.getScanConfig().isSpringAnalysis();
+        lastExpansionMetrics.springServiceEntryFallback = jbsConfig.getScanConfig() != null
+                && jbsConfig.getScanConfig().isSpringServiceEntryFallback();
 
         // 1. Convert Sources into a single canonical set.
         // SourceKey = (kind, method signature, index, taint type)
@@ -157,10 +168,45 @@ public class RuleManager {
                 // For MVP, we rely on the entry points which are derived from annotations anyway!
             }
         }
-        boolean persistentSourceAnalysis = jbsConfig.getScanConfig() == null
-                || jbsConfig.getScanConfig().isPersistentSourceAnalysis();
-        if (persistentSourceAnalysis && appJars != null && !appJars.isEmpty()) {
-            Set<TypedCallSource> persistentSources = scanAppJarsForTypedCacheSources(appJars);
+        lastExpansionMetrics.apiParamSourcesRaw = apiParamRaw;
+        lastExpansionMetrics.apiParamSourcesUnique = apiParamUnique;
+        lastExpansionMetrics.explicitRuleSourcesUnique =
+                Math.max(0, sourceCanon.unique() - apiParamUnique);
+
+        com.jbytescanner.config.ScanConfig scanConfig = jbsConfig.getScanConfig();
+        int appClasspathCount = appJars == null ? 0 : appJars.size();
+        com.jbytescanner.config.ScanConfig.PersistentSourceDecision persistentDecision =
+                scanConfig == null
+                        ? new com.jbytescanner.config.ScanConfig()
+                            .resolvePersistentSourceEnabled(appClasspathCount)
+                        : scanConfig.resolvePersistentSourceEnabled(appClasspathCount);
+        lastExpansionMetrics.persistentSourceMode = persistentDecision.mode();
+        lastExpansionMetrics.persistentSourceEnabled = persistentDecision.enabled();
+        lastExpansionMetrics.persistentSourceDisableReason = persistentDecision.reason();
+        lastExpansionMetrics.persistentSourceMaxPatterns = persistentDecision.maxPatterns();
+        lastExpansionMetrics.persistentSourceMaxSupplementalEntries =
+                persistentDecision.maxSupplementalEntries();
+
+        if (persistentDecision.enabled() && appJars != null && !appJars.isEmpty()) {
+            Set<TypedCallSource> scanned = scanAppJarsForTypedCacheSources(appJars);
+            lastExpansionMetrics.persistentPatternsRaw = scanned.size();
+            List<TypedCallSource> persistentSources = new ArrayList<>(scanned);
+            // Stable order for deterministic caps.
+            persistentSources.sort(Comparator
+                    .comparing(TypedCallSource::method)
+                    .thenComparing(TypedCallSource::type)
+                    .thenComparing(TypedCallSource::containerMethod));
+            int maxPatterns = persistentDecision.maxPatterns();
+            if (maxPatterns > 0 && persistentSources.size() > maxPatterns) {
+                lastExpansionMetrics.persistentPatternsTruncated =
+                        persistentSources.size() - maxPatterns;
+                persistentSources = new ArrayList<>(persistentSources.subList(0, maxPatterns));
+                logger.warn("Persistent source patterns capped: raw={}, max={}, truncated={}",
+                        lastExpansionMetrics.persistentPatternsRaw, maxPatterns,
+                        lastExpansionMetrics.persistentPatternsTruncated);
+            }
+            lastExpansionMetrics.persistentPatternsEmitted = persistentSources.size();
+
             Map<String, Set<String>> typesByGetter = new HashMap<>();
             for (TypedCallSource persistentSource : persistentSources) {
                 typesByGetter.computeIfAbsent(persistentSource.method(), ignored -> new HashSet<>())
@@ -199,21 +245,44 @@ public class RuleManager {
                     accessorSourceCount++;
                 }
             }
+            lastExpansionMetrics.persistentDirectSources = directSourceCount;
+            lastExpansionMetrics.persistentAccessorSources = accessorSourceCount;
 
-            JBSScanEntryPointPlugin.supplementalEntrySignatures = persistentSources.stream()
+            List<String> supplemental = persistentSources.stream()
                     .map(TypedCallSource::containerMethod)
                     .distinct()
+                    .sorted()
                     .toList();
+            lastExpansionMetrics.supplementalEntriesRaw = supplemental.size();
+            int maxSupp = persistentDecision.maxSupplementalEntries();
+            if (maxSupp > 0 && supplemental.size() > maxSupp) {
+                lastExpansionMetrics.supplementalEntriesTruncated =
+                        supplemental.size() - maxSupp;
+                supplemental = new ArrayList<>(supplemental.subList(0, maxSupp));
+                logger.warn("Supplemental persistent entries capped: raw={}, max={}, truncated={}",
+                        lastExpansionMetrics.supplementalEntriesRaw, maxSupp,
+                        lastExpansionMetrics.supplementalEntriesTruncated);
+            }
+            lastExpansionMetrics.supplementalEntriesEmitted = supplemental.size();
+            JBSScanEntryPointPlugin.supplementalEntrySignatures = List.copyOf(supplemental);
             long polymorphicGetterCount = typesByGetter.values().stream()
                     .filter(types -> types.size() > 1)
                     .count();
             logger.info("ASM pre-scan inferred {} typed persistent-data read pattern(s) "
                             + "in {} containing method(s); emitted {} direct getter source(s) "
-                            + "and {} model accessor source(s) for {} polymorphic getter(s).",
-                    persistentSources.size(),
-                    JBSScanEntryPointPlugin.supplementalEntrySignatures.size(),
-                    directSourceCount, accessorSourceCount, polymorphicGetterCount);
+                            + "and {} model accessor source(s) for {} polymorphic getter(s); "
+                            + "mode={}, enabled={}.",
+                    lastExpansionMetrics.persistentPatternsRaw,
+                    lastExpansionMetrics.supplementalEntriesEmitted,
+                    directSourceCount, accessorSourceCount, polymorphicGetterCount,
+                    persistentDecision.mode(), persistentDecision.enabled());
+        } else if (!persistentDecision.enabled()) {
+            logger.info("Persistent source analysis disabled (mode={}, reason={})",
+                    persistentDecision.mode(), persistentDecision.reason());
         }
+        lastExpansionMetrics.sourceRaw = sourceCanon.raw();
+        lastExpansionMetrics.sourceUnique = sourceCanon.unique();
+        lastExpansionMetrics.sourceDuplicate = sourceCanon.duplicate();
         logger.info("SourceKey canonicalization: raw={}, unique={}, duplicate={}; "
                         + "apiParam raw/unique={}/{}",
                 sourceCanon.raw(), sourceCanon.unique(), sourceCanon.duplicate(),

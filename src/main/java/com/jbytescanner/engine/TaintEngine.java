@@ -20,6 +20,10 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.CharacterCodingException;
+import java.nio.charset.Charset;
+import java.nio.charset.CodingErrorAction;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -100,6 +104,12 @@ public class TaintEngine {
             logger.error("Failed to generate Tai-e taint configuration.");
             return;
         }
+        ExpansionMetrics expansionMetrics = ruleManager.getLastExpansionMetrics();
+        try {
+            expansionMetrics.write(workspaceDir.toPath());
+        } catch (Exception e) {
+            logger.warn("Failed to write expansion-metrics.json: {}", e.toString());
+        }
 
         // 3. Run Tai-e World/PTA in an isolated worker JVM (P0.3), with optional
         // in-process fallback for tests when the worker classpath is unavailable.
@@ -143,10 +153,16 @@ public class TaintEngine {
             workerResult = executeAnalysis(workerRequest, budget);
         } catch (Exception e) {
             logger.error("Failed to launch Tai-e analysis", e);
-            writeBenchmark(null, budget);
+            writeBenchmark(null, budget, expansionMetrics);
             return;
         }
-        writeBenchmark(workerResult, budget);
+        mergeInjectMetrics(expansionMetrics, workerResult);
+        try {
+            expansionMetrics.write(workspaceDir.toPath());
+        } catch (Exception e) {
+            logger.warn("Failed to update expansion-metrics.json: {}", e.toString());
+        }
+        writeBenchmark(workerResult, budget, expansionMetrics);
 
         if (workerResult == null || !TaieWorkerResult.STATUS_SUCCESS.equals(workerResult.status)) {
             logWorkerFailure(workerResult);
@@ -211,7 +227,7 @@ public class TaintEngine {
             return result;
         }
         try {
-            List<String> lines = Files.readAllLines(taiELog.toPath());
+            List<String> lines = readLogLinesLenient(taiELog.toPath());
             for (String line : lines) {
                 if (!line.contains("TaintFlow{")) continue;
                 ParsedTaintFlow flow = parseTaintFlowLine(line);
@@ -229,6 +245,39 @@ public class TaintEngine {
         }
         logger.info("Extracted {} vulnerabilities from tai-e.log.", result.size());
         return result;
+    }
+
+    /**
+     * Read text logs written by Tai-e / local tools without failing on mixed encodings.
+     * Windows hosts often emit GBK/platform-default bytes while the JVM default reader
+     * is UTF-8, which previously aborted the entire flow extraction with
+     * {@link java.nio.charset.MalformedInputException}.
+     */
+    static List<String> readLogLinesLenient(Path path) throws IOException {
+        byte[] raw = Files.readAllBytes(path);
+        Charset[] candidates = new Charset[]{
+                StandardCharsets.UTF_8,
+                Charset.defaultCharset(),
+                Charset.forName("GBK")
+        };
+        for (Charset cs : candidates) {
+            try {
+                var decoder = cs.newDecoder()
+                        .onMalformedInput(CodingErrorAction.REPORT)
+                        .onUnmappableCharacter(CodingErrorAction.REPORT);
+                String text = decoder.decode(java.nio.ByteBuffer.wrap(raw)).toString();
+                return text.lines().toList();
+            } catch (CharacterCodingException ignored) {
+                // try next charset
+            } catch (IllegalArgumentException ignored) {
+                // charset not available
+            }
+        }
+        var decoder = StandardCharsets.UTF_8.newDecoder()
+                .onMalformedInput(CodingErrorAction.REPLACE)
+                .onUnmappableCharacter(CodingErrorAction.REPLACE);
+        String text = decoder.decode(java.nio.ByteBuffer.wrap(raw)).toString();
+        return text.lines().toList();
     }
 
     /**
@@ -532,7 +581,67 @@ public class TaintEngine {
         }
     }
 
-    private void writeBenchmark(TaieWorkerResult workerResult, ResourceBudget budget) {
+
+    private void mergeInjectMetrics(ExpansionMetrics expansionMetrics, TaieWorkerResult workerResult) {
+        if (expansionMetrics == null) {
+            return;
+        }
+        if (workerResult != null && workerResult.expansionInject != null
+                && !workerResult.expansionInject.isEmpty()) {
+            applyInjectMap(expansionMetrics, workerResult.expansionInject);
+            return;
+        }
+        if (JBSScanEntryPointPlugin.lastInjectMetrics != null
+                && JBSScanEntryPointPlugin.lastInjectMetrics.entryCandidates > 0) {
+            ExpansionMetrics inj = JBSScanEntryPointPlugin.lastInjectMetrics;
+            expansionMetrics.entryCandidates = inj.entryCandidates;
+            expansionMetrics.entryInjected = inj.entryInjected;
+            expansionMetrics.entryMethodIdentityDupSkipped = inj.entryMethodIdentityDupSkipped;
+            expansionMetrics.entryUnresolved = inj.entryUnresolved;
+            expansionMetrics.entryNoBodySkipped = inj.entryNoBodySkipped;
+            expansionMetrics.supplementalEntriesInjected = inj.supplementalEntriesInjected;
+            expansionMetrics.supplementalEntriesSkipped = inj.supplementalEntriesSkipped;
+            expansionMetrics.serviceFallbackClasses = inj.serviceFallbackClasses;
+            expansionMetrics.serviceFallbackMethodsInjected = inj.serviceFallbackMethodsInjected;
+            expansionMetrics.capturedTaintFlows = inj.capturedTaintFlows;
+        }
+    }
+
+    private static void applyInjectMap(ExpansionMetrics m, Map<String, Object> map) {
+        m.entryCandidates = intVal(map.get("entryCandidates"), m.entryCandidates);
+        m.entryInjected = intVal(map.get("entryInjected"), m.entryInjected);
+        m.entryMethodIdentityDupSkipped = intVal(map.get("entryMethodIdentityDupSkipped"),
+                m.entryMethodIdentityDupSkipped);
+        m.entryUnresolved = intVal(map.get("entryUnresolved"), m.entryUnresolved);
+        m.entryNoBodySkipped = intVal(map.get("entryNoBodySkipped"), m.entryNoBodySkipped);
+        m.supplementalEntriesInjected = intVal(map.get("supplementalEntriesInjected"),
+                m.supplementalEntriesInjected);
+        m.supplementalEntriesSkipped = intVal(map.get("supplementalEntriesSkipped"),
+                m.supplementalEntriesSkipped);
+        m.serviceFallbackClasses = intVal(map.get("serviceFallbackClasses"), m.serviceFallbackClasses);
+        m.serviceFallbackMethodsInjected = intVal(map.get("serviceFallbackMethodsInjected"),
+                m.serviceFallbackMethodsInjected);
+        if (map.get("capturedTaintFlows") != null) {
+            m.capturedTaintFlows = intVal(map.get("capturedTaintFlows"), 0);
+        }
+    }
+
+    private static int intVal(Object o, int defaultVal) {
+        if (o instanceof Number n) {
+            return n.intValue();
+        }
+        if (o != null) {
+            try {
+                return Integer.parseInt(o.toString());
+            } catch (NumberFormatException ignored) {
+                return defaultVal;
+            }
+        }
+        return defaultVal;
+    }
+
+    private void writeBenchmark(TaieWorkerResult workerResult, ResourceBudget budget,
+                                ExpansionMetrics expansionMetrics) {
         try {
             Map<String, Object> snap = new LinkedHashMap<>();
             snap.put("workerEnabled", budget.isWorkerEnabled());
@@ -542,7 +651,11 @@ public class TaintEngine {
             snap.put("gcLog", budget.isGcLog());
             snap.put("heapDumpOnOom", budget.isHeapDumpOnOom());
             snap.put("executionMode", budget.getExecutionMode());
-            BenchmarkMetrics.fromWorker(workerResult, snap).write(workspaceDir.toPath());
+            BenchmarkMetrics metrics = BenchmarkMetrics.fromWorker(workerResult, snap);
+            if (expansionMetrics != null) {
+                metrics.expansion.putAll(expansionMetrics.asMap());
+            }
+            metrics.write(workspaceDir.toPath());
         } catch (Exception e) {
             logger.warn("Failed to write benchmark.json: {}", e.toString());
         }
@@ -551,7 +664,7 @@ public class TaintEngine {
     private List<ApiRoute> loadEntryPoints(File apiFile) {
         List<ApiRoute> routes = new ArrayList<>();
         try {
-            List<String> lines = Files.readAllLines(apiFile.toPath());
+            List<String> lines = readLogLinesLenient(apiFile.toPath());
             for (String line : lines) {
                 if (line.startsWith("#") || line.trim().isEmpty()) continue;
 
