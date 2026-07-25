@@ -13,6 +13,16 @@ config:
   # Treat typed cache reads Object get(String, Class<T>) as stored-taint sources,
   # using the class literal as the concrete taint type.
   persistent_source_analysis: true
+  # P0.3: isolate Tai-e World/PTA in a worker JVM with explicit heap and diagnostics.
+  resource_budget:
+    worker_enabled: true
+    allow_in_process_fallback: false
+    max_heap_mb: 8192
+    min_heap_mb: 0
+    timeout_minutes: 0
+    gc_log: true
+    heap_dump_on_oom: true
+    execution_mode: single
   # Scan packages: List package prefixes to include in the scan.
   # Important: If your business logic resides in dependencies (BOOT-INF/lib),
   # you MUST add their package prefixes here to promote them to Application Classes.

@@ -37,6 +37,20 @@ public class ScanConfig {
     @JsonProperty("persistent_source_analysis")
     private boolean persistentSourceAnalysis = true;
 
+    /**
+     * Resource budget for isolated Tai-e worker JVM (heap, timeout, GC, heap dump).
+     * When null, defaults from {@link ResourceBudget} are used.
+     */
+    @JsonProperty("resource_budget")
+    private ResourceBudget resourceBudget;
+
+    public ResourceBudget getResourceBudget() {
+        if (resourceBudget == null) {
+            resourceBudget = new ResourceBudget();
+        }
+        return resourceBudget;
+    }
+
     public List<String> getScanPackages() {
         if (scanPackages == null) {
             scanPackages = new ArrayList<>();

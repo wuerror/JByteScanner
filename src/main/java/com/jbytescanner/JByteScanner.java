@@ -31,6 +31,15 @@ public class JByteScanner implements Callable<Integer> {
     @Option(names = {"-m", "--mode"}, defaultValue = "scan", description = "Execution mode: 'api' (Asset Discovery only) or 'scan' (Full Vulnerability Scan)")
     private String mode;
 
+    @Option(names = {"--worker"}, description = "Run Tai-e analysis in an isolated worker JVM (default: true)", negatable = true, defaultValue = "true")
+    private boolean worker = true;
+
+    @Option(names = {"--max-heap-mb"}, description = "Worker JVM -Xmx in megabytes (default: 8192)")
+    private Integer maxHeapMb;
+
+    @Option(names = {"--timeout-minutes"}, description = "Worker wall-clock timeout in minutes; 0 disables (default: 0)")
+    private Integer timeoutMinutes;
+
     public static void main(String[] args) {
         int exitCode = new CommandLine(new JByteScanner()).execute(args);
         System.exit(exitCode);
@@ -42,13 +51,12 @@ public class JByteScanner implements Callable<Integer> {
         System.out.println("   JByteScanner - Next Gen Static Analysis");
         System.out.println("==========================================");
 
-        // Memory check: warn if heap is too small for taint analysis
-        if ("scan".equalsIgnoreCase(mode)) {
+        // Memory check: host heap only matters for discovery/secret; Tai-e uses worker budget.
+        if ("scan".equalsIgnoreCase(mode) && !worker) {
             long maxHeapMB = Runtime.getRuntime().maxMemory() / (1024 * 1024);
             if (maxHeapMB < 4096) {
-                System.out.println("[WARN] Max heap is only " + maxHeapMB + " MB. Taint analysis on large projects may OOM.");
-                System.out.println("[WARN] Recommend: java -Xmx8g -jar JByteScanner.jar ...");
-                System.out.println("[WARN] For very large projects (1000+ JARs): java -Xmx16g -jar JByteScanner.jar ...");
+                System.out.println("[WARN] In-process mode: max heap is only " + maxHeapMB + " MB. Large projects may OOM.");
+                System.out.println("[WARN] Prefer default worker mode, or: java -Xmx8g -jar JByteScanner.jar --no-worker ...");
             }
         }
 
@@ -67,6 +75,7 @@ public class JByteScanner implements Callable<Integer> {
         // 1. Initialize Configuration (Project Specific)
         ConfigManager configManager = new ConfigManager();
         configManager.init(workspaceDir);
+        applyResourceBudgetOverrides(configManager);
 
         // 2. Load JARs (Now separated into App and Lib jars, with Promotion logic)
         JarLoader jarLoader = new JarLoader();
@@ -219,5 +228,23 @@ public class JByteScanner implements Callable<Integer> {
         System.out.println("Phase 3 Complete. Analysis finished.");
         
         return 0;
+    }
+
+    private void applyResourceBudgetOverrides(ConfigManager configManager) {
+        com.jbytescanner.config.ScanConfig scanConfig = configManager.getConfig().getScanConfig();
+        if (scanConfig == null) {
+            return;
+        }
+        com.jbytescanner.config.ResourceBudget budget = scanConfig.getResourceBudget();
+        budget.setWorkerEnabled(worker);
+        if (maxHeapMb != null && maxHeapMb > 0) {
+            budget.setMaxHeapMb(maxHeapMb);
+        }
+        if (timeoutMinutes != null && timeoutMinutes >= 0) {
+            budget.setTimeoutMinutes(timeoutMinutes);
+        }
+        System.out.println("Resource budget: worker=" + budget.isWorkerEnabled()
+                + ", maxHeapMb=" + budget.getMaxHeapMb()
+                + ", timeoutMinutes=" + budget.getTimeoutMinutes());
     }
 }

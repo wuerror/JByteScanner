@@ -1,11 +1,17 @@
 package com.jbytescanner.engine;
 
 import com.jbytescanner.config.ConfigManager;
+import com.jbytescanner.config.ResourceBudget;
+import com.jbytescanner.config.ScanConfig;
 import com.jbytescanner.config.SinkRule;
 import com.jbytescanner.model.ApiRoute;
 import com.jbytescanner.model.Vulnerability;
+import com.jbytescanner.worker.BenchmarkMetrics;
+import com.jbytescanner.worker.TaieWorkerLauncher;
+import com.jbytescanner.worker.TaieWorkerMain;
+import com.jbytescanner.worker.TaieWorkerRequest;
+import com.jbytescanner.worker.TaieWorkerResult;
 import pascal.taie.World;
-import pascal.taie.config.Options;
 import pascal.taie.ir.stmt.Invoke;
 import pascal.taie.ir.stmt.Stmt;
 import pascal.taie.language.classes.JMethod;
@@ -15,8 +21,11 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -92,129 +101,68 @@ public class TaintEngine {
             return;
         }
 
-        // 3. Initialize Tai-e for Taint Analysis
-        List<String> combinedLibs = new ArrayList<>(libJars);
-        if (depAppJars != null) combinedLibs.addAll(depAppJars);
-
-        // We run Tai-e Main directly to execute the analyses
-        List<String> args = new ArrayList<>();
-
-        if (targetAppJars != null && !targetAppJars.isEmpty()) {
-            args.add("--app-class-path");
-            args.add(String.join(System.getProperty("path.separator"), targetAppJars));
+        // 3. Run Tai-e World/PTA in an isolated worker JVM (P0.3), with optional
+        // in-process fallback for tests when the worker classpath is unavailable.
+        List<String> combinedLibs = new ArrayList<>();
+        if (libJars != null) {
+            combinedLibs.addAll(libJars);
+        }
+        if (depAppJars != null) {
+            combinedLibs.addAll(depAppJars);
         }
 
-        if (combinedLibs != null && !combinedLibs.isEmpty()) {
-            args.add("--class-path");
-            args.add(String.join(System.getProperty("path.separator"), combinedLibs));
+        ScanConfig scanConfig = configManager.getConfig().getScanConfig();
+        ResourceBudget budget = scanConfig != null
+                ? scanConfig.getResourceBudget()
+                : new ResourceBudget();
+
+        TaieWorkerRequest workerRequest = new TaieWorkerRequest();
+        workerRequest.workspaceDir = workspaceDir.getAbsolutePath();
+        workerRequest.outputDir = workspaceDir.getAbsolutePath();
+        if (targetAppJars != null) {
+            workerRequest.targetAppJars.addAll(targetAppJars);
         }
-
-        // Force Tai-e 0.5.4's new ASM-based frontend. The deprecated -pp and -ap
-        // switches are no longer needed: the current runtime JRE and phantom
-        // classes are now handled by default.
-        args.add("--world-builder");
-        args.add("pascal.taie.frontend.java.JavaWorldBuilder");
-
-        // Direct Tai-e output files to the workspace dir
-        args.add("--output-dir");
-        args.add(workspaceDir.getAbsolutePath());
-
-        // Enable Pointer Analysis and Taint Analysis Plugin.
-        // Use context-insensitive PTA (cs:ci) + only-app:true for scalability.
-        //
-        // Why only-app:true is safe here:
-        //   With only-app:true, Tai-e skips return-value PFG edges for library methods.
-        //   This would normally leave library factory method results (Runtime.getRuntime(),
-        //   Connection.createStatement(), etc.) with empty pts, preventing virtual call
-        //   edge creation to their subsequent sink calls.
-        //   LibraryBridgePlugin compensates by injecting synthetic objects into those
-        //   return variables via onNewCallEdge(), unblocking the call-edge chain.
-        //
-        // Why NOT cs:1-obj or removing only-app:
-        //   cs:1-obj on 27K+ reachable classes causes exponential state explosion (OOM).
-        //   Removing only-app causes full library analysis: 100K+ reachable methods,
-        //   potentially 10-20 GB memory and 5-30 min runtime for Spring Boot projects.
-        String ptaConfig = "pta=cs:ci;only-app:true;taint-config:" + taintConfigPath;
-        if (configManager.getConfig().getScanConfig() != null &&
-                configManager.getConfig().getScanConfig().isSpringAnalysis()) {
-            // Tai-e 0.5.4 models Spring bean discovery, dependency injection and
-            // endpoint receiver objects. Without this, @Autowired interface calls
-            // frequently have an empty receiver points-to set and the call graph stops.
-            ptaConfig += ";spring:true";
+        workerRequest.classPathJars.addAll(combinedLibs);
+        workerRequest.entrySignatures.addAll(entrySignatures);
+        if (JBSScanEntryPointPlugin.supplementalEntrySignatures != null) {
+            workerRequest.supplementalEntrySignatures.addAll(
+                    JBSScanEntryPointPlugin.supplementalEntrySignatures);
         }
-        args.add("-a");
-        args.add(ptaConfig);
+        workerRequest.taintConfigPath = taintConfigPath;
+        workerRequest.springAnalysis = scanConfig == null || scanConfig.isSpringAnalysis();
+        workerRequest.springServiceEntryFallback =
+                scanConfig == null || scanConfig.isSpringServiceEntryFallback();
+        workerRequest.taintCallSiteMode = scanConfig == null || scanConfig.isTaintCallSiteMode();
+        workerRequest.batchId = "single";
+        workerRequest.executionMode = budget.getExecutionMode() != null
+                ? budget.getExecutionMode()
+                : "single";
 
-        logger.info("Running Tai-e with arguments: {}", String.join(" ", args));
-
-        // Note: Main.main calls System.exit() by default in some Tai-e versions upon completion/error.
-        // In library mode, we should ideally use Options.parse and run analyses manually,
-        // or ensure Main.main is safe.
-        // Let's manually parse and execute to avoid System.exit
-        ptaConfig += ";implicit-entries:true";
-        // Two custom plugins:
-        //   JBSScanEntryPointPlugin  – injects discovered API controller methods as PTA
-        //                              entry points so TaintAnalysis sees their parameters.
-        //   LibraryBridgePlugin      – injects synthetic return objects for library factory
-        //                              methods (Runtime.getRuntime, createStatement, etc.)
-        //                              so that subsequent virtual calls on those objects can
-        //                              create call edges despite only-app:true.
-        ptaConfig += ";plugins:[com.jbytescanner.engine.JBSScanEntryPointPlugin,"
-                   + "com.jbytescanner.engine.LibraryBridgePlugin]";
-        args.set(args.size() - 1, ptaConfig);
-        String[] argsArray = args.toArray(new String[0]);
-
+        TaieWorkerResult workerResult;
         try {
-            Options options = Options.parse(argsArray);
-            pascal.taie.config.LoggerConfigs.setOutput(options.getOutputDir());
+            workerResult = executeAnalysis(workerRequest, budget);
+        } catch (Exception e) {
+            logger.error("Failed to launch Tai-e analysis", e);
+            writeBenchmark(null, budget);
+            return;
+        }
+        writeBenchmark(workerResult, budget);
 
-            // Build the analysis plan from CLI args (pta + taint config)
-            java.io.InputStream content = pascal.taie.config.Configs.getAnalysisConfig();
-            java.util.List<pascal.taie.config.AnalysisConfig> analysisConfigs =
-                    pascal.taie.config.AnalysisConfig.parseConfigs(content);
-            pascal.taie.config.ConfigManager mgr =
-                    new pascal.taie.config.ConfigManager(analysisConfigs);
-            pascal.taie.config.AnalysisPlanner planner =
-                    new pascal.taie.config.AnalysisPlanner(mgr, options.getKeepResult());
-            java.util.List<pascal.taie.config.PlanConfig> planConfigs =
-                    pascal.taie.config.PlanConfig.readConfigs(options);
-            mgr.overwriteOptions(planConfigs);
-            pascal.taie.config.Plan plan = planner.expandPlan(planConfigs, false);
-
-            // Build World with the frontend selected by Options. In Tai-e 0.5.4
-            // this is JavaWorldBuilder, whose API is build(Options) and which does
-            // not run Soot packs over every library method.
-            logger.info("Building Tai-e World with {} appClassPath + {} classPath entries using {}...",
-                    targetAppJars.size(), combinedLibs.size(),
-                    options.getWorldBuilderClass().getName());
-            long startTime = System.currentTimeMillis();
-            pascal.taie.WorldBuilder worldBuilder = options.getWorldBuilderClass()
-                    .getConstructor()
-                    .newInstance();
-            worldBuilder.build(options);
-            long worldTime = System.currentTimeMillis() - startTime;
-            logger.info("Tai-e World built in {} seconds.", worldTime / 1000);
-
-            // Execute the analysis plan (runs PTA which internally triggers TaintAnalysis plugin)
-            new pascal.taie.analysis.AnalysisManager(plan).execute();
-            pascal.taie.config.LoggerConfigs.reconfigure();
-        } catch (Throwable t) {
-            // Catch Throwable (not just Exception) to capture Error types:
-            // StackOverflowError, NoClassDefFoundError, OutOfMemoryError, etc.
-            logger.error("Tai-e analysis failed: {}", t.toString());
-            System.err.println("[ERROR] Tai-e analysis failed: " + t.getClass().getName() + ": " + t.getMessage());
-            t.printStackTrace(System.err);
+        if (workerResult == null || !TaieWorkerResult.STATUS_SUCCESS.equals(workerResult.status)) {
+            logWorkerFailure(workerResult);
+            // Do not continue report generation in a failed/OOM analysis state.
             return;
         }
 
-        logger.info("Tai-e Analysis Finished.");
+        logger.info("Tai-e Analysis Finished. worldMs={}, ptaMs={}, peakHeapMB={}",
+                workerResult.worldMs, workerResult.ptaMs,
+                workerResult.peakHeapBytes / (1024 * 1024));
 
-        // 4. Extract Taint Results
-        // Tai-e writes TaintFlow entries to tai-e.log during TaintAnalysis.reportTaintFlows().
-        // We parse this log file to extract source/sink information, which is more reliable
-        // than trying to access World results (which get cleared by AnalysisManager post-analysis).
-        List<Vulnerability> vulnerabilities = parseTaintFlowsFromLog(
-                new File(workspaceDir, "tai-e.log"), ruleManager);
+        // 4. Extract Taint Results from worker tai-e.log (P1 will switch to captured flows).
+        File taiELog = workerResult.taiELogPath != null
+                ? new File(workerResult.taiELogPath)
+                : new File(workspaceDir, "tai-e.log");
+        List<Vulnerability> vulnerabilities = parseTaintFlowsFromLog(taiELog, ruleManager);
 
         logger.info("Found {} potential vulnerabilities.", vulnerabilities.size());
 
@@ -329,8 +277,13 @@ public class TaintEngine {
         }
 
         String containerSig = "<" + containerInner + ">";
-        String sinkMethodSig = resolveSinkSignatureFromIR(
-                containerSig, sinkStmtIndex, ruleManager);
+        // IR resolution needs a live Tai-e World. Worker mode builds World only in
+        // the child JVM, so the host must not call World.get() after the worker exits.
+        String sinkMethodSig = null;
+        if (isHostWorldAvailable()) {
+            sinkMethodSig = resolveSinkSignatureFromIR(
+                    containerSig, sinkStmtIndex, ruleManager);
+        }
         if (sinkMethodSig == null) {
             sinkMethodSig = resolveSinkSignature(
                     invoke, sourceMethodSig, containerSig, ruleManager);
@@ -359,9 +312,23 @@ public class TaintEngine {
     }
 
     /**
+     * True when this JVM still holds a Tai-e World (in-process analysis path only).
+     * Worker mode leaves the host without a World; IR-based sink resolution must be skipped.
+     */
+    private static boolean isHostWorldAvailable() {
+        try {
+            return World.get() != null;
+        } catch (Throwable ignored) {
+            return false;
+        }
+    }
+
+    /**
      * Resolves the sink from the exact Tai-e IR statement recorded in TaintFlow.
      * This avoids ambiguous method-name-only matching (for example GroovyShell.parse
      * versus JSON.parse) for virtual calls whose textual receiver is only a local variable.
+     *
+     * <p>Only safe when {@link #isHostWorldAvailable()} is true (in-process path).
      */
     private String resolveSinkSignatureFromIR(String containerSig, int stmtIndex,
                                               RuleManager ruleManager) {
@@ -512,6 +479,73 @@ public class TaintEngine {
             }
         }
         return null;
+    }
+
+
+    private TaieWorkerResult executeAnalysis(TaieWorkerRequest request, ResourceBudget budget) throws Exception {
+        if (budget.isWorkerEnabled()) {
+            Path workerDir = workspaceDir.toPath().resolve("worker").resolve(request.batchId);
+            try {
+                return new TaieWorkerLauncher(budget).run(request, workerDir);
+            } catch (Exception e) {
+                if (!budget.isAllowInProcessFallback()) {
+                    throw e;
+                }
+                logger.warn("Worker launch failed; falling back to in-process analysis: {}", e.toString());
+            }
+        } else {
+            logger.info("resource_budget.worker_enabled=false; running Tai-e in-process");
+        }
+        return runInProcess(request);
+    }
+
+    /**
+     * In-process path used by unit tests and emergency fallback. Still records phase
+     * metrics, but does not isolate OOM from the host JVM.
+     */
+    private TaieWorkerResult runInProcess(TaieWorkerRequest request) {
+        return TaieWorkerMain.runForHost(request);
+    }
+
+    private void logWorkerFailure(TaieWorkerResult workerResult) {
+        if (workerResult == null) {
+            logger.error("Tai-e worker returned no result");
+            return;
+        }
+        logger.error("Tai-e worker failed: status={}, exitCode={}, error={}: {}",
+                workerResult.status, workerResult.exitCode,
+                workerResult.errorClass, workerResult.errorMessage);
+        if (workerResult.errorStackTrace != null) {
+            logger.error("Worker stack trace:\n{}", workerResult.errorStackTrace);
+        }
+        if (workerResult.heapDumpPath != null) {
+            logger.error("Heap dump (if produced): {}", workerResult.heapDumpPath);
+        }
+        if (workerResult.gcLogPath != null) {
+            logger.error("GC log: {}", workerResult.gcLogPath);
+        }
+        System.err.println("[ERROR] Tai-e analysis failed in worker: status="
+                + workerResult.status + " " + workerResult.errorClass + ": "
+                + workerResult.errorMessage);
+        if (workerResult.errorStackTrace != null) {
+            System.err.println(workerResult.errorStackTrace);
+        }
+    }
+
+    private void writeBenchmark(TaieWorkerResult workerResult, ResourceBudget budget) {
+        try {
+            Map<String, Object> snap = new LinkedHashMap<>();
+            snap.put("workerEnabled", budget.isWorkerEnabled());
+            snap.put("maxHeapMb", budget.getMaxHeapMb());
+            snap.put("minHeapMb", budget.getMinHeapMb());
+            snap.put("timeoutMinutes", budget.getTimeoutMinutes());
+            snap.put("gcLog", budget.isGcLog());
+            snap.put("heapDumpOnOom", budget.isHeapDumpOnOom());
+            snap.put("executionMode", budget.getExecutionMode());
+            BenchmarkMetrics.fromWorker(workerResult, snap).write(workspaceDir.toPath());
+        } catch (Exception e) {
+            logger.warn("Failed to write benchmark.json: {}", e.toString());
+        }
     }
 
     private List<ApiRoute> loadEntryPoints(File apiFile) {
