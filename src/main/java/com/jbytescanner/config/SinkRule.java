@@ -47,6 +47,7 @@ public class SinkRule {
             case "path_traversal": return 6.0; // Added alias
             case "xxe": return 6.0;
             case "xss": return 4.0;
+            case "log-injection": return 2.0;
             default: return 5.0;
         }
     }

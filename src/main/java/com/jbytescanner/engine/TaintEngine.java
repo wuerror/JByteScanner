@@ -7,6 +7,7 @@ import com.jbytescanner.config.SinkRule;
 import com.jbytescanner.model.ApiRoute;
 import com.jbytescanner.model.Vulnerability;
 import com.jbytescanner.worker.BenchmarkMetrics;
+import com.jbytescanner.worker.CapturedTaintFlow;
 import com.jbytescanner.worker.TaieWorkerLauncher;
 import com.jbytescanner.worker.TaieWorkerMain;
 import com.jbytescanner.worker.TaieWorkerRequest;
@@ -174,11 +175,27 @@ public class TaintEngine {
                 workerResult.worldMs, workerResult.ptaMs,
                 workerResult.peakHeapBytes / (1024 * 1024));
 
-        // 4. Extract Taint Results from worker tai-e.log (P1 will switch to captured flows).
-        File taiELog = workerResult.taiELogPath != null
-                ? new File(workerResult.taiELogPath)
-                : new File(workspaceDir, "tai-e.log");
-        List<Vulnerability> vulnerabilities = parseTaintFlowsFromLog(taiELog, ruleManager);
+        // 4. Consume structured taint flows captured inside the worker while its
+        // Tai-e World is still alive. Legacy workers (protocol v1) fall back to
+        // tai-e.log parsing; protocol v2 never infers rule identity from log text.
+        List<Vulnerability> vulnerabilities;
+        if (workerResult.protocolVersion >= 2) {
+            try {
+                vulnerabilities = convertCapturedFlows(workerResult.taintFlows, ruleManager);
+            } catch (IllegalStateException e) {
+                logger.error("Structured taint-flow mapping failed; refusing to generate an "
+                        + "ambiguous vulnerability report.", e);
+                throw e;
+            }
+        } else {
+            logger.warn("Tai-e worker protocol v{} does not provide structured taint flows; "
+                            + "falling back to legacy tai-e.log parsing.",
+                    workerResult.protocolVersion);
+            File taiELog = workerResult.taiELogPath != null
+                    ? new File(workerResult.taiELogPath)
+                    : new File(workspaceDir, "tai-e.log");
+            vulnerabilities = parseTaintFlowsFromLog(taiELog, ruleManager);
+        }
 
         logger.info("Found {} potential vulnerabilities.", vulnerabilities.size());
 
@@ -208,6 +225,88 @@ public class TaintEngine {
         } else {
             logger.info("No vulnerabilities found. Skipping report generation.");
         }
+    }
+
+    /**
+     * Converts worker-captured Tai-e flows using the exact configured sink method
+     * carried by Tai-e's Sink object. No opcode, receiver-name, or method-name
+     * inference is performed here.
+     */
+    static List<Vulnerability> convertCapturedFlows(List<CapturedTaintFlow> flows,
+                                                     RuleManager ruleManager) {
+        List<Vulnerability> result = new ArrayList<>();
+        if (flows == null || flows.isEmpty()) {
+            return result;
+        }
+
+        for (CapturedTaintFlow flow : flows) {
+            SinkRule sinkRule = findStructuredSinkRule(flow, ruleManager);
+            if (sinkRule == null) {
+                throw new IllegalStateException(String.format(
+                        "No SinkRule for captured flow: configured=%s, declared=%s, "
+                                + "resolved=%s, container=%s, stmt=%d, invoke=%s",
+                        flow.sinkRuleSignature, flow.declaredSinkSignature,
+                        flow.resolvedSinkSignature, flow.sinkContainerSignature,
+                        flow.sinkStmtIndex, flow.invokeText));
+            }
+
+            String sourceDisplay = firstNonBlank(
+                    flow.sourceContainerSignature, flow.sourceRuleSignature, "<unknown-source>");
+            String sinkDisplay = sinkRule.getSignature();
+
+            List<String> trace = new ArrayList<>();
+            trace.add(sourceDisplay + " (Source)");
+            if (flow.sinkContainerSignature != null
+                    && !flow.sinkContainerSignature.isBlank()
+                    && !flow.sinkContainerSignature.equals(sourceDisplay)) {
+                String location = flow.sinkContainerSignature;
+                if (flow.sinkLineNumber >= 0) {
+                    location += " @L" + flow.sinkLineNumber;
+                }
+                trace.add(location + " (Container)");
+            }
+            trace.add(sinkDisplay + " (Sink)");
+
+            result.add(new Vulnerability(
+                    sinkRule.getVulnType(),
+                    sourceDisplay,
+                    sinkDisplay,
+                    trace,
+                    true,
+                    sinkRule));
+        }
+        return result;
+    }
+
+    private static SinkRule findStructuredSinkRule(CapturedTaintFlow flow,
+                                                   RuleManager ruleManager) {
+        if (flow == null) {
+            return null;
+        }
+        String[] candidates = {
+                flow.sinkRuleSignature,
+                flow.declaredSinkSignature,
+                flow.resolvedSinkSignature
+        };
+        for (String candidate : candidates) {
+            if (candidate == null || candidate.isBlank()) {
+                continue;
+            }
+            SinkRule rule = ruleManager.getRuleForSink(candidate);
+            if (rule != null) {
+                return rule;
+            }
+        }
+        return null;
+    }
+
+    private static String firstNonBlank(String... values) {
+        for (String value : values) {
+            if (value != null && !value.isBlank()) {
+                return value;
+            }
+        }
+        return null;
     }
 
     /**

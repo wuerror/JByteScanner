@@ -39,7 +39,7 @@ class ConfigManagerMigrationTest {
         manager.init(tempDir.toFile());
         Config migrated = manager.getConfig();
 
-        assertEquals(3, migrated.getRulesVersion());
+        assertEquals(4, migrated.getRulesVersion());
         assertEquals(7, migrated.getScanConfig().getMaxDepth());
         assertEquals("com.example", migrated.getScanConfig().getScanPackages().get(0));
         assertTrue(Files.exists(tempDir.resolve("rules.yaml.bak-v0")));
@@ -62,8 +62,14 @@ class ConfigManagerMigrationTest {
         assertNotNull(findSink(migrated,
                 "<example.Sink: void consume(java.lang.String)>"));
 
+        SinkRule logInjection = findSink(migrated,
+                "<org.slf4j.Logger: void info(java.lang.String)>");
+        assertNotNull(logInjection);
+        assertEquals(2.0, logInjection.getSeverity());
+        assertEquals(0, logInjection.getIndex());
+
         String persisted = Files.readString(rules, StandardCharsets.UTF_8);
-        assertTrue(persisted.contains("rules_version: 3"));
+        assertTrue(persisted.contains("rules_version: 4"));
     }
 
     private static SinkRule findSink(Config config, String signature) {

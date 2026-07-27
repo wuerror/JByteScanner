@@ -11,6 +11,10 @@ import java.util.Map;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class TaieWorkerResult {
 
+    /** Worker/host JSON protocol. Version 2 carries structured taint flows. */
+    @JsonProperty("protocolVersion")
+    public int protocolVersion = 1;
+
     public static final String STATUS_SUCCESS = "SUCCESS";
     public static final String STATUS_FAILED = "FAILED";
     public static final String STATUS_OOM = "OOM";
@@ -73,6 +77,10 @@ public class TaieWorkerResult {
 
     @JsonProperty("taiELogPath")
     public String taiELogPath;
+
+    /** JSON-safe taint flow snapshots captured before the worker Tai-e World is released. */
+    @JsonProperty("taintFlows")
+    public List<CapturedTaintFlow> taintFlows = new ArrayList<>();
 
     /** Entry inject / flow capture counts from JBSScanEntryPointPlugin (child JVM). */
     @JsonProperty("expansionInject")

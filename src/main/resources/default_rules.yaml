@@ -1,4 +1,4 @@
-rules_version: 3
+rules_version: 4
 
 config:
   max_depth: 15
@@ -345,11 +345,13 @@ sinks:
     signature: "<javax.servlet.http.HttpServletResponse: void sendRedirect(java.lang.String)>"
 
   # --- Log Injection ---
-  # Score: 2.0 (Info)
+  # Score: 2.0 (Low)
   - type: "method"
     vuln_type: "Log_Injection"
     category: "log-injection"
+    severity: 2.0
     signature: "<org.slf4j.Logger: void info(java.lang.String)>"
+    index: 0
 
 
 # Optional project/library summaries. These are merged with JByteScanner's built-in

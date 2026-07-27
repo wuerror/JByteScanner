@@ -8,6 +8,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pascal.taie.World;
 import pascal.taie.WorldBuilder;
+import pascal.taie.analysis.pta.plugin.taint.JBSTaintFlowAccess;
 import pascal.taie.analysis.AnalysisManager;
 import pascal.taie.config.AnalysisConfig;
 import pascal.taie.config.AnalysisPlanner;
@@ -76,6 +77,7 @@ public final class TaieWorkerMain {
      */
     public static TaieWorkerResult runForHost(TaieWorkerRequest request) {
         TaieWorkerResult result = new TaieWorkerResult();
+        result.protocolVersion = 2;
         result.status = TaieWorkerResult.STATUS_FAILED;
         result.exitCode = EXIT_FAILED;
         long totalStart = System.currentTimeMillis();
@@ -199,11 +201,33 @@ public final class TaieWorkerMain {
                 result.peakRssBytes = maxLong(result.peakRssBytes, ptaPhase.peakRssBytes);
             }
             logger.info("[worker] Analysis finished in {} ms", ptaPhase.durationMs);
+            copyCapturedTaintFlows(result);
             copyInjectMetrics(result);
         } catch (Throwable t) {
             ptaPhase.finish(isOomRelated(t) ? "OOM" : "FAILED", t.toString());
             copyInjectMetrics(result);
             throw t;
+        }
+    }
+
+    private static void copyCapturedTaintFlows(TaieWorkerResult result) {
+        try {
+            var flows = JBSScanEntryPointPlugin.capturedTaintFlows;
+            if (flows == null || flows.isEmpty()) {
+                result.taintFlows = new ArrayList<>();
+                return;
+            }
+            result.taintFlows = flows.stream()
+                    .sorted()
+                    .map(JBSTaintFlowAccess::snapshot)
+                    .toList();
+            logger.info("[worker] Serialized {} structured taint flow(s).",
+                    result.taintFlows.size());
+        } catch (Throwable t) {
+            // Structured flow transport is part of the worker protocol, not a
+            // best-effort metric. Let the worker fail instead of silently
+            // falling back to ambiguous log-text inference.
+            throw new IllegalStateException("Failed to serialize captured Tai-e taint flows", t);
         }
     }
 
