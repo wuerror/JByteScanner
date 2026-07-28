@@ -39,7 +39,7 @@ class ConfigManagerMigrationTest {
         manager.init(tempDir.toFile());
         Config migrated = manager.getConfig();
 
-        assertEquals(4, migrated.getRulesVersion());
+        assertEquals(7, migrated.getRulesVersion());
         assertEquals(7, migrated.getScanConfig().getMaxDepth());
         assertEquals("com.example", migrated.getScanConfig().getScanPackages().get(0));
         assertTrue(Files.exists(tempDir.resolve("rules.yaml.bak-v0")));
@@ -48,6 +48,7 @@ class ConfigManagerMigrationTest {
                 "<java.io.ObjectInputStream: java.lang.Object readObject()>");
         assertNotNull(nativeDeser);
         assertEquals("base", nativeDeser.getIndex());
+        // User override must win over bundled vuln_type/category.
         assertEquals("CustomDeserialization", nativeDeser.getVulnType());
         assertEquals("custom-category", nativeDeser.getCategory());
 
@@ -62,14 +63,27 @@ class ConfigManagerMigrationTest {
         assertNotNull(findSink(migrated,
                 "<example.Sink: void consume(java.lang.String)>"));
 
-        SinkRule logInjection = findSink(migrated,
-                "<org.slf4j.Logger: void info(java.lang.String)>");
-        assertNotNull(logInjection);
-        assertEquals(2.0, logInjection.getSeverity());
-        assertEquals(0, logInjection.getIndex());
+        SinkRule hessian = findSink(migrated,
+                "<com.caucho.hessian.io.Hessian2Input: java.lang.Object readObject()>");
+        assertNotNull(hessian);
+        assertEquals("Hessian_Deserialization", hessian.getVulnType());
+        assertEquals("base", hessian.getIndex());
+
+        SinkRule freemarker = findSink(migrated,
+                "<freemarker.template.Template: void process(java.lang.Object,java.io.Writer)>");
+        assertNotNull(freemarker);
+        assertEquals("FreeMarker_Injection", freemarker.getVulnType());
+        assertEquals("base", freemarker.getIndex());
+
+        // v7 adds workflow / JasperReports RCE sinks.
+        SinkRule flowable = findSink(migrated,
+                "<org.flowable.common.engine.impl.scripting.ScriptingEngines: java.lang.Object evaluate(java.lang.String,java.lang.String,org.flowable.common.engine.api.variable.VariableContainer)>");
+        assertNotNull(flowable);
+        assertEquals("Flowable_Script_Injection", flowable.getVulnType());
+        assertEquals(0, flowable.getIndex());
 
         String persisted = Files.readString(rules, StandardCharsets.UTF_8);
-        assertTrue(persisted.contains("rules_version: 4"));
+        assertTrue(persisted.contains("rules_version: 7"));
     }
 
     private static SinkRule findSink(Config config, String signature) {

@@ -18,7 +18,7 @@ public class ConfigManager {
     private static final Logger logger = LoggerFactory.getLogger(ConfigManager.class);
     private static final String CONFIG_FILENAME = "rules.yaml";
     private static final String DEFAULT_CONFIG_RESOURCE = "/default_rules.yaml";
-    private static final int CURRENT_RULES_VERSION = 4;
+    private static final int CURRENT_RULES_VERSION = 7;
 
     private Config config;
     private File configFile;
