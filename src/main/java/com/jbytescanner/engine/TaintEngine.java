@@ -4,6 +4,9 @@ import com.jbytescanner.config.ConfigManager;
 import com.jbytescanner.config.ResourceBudget;
 import com.jbytescanner.config.ScanConfig;
 import com.jbytescanner.config.SinkRule;
+import com.jbytescanner.finding.FindingPipeline;
+import com.jbytescanner.finding.FindingSidecarWriter;
+import com.jbytescanner.finding.PipelineResult;
 import com.jbytescanner.model.ApiRoute;
 import com.jbytescanner.model.Vulnerability;
 import com.jbytescanner.worker.BenchmarkMetrics;
@@ -154,7 +157,7 @@ public class TaintEngine {
             workerResult = executeAnalysis(workerRequest, budget);
         } catch (Exception e) {
             logger.error("Failed to launch Tai-e analysis", e);
-            writeBenchmark(null, budget, expansionMetrics);
+            writeBenchmark(null, budget, expansionMetrics, null);
             return;
         }
         mergeInjectMetrics(expansionMetrics, workerResult);
@@ -163,11 +166,9 @@ public class TaintEngine {
         } catch (Exception e) {
             logger.warn("Failed to update expansion-metrics.json: {}", e.toString());
         }
-        writeBenchmark(workerResult, budget, expansionMetrics);
-
         if (workerResult == null || !TaieWorkerResult.STATUS_SUCCESS.equals(workerResult.status)) {
             logWorkerFailure(workerResult);
-            // Do not continue report generation in a failed/OOM analysis state.
+            writeBenchmark(workerResult, budget, expansionMetrics, null);
             return;
         }
 
@@ -175,55 +176,76 @@ public class TaintEngine {
                 workerResult.worldMs, workerResult.ptaMs,
                 workerResult.peakHeapBytes / (1024 * 1024));
 
-        // 4. Consume structured taint flows captured inside the worker while its
-        // Tai-e World is still alive. Legacy workers (protocol v1) fall back to
-        // tai-e.log parsing; protocol v2 never infers rule identity from log text.
-        List<Vulnerability> vulnerabilities;
+        // 4. Structured flows → P0.6 FindingPipeline (filter / aggregate / score)
+        List<CapturedTaintFlow> rawFlows;
         if (workerResult.protocolVersion >= 2) {
-            try {
-                vulnerabilities = convertCapturedFlows(workerResult.taintFlows, ruleManager);
-            } catch (IllegalStateException e) {
-                logger.error("Structured taint-flow mapping failed; refusing to generate an "
-                        + "ambiguous vulnerability report.", e);
-                throw e;
-            }
+            rawFlows = workerResult.taintFlows != null ? workerResult.taintFlows : List.of();
         } else {
             logger.warn("Tai-e worker protocol v{} does not provide structured taint flows; "
-                            + "falling back to legacy tai-e.log parsing.",
+                            + "falling back to legacy tai-e.log parsing + scoring.",
                     workerResult.protocolVersion);
             File taiELog = workerResult.taiELogPath != null
                     ? new File(workerResult.taiELogPath)
                     : new File(workspaceDir, "tai-e.log");
-            vulnerabilities = parseTaintFlowsFromLog(taiELog, ruleManager);
+            List<Vulnerability> legacy = parseTaintFlowsFromLog(taiELog, ruleManager);
+            com.jbytescanner.config.AuthConfig authConfig = scanConfig != null
+                    ? scanConfig.getAuthConfig() : null;
+            if (authConfig == null) {
+                authConfig = new com.jbytescanner.config.AuthConfig();
+            }
+            com.jbytescanner.score.AuthDetector authDetector =
+                    new com.jbytescanner.score.AuthDetector(authConfig);
+            com.jbytescanner.score.VulnScorer scorer =
+                    new com.jbytescanner.score.VulnScorer(authDetector);
+            for (Vulnerability vuln : legacy) {
+                ApiRoute route = findRoute(routes, vuln.getSourceMethod());
+                scorer.score(vuln, route);
+            }
+            writeBenchmark(workerResult, budget, expansionMetrics, null);
+            if (!legacy.isEmpty()) {
+                new com.jbytescanner.report.SarifReporter(workspaceDir).generate(legacy);
+                new com.jbytescanner.report.PoCReporter(workspaceDir).generate(legacy, routes);
+            }
+            return;
         }
 
-        logger.info("Found {} potential vulnerabilities.", vulnerabilities.size());
-
-        // 5. Scoring (Phase 8.2)
-        logger.info("Running Vulnerability Scorer...");
-        com.jbytescanner.config.AuthConfig authConfig = configManager.getConfig().getScanConfig().getAuthConfig();
-        if (authConfig == null) {
-            authConfig = new com.jbytescanner.config.AuthConfig();
-            configManager.getConfig().getScanConfig().setAuthConfig(authConfig);
-        }
-        com.jbytescanner.score.AuthDetector authDetector = new com.jbytescanner.score.AuthDetector(authConfig);
-        com.jbytescanner.score.VulnScorer scorer = new com.jbytescanner.score.VulnScorer(authDetector);
-
-        for (Vulnerability vuln : vulnerabilities) {
-            ApiRoute route = findRoute(routes, vuln.getSourceMethod());
-            scorer.score(vuln, route);
+        PipelineResult pipelineResult;
+        try {
+            FindingPipeline pipeline = new FindingPipeline(
+                    ruleManager, scanConfig, routes);
+            pipelineResult = pipeline.process(rawFlows);
+        } catch (IllegalStateException e) {
+            logger.error("Finding pipeline failed; refusing ambiguous report.", e);
+            writeBenchmark(workerResult, budget, expansionMetrics, null);
+            throw e;
         }
 
-        // 6. Generate Report
-        if (!vulnerabilities.isEmpty()) {
-            com.jbytescanner.report.SarifReporter reporter = new com.jbytescanner.report.SarifReporter(workspaceDir);
-            reporter.generate(vulnerabilities);
+        FindingSidecarWriter.write(workspaceDir, pipelineResult,
+                scanConfig != null ? scanConfig.getNoiseFilter()
+                        : new com.jbytescanner.config.NoiseFilterConfig(),
+                rawFlows);
+        writeBenchmark(workerResult, budget, expansionMetrics, pipelineResult);
 
-            logger.info("Generating Smart PoC payloads...");
-            com.jbytescanner.report.PoCReporter pocReporter = new com.jbytescanner.report.PoCReporter(workspaceDir);
-            pocReporter.generate(vulnerabilities, routes);
+        int maxInst = scanConfig != null
+                ? scanConfig.getNoiseFilter().getMaxInstancesInSarif() : 10;
+        List<Vulnerability> vulnerabilities =
+                FindingPipeline.toVulnerabilities(pipelineResult.mainFindings, maxInst);
+        logger.info("Pipeline main findings: {} (raw flows: {}, suppressed: {}, low: {})",
+                vulnerabilities.size(), pipelineResult.flowsRaw,
+                pipelineResult.suppressedFindings.size(),
+                pipelineResult.lowConfidenceFindings.size());
+
+        // 5. Generate Report (always write result.sarif, even if empty run)
+        com.jbytescanner.report.SarifReporter reporter =
+                new com.jbytescanner.report.SarifReporter(workspaceDir);
+        reporter.generate(vulnerabilities);
+        if (vulnerabilities.isEmpty()) {
+            logger.info("No main-SARIF vulnerabilities after P0.6 pipeline (empty result.sarif written).");
         } else {
-            logger.info("No vulnerabilities found. Skipping report generation.");
+            logger.info("Generating Smart PoC payloads...");
+            com.jbytescanner.report.PoCReporter pocReporter =
+                    new com.jbytescanner.report.PoCReporter(workspaceDir);
+            pocReporter.generate(vulnerabilities, routes);
         }
     }
 
@@ -740,7 +762,8 @@ public class TaintEngine {
     }
 
     private void writeBenchmark(TaieWorkerResult workerResult, ResourceBudget budget,
-                                ExpansionMetrics expansionMetrics) {
+                                ExpansionMetrics expansionMetrics,
+                                PipelineResult pipelineResult) {
         try {
             Map<String, Object> snap = new LinkedHashMap<>();
             snap.put("workerEnabled", budget.isWorkerEnabled());
@@ -753,6 +776,9 @@ public class TaintEngine {
             BenchmarkMetrics metrics = BenchmarkMetrics.fromWorker(workerResult, snap);
             if (expansionMetrics != null) {
                 metrics.expansion.putAll(expansionMetrics.asMap());
+            }
+            if (pipelineResult != null) {
+                metrics.expansion.putAll(pipelineResult.toBenchmarkMap());
             }
             metrics.write(workspaceDir.toPath());
         } catch (Exception e) {

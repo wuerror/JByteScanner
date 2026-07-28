@@ -16,6 +16,32 @@ config:
   persistent_source_max_patterns: 10000
   persistent_source_max_supplemental_entries: 5000
   persistent_source_auto_max_app_classpath: 120
+  # P0.6: post-PTA precision pipeline (FindingPipeline). Main SARIF is a triage view.
+  # finding_packages defaults to scan_packages when empty.
+  # finding_packages:
+  #   - "com.example"
+  noise_filter:
+    enabled: true
+    weak_sink_outside_package: suppress
+    terminal_outside_package: keep_demote_confidence
+    library_internal_weak: suppress
+    demote_plain_json_parse: true
+    demote_template_without_path_evidence: true
+    # Outside/library: suppress. In-app constructors always demote (cross-method openStream may exist).
+    constructor_without_side_effect: suppress
+    dedupe: exact
+    fan_in_rules:
+      - SQL_Injection
+      - Velocity_Injection
+      - FreeMarker_Injection
+      - Thymeleaf_Injection
+      - Pebble_Injection
+    main_sarif_min_confidence: 0.5
+    main_sarif_always_include_terminal: true
+    max_instances_in_sarif: 10
+    emit_raw_flows: false
+    emit_suppressed_file: true
+    emit_low_confidence_file: true
   # P0.3: isolate Tai-e World/PTA in a worker JVM with explicit heap and diagnostics.
   resource_budget:
     worker_enabled: true

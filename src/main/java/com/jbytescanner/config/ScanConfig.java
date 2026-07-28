@@ -19,6 +19,16 @@ public class ScanConfig {
     @JsonProperty("scan_packages")
     private List<String> scanPackages = new ArrayList<>();
 
+    /**
+     * Packages used for finding provenance (default = scan_packages).
+     * Sink containers outside these packages are weak-sink filtered / terminal demoted.
+     */
+    @JsonProperty("finding_packages")
+    private List<String> findingPackages = new ArrayList<>();
+
+    @JsonProperty("noise_filter")
+    private NoiseFilterConfig noiseFilter;
+
     @JsonProperty("auth_config")
     private AuthConfig authConfig;
 
@@ -85,6 +95,20 @@ public class ScanConfig {
             scanPackages = new ArrayList<>();
         }
         return scanPackages;
+    }
+
+    public List<String> getFindingPackages() {
+        if (findingPackages == null) {
+            findingPackages = new ArrayList<>();
+        }
+        return findingPackages;
+    }
+
+    public NoiseFilterConfig getNoiseFilter() {
+        if (noiseFilter == null) {
+            noiseFilter = new NoiseFilterConfig();
+        }
+        return noiseFilter;
     }
 
     /**

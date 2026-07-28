@@ -145,15 +145,24 @@ public class JByteScanner implements Callable<Integer> {
             return 1;
         }
 
+        // Reuse api.txt only when fingerprint matches current targetAppJars.
+        // Stale cache previously dropped dependency controllers (e.g. RuleEngineController
+        // / Groovy) when scan reused an older partial api.txt — results looked "unstable".
         boolean forceDiscovery = (filterAnnotations != null && !filterAnnotations.isEmpty()) || isApiMode;
-        
-        if (!apiFile.exists() || forceDiscovery) {
-            com.jbytescanner.engine.DiscoveryEngine discoveryEngine = 
+        boolean cacheStale = com.jbytescanner.engine.DiscoveryEngine.isApiCacheStale(
+                workspaceDir, loadedJars.targetAppJars);
+
+        if (!apiFile.exists() || forceDiscovery || cacheStale) {
+            if (cacheStale && apiFile.exists() && !forceDiscovery) {
+                System.out.println("Phase 2: api.txt cache stale or missing fingerprint — rediscovering routes...");
+            }
+            com.jbytescanner.engine.DiscoveryEngine discoveryEngine =
                     new com.jbytescanner.engine.DiscoveryEngine(loadedJars.targetAppJars, loadedJars.depAppJars, loadedJars.libJars, workspaceDir, filterAnnotations);
             discoveryEngine.run();
             System.out.println("Phase 2 Complete. API list generated for project: " + projectName);
         } else {
-            System.out.println("Phase 2 Skipped. Using existing api.txt for project: " + projectName);
+            System.out.println("Phase 2 Skipped. Using existing api.txt for project: " + projectName
+                    + " (fingerprint match)");
         }
 
         System.out.println("------------------------------------------");

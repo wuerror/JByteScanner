@@ -6,13 +6,21 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.security.MessageDigest;
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HexFormat;
 import java.util.List;
 import java.util.stream.Collectors;
 
 public class DiscoveryEngine {
     private static final Logger logger = LoggerFactory.getLogger(DiscoveryEngine.class);
+
+    /** Workspace marker: invalidates cached api.txt when app classpath set changes. */
+    public static final String API_FINGERPRINT_FILE = "api-discovery.fingerprint";
+
     private final List<String> targetAppJars;
     private final List<String> depAppJars;
     private final List<String> libJars;
@@ -42,6 +50,73 @@ public class DiscoveryEngine {
         logger.info("Found {} API Routes.", routes.size());
 
         writeApiTxt(routes);
+        writeFingerprint(scanJars);
+    }
+
+    /**
+     * True when cached {@code api.txt} must be rebuilt: missing, fingerprint missing,
+     * or app classpath set differs from the discovery that produced the cache.
+     */
+    public static boolean isApiCacheStale(File workspaceDir, List<String> targetAppJars) {
+        File apiFile = new File(workspaceDir, "api.txt");
+        if (!apiFile.isFile()) {
+            return true;
+        }
+        File fpFile = new File(workspaceDir, API_FINGERPRINT_FILE);
+        if (!fpFile.isFile()) {
+            // Pre-fingerprint caches are treated as stale so scan does not reuse a
+            // partial/old route list (e.g. missing RuleEngineController → no Groovy).
+            logger.info("api.txt cache has no {}; forcing rediscovery for stability",
+                    API_FINGERPRINT_FILE);
+            return true;
+        }
+        try {
+            String expected = computeFingerprint(targetAppJars);
+            String actual = Files.readString(fpFile.toPath(), StandardCharsets.UTF_8).trim();
+            if (!expected.equals(actual)) {
+                logger.info("api.txt fingerprint mismatch (classpath changed); forcing rediscovery");
+                return true;
+            }
+            return false;
+        } catch (Exception e) {
+            logger.warn("Failed to validate api fingerprint, forcing rediscovery: {}", e.toString());
+            return true;
+        }
+    }
+
+    static String computeFingerprint(List<String> targetAppJars) {
+        List<String> lines = new ArrayList<>();
+        if (targetAppJars != null) {
+            for (String path : targetAppJars) {
+                if (path == null || path.isBlank()) {
+                    continue;
+                }
+                File f = new File(path);
+                String abs = f.getAbsolutePath().replace('\\', '/');
+                long size = f.exists() ? f.length() : -1L;
+                long mtime = f.exists() ? f.lastModified() : -1L;
+                lines.add(abs + "|" + size + "|" + mtime);
+            }
+        }
+        lines.sort(Comparator.naturalOrder());
+        String payload = String.join("\n", lines);
+        try {
+            MessageDigest md = MessageDigest.getInstance("SHA-256");
+            byte[] dig = md.digest(payload.getBytes(StandardCharsets.UTF_8));
+            return HexFormat.of().formatHex(dig) + "\n# jars=" + lines.size();
+        } catch (Exception e) {
+            return Integer.toHexString(payload.hashCode()) + "\n# jars=" + lines.size();
+        }
+    }
+
+    private void writeFingerprint(List<String> scanJars) {
+        try {
+            File fpFile = new File(workspaceDir, API_FINGERPRINT_FILE);
+            Files.writeString(fpFile.toPath(), computeFingerprint(scanJars), StandardCharsets.UTF_8);
+            logger.info("Wrote API discovery fingerprint: {}", fpFile.getAbsolutePath());
+        } catch (IOException e) {
+            logger.warn("Failed to write API fingerprint: {}", e.toString());
+        }
     }
 
     private void writeApiTxt(List<ApiRoute> routes) {

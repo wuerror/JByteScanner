@@ -53,4 +53,15 @@ public class CapturedTaintFlow {
     /** Diagnostic only; never used to infer the vulnerability type. */
     @JsonProperty("rawFlow")
     public String rawFlow;
+
+    /**
+     * P0.6-C: side-effect method names observed in the same container method
+     * after this sink statement (e.g. openStream, openConnection).
+     */
+    @JsonProperty("localFollowingSideEffects")
+    public java.util.List<String> localFollowingSideEffects;
+
+    /** Optional constant summary for sink arguments (e.g. Class literals). */
+    @JsonProperty("sinkArgumentConstants")
+    public java.util.List<String> sinkArgumentConstants;
 }
