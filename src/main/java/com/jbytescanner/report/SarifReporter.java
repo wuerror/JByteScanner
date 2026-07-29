@@ -8,8 +8,11 @@ import com.jbytescanner.model.Vulnerability;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -17,7 +20,8 @@ import java.util.Map;
 
 /**
  * Writes SARIF 2.1 reports. Always emits the combined {@code result.sarif},
- * and additionally one file per {@code vuln_type} (e.g. {@code SSRF.sarif}).
+ * and additionally one file per {@code vuln_type} (e.g. {@code SSRF.sarif})
+ * plus a plain-text call-chain companion (e.g. {@code SSRF.txt}) for offline review.
  */
 public class SarifReporter {
     private static final Logger logger = LoggerFactory.getLogger(SarifReporter.class);
@@ -42,7 +46,7 @@ public class SarifReporter {
         // 1) Combined report (compatibility)
         writeSarif(mapper, new File(workspaceDir, "result.sarif"), vulnerabilities);
 
-        // 2) Split by vuln_type
+        // 2) Split by vuln_type: SARIF + human-readable call-chain TXT
         Map<String, List<Vulnerability>> byType = groupByType(vulnerabilities);
         File typeDir = new File(workspaceDir, BY_TYPE_DIR);
         if (!typeDir.exists() && !typeDir.mkdirs()) {
@@ -52,12 +56,12 @@ public class SarifReporter {
 
         int files = 0;
         for (Map.Entry<String, List<Vulnerability>> e : byType.entrySet()) {
-            String fileName = sanitizeFileName(e.getKey()) + ".sarif";
-            File out = new File(typeDir, fileName);
-            writeSarif(mapper, out, e.getValue());
+            String base = sanitizeFileName(e.getKey());
+            writeSarif(mapper, new File(typeDir, base + ".sarif"), e.getValue());
+            writeCallChainTxt(new File(typeDir, base + ".txt"), e.getValue());
             files++;
         }
-        logger.info("SARIF split by vuln_type: {} file(s) under {}",
+        logger.info("SARIF split by vuln_type: {} file(s) (+txt chains) under {}",
                 files, typeDir.getAbsolutePath());
     }
 
@@ -117,6 +121,266 @@ public class SarifReporter {
                     outFile.getAbsolutePath(), vulnerabilities.size());
         } catch (IOException e) {
             logger.error("Failed to write SARIF report: {}", outFile, e);
+        }
+    }
+
+    /**
+     * Human-readable call chains grouped by sink, for offline code review without SARIF tooling.
+     *
+     * <p>Pipeline findings may pack multiple source <em>instances</em> into one Vulnerability;
+     * each instance is expanded to its own chain (siblings under the same sink), not nested
+     * as if they called each other.</p>
+     *
+     * <pre>
+     * Sink: &lt;sinkMethod&gt;
+     * Total chains: N
+     * ================================================================================
+     *
+     * Chain #1:
+     * sinkMethod
+     *     containerMethod
+     *         sourceMethod
+     * </pre>
+     */
+    static void writeCallChainTxt(File outFile, List<Vulnerability> vulnerabilities) {
+        if (outFile == null) {
+            return;
+        }
+        if (vulnerabilities == null) {
+            vulnerabilities = List.of();
+        }
+
+        Map<String, List<Vulnerability>> bySink = groupBySink(vulnerabilities);
+        StringBuilder sb = new StringBuilder();
+
+        boolean firstSink = true;
+        for (Map.Entry<String, List<Vulnerability>> e : bySink.entrySet()) {
+            if (!firstSink) {
+                sb.append('\n');
+            }
+            firstSink = false;
+
+            String sink = e.getKey();
+            List<ParsedChain> chains = new ArrayList<>();
+            for (Vulnerability v : e.getValue()) {
+                chains.addAll(expandChains(v));
+            }
+
+            sb.append("Sink: ").append(sink).append('\n');
+            sb.append("Total chains: ").append(chains.size()).append('\n');
+            sb.append("================================================================================\n");
+
+            int idx = 1;
+            for (ParsedChain chain : chains) {
+                sb.append('\n');
+                sb.append("Chain #").append(idx++).append(":\n");
+                appendIndentedChain(sb, chain);
+            }
+            sb.append('\n');
+        }
+
+        try (BufferedWriter w = Files.newBufferedWriter(outFile.toPath(), StandardCharsets.UTF_8)) {
+            w.write(sb.toString());
+            logger.info("Call-chain TXT generated: {} ({} finding(s))",
+                    outFile.getAbsolutePath(), vulnerabilities.size());
+        } catch (IOException ex) {
+            logger.error("Failed to write call-chain TXT: {}", outFile, ex);
+        }
+    }
+
+    static Map<String, List<Vulnerability>> groupBySink(List<Vulnerability> vulnerabilities) {
+        Map<String, List<Vulnerability>> bySink = new LinkedHashMap<>();
+        for (Vulnerability v : vulnerabilities) {
+            String sink = v.getSinkMethod();
+            if (sink == null || sink.isBlank()) {
+                sink = "<unknown-sink>";
+            }
+            bySink.computeIfAbsent(sink, ignored -> new ArrayList<>()).add(v);
+        }
+        return bySink;
+    }
+
+    /**
+     * Expand one Vulnerability into one-or-more display chains.
+     * Multi-source pipeline traces become sibling chains (one per source), not a nested stack.
+     */
+    static List<ParsedChain> expandChains(Vulnerability v) {
+        ParsedTrace parsed = parseTrace(v);
+        List<ParsedChain> out = new ArrayList<>();
+        if (parsed.sources.isEmpty()) {
+            out.add(new ParsedChain(parsed.sink, parsed.container, null, parsed.notes));
+            return out;
+        }
+        for (int i = 0; i < parsed.sources.size(); i++) {
+            // Attach notes only once (on the last expanded chain) so multi-source
+            // findings still surface sourceCount / side-effect meta.
+            List<String> notes = (i == parsed.sources.size() - 1) ? parsed.notes : List.of();
+            out.add(new ParsedChain(parsed.sink, parsed.container, parsed.sources.get(i), notes));
+        }
+        return out;
+    }
+
+    /** Emit sink → optional container → source, with optional trailing notes. */
+    static void appendIndentedChain(StringBuilder sb, ParsedChain chain) {
+        int depth = 0;
+        sb.append("    ".repeat(depth)).append(chain.sink).append('\n');
+        depth++;
+        if (chain.container != null && !chain.container.isBlank()
+                && !chain.container.equals(chain.sink)) {
+            sb.append("    ".repeat(depth)).append(chain.container).append('\n');
+            depth++;
+        }
+        if (chain.source != null && !chain.source.isBlank()
+                && !chain.source.equals(chain.sink)
+                && !chain.source.equals(chain.container)) {
+            sb.append("    ".repeat(depth)).append(chain.source).append('\n');
+        }
+        if (chain.notes != null) {
+            for (String note : chain.notes) {
+                sb.append("    ").append(note).append('\n');
+            }
+        }
+    }
+
+    static ParsedTrace parseTrace(Vulnerability v) {
+        List<String> sources = new ArrayList<>();
+        String container = null;
+        String sink = null;
+        List<String> notes = new ArrayList<>();
+
+        if (v.getTrace() != null) {
+            for (String raw : v.getTrace()) {
+                if (raw == null) {
+                    continue;
+                }
+                String step = raw.trim();
+                if (step.isEmpty()) {
+                    continue;
+                }
+                if (step.startsWith("sourceCount=") || step.startsWith("localSideEffects=")) {
+                    notes.add(step);
+                    continue;
+                }
+                Role role = detectRole(step);
+                String cleaned = stripRoleTag(step);
+                if (cleaned == null || cleaned.isBlank()) {
+                    continue;
+                }
+                switch (role) {
+                    case SOURCE -> {
+                        if (sources.isEmpty() || !cleaned.equals(sources.get(sources.size() - 1))) {
+                            sources.add(cleaned);
+                        }
+                    }
+                    case CONTAINER -> container = cleaned;
+                    case SINK -> sink = cleaned;
+                    case UNKNOWN -> {
+                        // Legacy / untagged steps: treat as ordered path pieces (source-side first).
+                        sources.add(cleaned);
+                    }
+                }
+            }
+        }
+
+        if (sink == null || sink.isBlank()) {
+            sink = v.getSinkMethod() != null && !v.getSinkMethod().isBlank()
+                    ? v.getSinkMethod() : "<unknown-sink>";
+        }
+        // Untagged multi-step traces: last piece is sink, earlier pieces are path (single chain).
+        if (sources.size() >= 2 && detectRole(
+                v.getTrace() != null && !v.getTrace().isEmpty()
+                        ? v.getTrace().get(v.getTrace().size() - 1) : "") == Role.UNKNOWN) {
+            String last = sources.remove(sources.size() - 1);
+            if (sink.equals("<unknown-sink>") || sink.equals(last)) {
+                sink = last;
+            }
+            // Collapse path intermediates: keep first as source, middle as container if only one middle.
+            if (sources.size() >= 2 && container == null) {
+                container = sources.remove(sources.size() - 1);
+                // Keep only the entry source for untagged linear path
+                String entry = sources.get(0);
+                sources.clear();
+                sources.add(entry);
+            } else if (sources.size() > 1 && container == null) {
+                // multiple untagged: keep as sources only if they look like instances; else first+last
+                String entry = sources.get(0);
+                sources.clear();
+                sources.add(entry);
+            }
+        }
+        if (sources.isEmpty() && v.getSourceMethod() != null && !v.getSourceMethod().isBlank()) {
+            sources.add(v.getSourceMethod());
+        }
+        return new ParsedTrace(sources, container, sink, notes);
+    }
+
+    static Role detectRole(String step) {
+        if (step == null) {
+            return Role.UNKNOWN;
+        }
+        if (step.matches(".*\\(Source(?:/representative|/instance)?\\)\\s*$")) {
+            return Role.SOURCE;
+        }
+        if (step.matches(".*\\(Container\\)\\s*$")) {
+            return Role.CONTAINER;
+        }
+        if (step.matches(".*\\(Sink\\)\\s*$")) {
+            return Role.SINK;
+        }
+        return Role.UNKNOWN;
+    }
+
+    /** Strip trailing role tags like {@code (Source)} / {@code (Sink)} for compact review text. */
+    static String cleanTraceStep(String step) {
+        if (step == null) {
+            return null;
+        }
+        String s = step.trim();
+        if (s.startsWith("sourceCount=") || s.startsWith("localSideEffects=")) {
+            return null;
+        }
+        return stripRoleTag(s);
+    }
+
+    static String stripRoleTag(String step) {
+        if (step == null) {
+            return null;
+        }
+        return step.trim()
+                .replaceAll("\\s*\\((Source(?:/representative|/instance)?|Container|Sink)\\)\\s*$", "")
+                .trim();
+    }
+
+    enum Role {
+        SOURCE, CONTAINER, SINK, UNKNOWN
+    }
+
+    /** One display chain: sink → container? → source?, plus optional notes. */
+    static final class ParsedChain {
+        final String sink;
+        final String container;
+        final String source;
+        final List<String> notes;
+
+        ParsedChain(String sink, String container, String source, List<String> notes) {
+            this.sink = sink;
+            this.container = container;
+            this.source = source;
+            this.notes = notes != null ? notes : List.of();
+        }
+    }
+
+    static final class ParsedTrace {
+        final List<String> sources;
+        final String container;
+        final String sink;
+        final List<String> notes;
+
+        ParsedTrace(List<String> sources, String container, String sink, List<String> notes) {
+            this.sources = sources != null ? sources : List.of();
+            this.container = container;
+            this.sink = sink;
+            this.notes = notes != null ? notes : List.of();
         }
     }
 
