@@ -132,11 +132,6 @@ public class JByteScanner implements Callable<Integer> {
         String projectName = new File(targetPath).getName();
         File apiFile = new File(workspaceDir, "api.txt");
         
-        // Force scan if filter is provided OR api.txt is missing
-        // If mode is API, we always run discovery (unless explicitly cached? No, explicit mode usually implies execution)
-        // Actually, if user runs -m api, they likely want to see the output, so we should run it.
-        // But if they run -m scan, we only run discovery if needed.
-        
         boolean isApiMode = "api".equalsIgnoreCase(mode);
         boolean isScanMode = "scan".equalsIgnoreCase(mode);
         
@@ -145,24 +140,29 @@ public class JByteScanner implements Callable<Integer> {
             return 1;
         }
 
-        // Reuse api.txt only when fingerprint matches current targetAppJars.
-        // Stale cache previously dropped dependency controllers (e.g. RuleEngineController
-        // / Groovy) when scan reused an older partial api.txt — results looked "unstable".
+        // Design: api.txt acts as a human-editable source whitelist.
+        // Once it exists, we assume the user has curated it — we will NOT
+        // auto-overwrite it even if the classpath changes.
+        // - missing api.txt → always discover
+        // - -m api              → always rediscover
+        // - --filter-annotation → always rediscover
+        // - api.txt exists      → skip discovery, respect manual edits
         boolean forceDiscovery = (filterAnnotations != null && !filterAnnotations.isEmpty()) || isApiMode;
         boolean cacheStale = com.jbytescanner.engine.DiscoveryEngine.isApiCacheStale(
                 workspaceDir, loadedJars.targetAppJars);
 
-        if (!apiFile.exists() || forceDiscovery || cacheStale) {
-            if (cacheStale && apiFile.exists() && !forceDiscovery) {
-                System.out.println("Phase 2: api.txt cache stale or missing fingerprint — rediscovering routes...");
-            }
+        if (!apiFile.exists() || forceDiscovery) {
             com.jbytescanner.engine.DiscoveryEngine discoveryEngine =
                     new com.jbytescanner.engine.DiscoveryEngine(loadedJars.targetAppJars, loadedJars.depAppJars, loadedJars.libJars, workspaceDir, filterAnnotations);
             discoveryEngine.run();
             System.out.println("Phase 2 Complete. API list generated for project: " + projectName);
         } else {
-            System.out.println("Phase 2 Skipped. Using existing api.txt for project: " + projectName
-                    + " (fingerprint match)");
+            if (cacheStale) {
+                System.out.println("Phase 2: api.txt exists but classpath has changed. Using existing api.txt as-is.");
+                System.out.println("         Run with -m api to regenerate the full route list.");
+            } else {
+                System.out.println("Phase 2 Skipped. Using existing api.txt for project: " + projectName);
+            }
         }
 
         System.out.println("------------------------------------------");

@@ -54,8 +54,11 @@ public class DiscoveryEngine {
     }
 
     /**
-     * True when cached {@code api.txt} must be rebuilt: missing, fingerprint missing,
-     * or app classpath set differs from the discovery that produced the cache.
+     * True when the classpath set differs from the discovery that produced
+     * the cached {@code api.txt}.  This is informational: api.txt is treated
+     * as a human-curated source whitelist and will NOT be auto-overwritten.
+     * A stale fingerprint only produces a warning; use {@code -m api} to
+     * regenerate.
      */
     public static boolean isApiCacheStale(File workspaceDir, List<String> targetAppJars) {
         File apiFile = new File(workspaceDir, "api.txt");
@@ -64,9 +67,7 @@ public class DiscoveryEngine {
         }
         File fpFile = new File(workspaceDir, API_FINGERPRINT_FILE);
         if (!fpFile.isFile()) {
-            // Pre-fingerprint caches are treated as stale so scan does not reuse a
-            // partial/old route list (e.g. missing RuleEngineController → no Groovy).
-            logger.info("api.txt cache has no {}; forcing rediscovery for stability",
+            logger.info("api.txt has no {}; classpath may differ from discovery",
                     API_FINGERPRINT_FILE);
             return true;
         }
@@ -74,12 +75,12 @@ public class DiscoveryEngine {
             String expected = computeFingerprint(targetAppJars);
             String actual = Files.readString(fpFile.toPath(), StandardCharsets.UTF_8).trim();
             if (!expected.equals(actual)) {
-                logger.info("api.txt fingerprint mismatch (classpath changed); forcing rediscovery");
+                logger.info("api.txt fingerprint mismatch (classpath may have changed)");
                 return true;
             }
             return false;
         } catch (Exception e) {
-            logger.warn("Failed to validate api fingerprint, forcing rediscovery: {}", e.toString());
+            logger.warn("Failed to validate api fingerprint: {}", e.toString());
             return true;
         }
     }
