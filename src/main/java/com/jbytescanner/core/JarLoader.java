@@ -49,6 +49,14 @@ public class JarLoader {
         List<String> rawJars = new ArrayList<>();
         try (Stream<Path> walk = Files.walk(root.toPath())) {
             rawJars = walk.filter(p -> !Files.isDirectory(p))
+                    // Skip hidden/tool directories (.jbytescanner, .woodpecker, .jbs_work, .git, etc.)
+                    .filter(p -> {
+                        Path rel = root.toPath().relativize(p);
+                        for (int i = 0; i < rel.getNameCount(); i++) {
+                            if (rel.getName(i).toString().startsWith(".")) return false;
+                        }
+                        return true;
+                    })
                     .map(Path::toString)
                     .filter(f -> f.endsWith(".jar") || f.endsWith(".war"))
                     .collect(Collectors.toList());
@@ -58,7 +66,114 @@ public class JarLoader {
 
         logger.info("Found {} raw JAR/WAR files in {}", rawJars.size(), path);
 
-        return processFatJars(rawJars, scanPackages);
+        LoadedJars result = processFatJars(rawJars, scanPackages);
+
+        // Exploded web applications and unpacked fat JARs keep application bytecode in
+        // directories rather than archives. Tai-e, ASM route discovery, and the secret
+        // scanner all accept class directories directly, so promote the known layouts to
+        // target application paths. Without this, scanning WEB-INF only analyzes lib/*.jar
+        // and silently misses WEB-INF/classes entirely.
+        List<String> looseClassDirectories = discoverLooseClassDirectories(root);
+        for (String classesDir : looseClassDirectories) {
+            if (!result.targetAppJars.contains(classesDir)) {
+                result.targetAppJars.add(classesDir);
+            }
+        }
+        if (!looseClassDirectories.isEmpty()) {
+            logger.info("Discovered {} loose application class director{}: {}",
+                    looseClassDirectories.size(),
+                    looseClassDirectories.size() == 1 ? "y" : "ies",
+                    looseClassDirectories);
+        }
+
+        // Detect obfuscated-dependency directories: some vendors (e.g. Landray) rename
+        // third-party library JARs to opaque names (mk.landray.xxx.jar) and place them
+        // in a sibling "ext/" directory alongside a file_mapping.txt manifest.
+        // Tai-e needs these real library JARs on --class-path to resolve sink method
+        // signatures; without them every sink reports "Cannot find" and analysis fails.
+        // We detect this pattern by looking for file_mapping.txt in sibling directories.
+        List<String> extLibJars = discoverObfuscatedExtLibs(root);
+        if (!extLibJars.isEmpty()) {
+            logger.info("Discovered {} obfuscated library JARs from ext directory.", extLibJars.size());
+            result.libJars.addAll(extLibJars);
+        }
+
+        return result;
+    }
+
+    /**
+     * Discovers exploded application-class roots in common deployment layouts.
+     * Supported inputs include the deployment root, WEB-INF itself, BOOT-INF itself,
+     * or the classes directory directly.
+     */
+    private List<String> discoverLooseClassDirectories(File root) {
+        LinkedHashSet<Path> candidates = new LinkedHashSet<>();
+        Path rootPath = root.toPath().toAbsolutePath().normalize();
+
+        if (root.isDirectory() && "classes".equalsIgnoreCase(root.getName())) {
+            candidates.add(rootPath);
+        }
+        candidates.add(rootPath.resolve("classes"));
+        candidates.add(rootPath.resolve("WEB-INF").resolve("classes"));
+        candidates.add(rootPath.resolve("BOOT-INF").resolve("classes"));
+
+        List<String> discovered = new ArrayList<>();
+        for (Path candidate : candidates) {
+            if (Files.isDirectory(candidate) && containsClassFile(candidate)) {
+                discovered.add(candidate.toString());
+            }
+        }
+        return discovered;
+    }
+
+    private boolean containsClassFile(Path directory) {
+        try (Stream<Path> walk = Files.walk(directory)) {
+            return walk.filter(Files::isRegularFile)
+                    .filter(path -> !hasHiddenPathSegment(directory, path))
+                    .anyMatch(path -> path.getFileName().toString().endsWith(".class"));
+        } catch (IOException e) {
+            logger.warn("Failed to inspect loose class directory: {}", directory, e);
+            return false;
+        }
+    }
+
+    private boolean hasHiddenPathSegment(Path root, Path path) {
+        Path relative = root.relativize(path);
+        for (Path segment : relative) {
+            if (segment.toString().startsWith(".")) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Searches sibling directories of {@code root} for a {@code file_mapping.txt} file,
+     * which signals that the directory contains third-party JARs renamed to opaque names.
+     * All {@code *.jar} files in such directories are returned as library JARs.
+     */
+    private List<String> discoverObfuscatedExtLibs(File root) {
+        List<String> extJars = new ArrayList<>();
+        File parent = root.getParentFile();
+        if (parent == null || !parent.isDirectory()) return extJars;
+
+        File[] siblings = parent.listFiles(File::isDirectory);
+        if (siblings == null) return extJars;
+
+        for (File sibling : siblings) {
+            if (sibling.equals(root)) continue;
+            // Presence of file_mapping.txt is the signal for obfuscated dependency dirs
+            if (new File(sibling, "file_mapping.txt").exists()) {
+                logger.info("Found obfuscated dependency directory: {}", sibling.getAbsolutePath());
+                File[] jars = sibling.listFiles(f -> f.getName().endsWith(".jar"));
+                if (jars != null) {
+                    for (File jar : jars) {
+                        extJars.add(jar.getAbsolutePath());
+                    }
+                }
+            }
+        }
+        return extJars;
     }
 
     /**
@@ -160,7 +275,10 @@ public class JarLoader {
                     logger.info("Detected Spring Boot Fat JAR: {}", jarPath);
                     
                     // 1. BOOT-INF/classes -> Target App Jar (Assume it contains main logic)
-                    File classesDir = new File(tempDir, new File(jarPath).getName() + "_classes");
+                    // Use stripJarExtension so names are foo_classes / foo_libs, not foo.jar_classes.
+                    // Missing paths that end with ".jar*" can confuse Tai-e PathUtils.isJarFile heuristics.
+                    String fatBase = stripJarExtension(new File(jarPath).getName());
+                    File classesDir = new File(tempDir, fatBase + "_classes");
                     classesDir.mkdirs();
                     extractBootInfClasses(jarPath, classesDir);
                     
@@ -168,7 +286,7 @@ public class JarLoader {
                     result.targetAppJars.add(classesDir.getAbsolutePath());
 
                     // 2. BOOT-INF/lib/*.jar
-                    File libDir = new File(tempDir, new File(jarPath).getName() + "_libs");
+                    File libDir = new File(tempDir, fatBase + "_libs");
                     libDir.mkdirs();
                     List<String> libs = extractBootInfLibs(jarPath, libDir);
                     
@@ -297,11 +415,37 @@ public class JarLoader {
         return extractedLibs;
     }
 
+    /** {@code app.jar} -> {@code app}; already extensionless names unchanged. */
+    static String stripJarExtension(String fileName) {
+        if (fileName == null || fileName.isBlank()) {
+            return "artifact";
+        }
+        String lower = fileName.toLowerCase(java.util.Locale.ROOT);
+        if (lower.endsWith(".jar") || lower.endsWith(".war")) {
+            return fileName.substring(0, fileName.length() - 4);
+        }
+        return fileName;
+    }
+
     private File createTempDir() {
+        // IMPORTANT: Do NOT use the system temp dir (e.g. C:\Users\...\AppData\Local\Temp).
+        // Tai-e's Options serializer calls Path.relativize(classPathEntry) against CWD.
+        // If extracted jars live on a different drive (e.g. C:) than CWD (e.g. D:),
+        // the relativization throws IllegalArgumentException: 'other' has different root.
+        // Solution: create the temp dir under CWD so all paths share the same drive letter.
         try {
-            return Files.createTempDirectory(TEMP_DIR_PREFIX).toFile();
+            Path tempBase = Path.of(System.getProperty("user.dir")).resolve(".jbs_work");
+            Files.createDirectories(tempBase);
+            return Files.createTempDirectory(tempBase, TEMP_DIR_PREFIX).toFile();
         } catch (IOException e) {
-            throw new RuntimeException("Could not create temp directory for JAR unpacking", e);
+            // Fallback to system temp if the above fails (e.g. CWD is read-only)
+            try {
+                logger.warn("Could not create temp dir under CWD, falling back to system temp. " +
+                        "Cross-drive paths may cause issues with Tai-e on Windows.");
+                return Files.createTempDirectory(TEMP_DIR_PREFIX).toFile();
+            } catch (IOException ex) {
+                throw new RuntimeException("Could not create temp directory for JAR unpacking", ex);
+            }
         }
     }
 

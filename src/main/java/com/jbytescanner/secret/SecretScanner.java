@@ -5,8 +5,6 @@ import com.jbytescanner.secret.asm.AsmStringCollector;
 import org.objectweb.asm.ClassReader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import soot.*;
-import soot.jimple.StringConstant;
 
 import java.io.File;
 import java.io.IOException;
@@ -37,7 +35,7 @@ public class SecretScanner {
     public List<SecretFinding> scan(List<String> targetAppJars) {
         List<SecretFinding> findings = new ArrayList<>();
         
-        logger.info("Starting Secret Scanner (Hybrid Mode: ASM + Soot)...");
+        logger.info("Starting Secret Scanner (ASM mode)...");
 
         // 1. Scan Configuration Files
         for (String path : targetAppJars) {
@@ -135,6 +133,13 @@ public class SecretScanner {
         for (Map.Entry<String, List<String>> entry : collected.entrySet()) {
             String methodSig = entry.getKey();
             List<String> strings = entry.getValue();
+
+            // Skip high-noise methods: Lombok-generated toString/hashCode/equals produce
+            // string templates like "MyDto(fieldName=" with high char entropy but no secrets.
+            String methodName = methodSig.contains("#") ? methodSig.substring(methodSig.indexOf('#') + 1) : "";
+            if (methodName.equals("toString") || methodName.equals("hashCode") || methodName.equals("equals")) {
+                continue;
+            }
             
             for (String value : strings) {
                 // If it's a simple secret, report immediately
@@ -248,98 +253,12 @@ public class SecretScanner {
 
     private List<SecretFinding> analyzeContextWithSoot(Set<String> methodSigs) {
         List<SecretFinding> findings = new ArrayList<>();
-        
-        for (String methodId : methodSigs) {
-            // methodId is "com.example.Class#methodName"
-            String className = methodId.split("#")[0];
-            String methodName = methodId.split("#")[1];
-            
-            if (!Scene.v().containsClass(className)) continue;
-            
-            SootClass sc = Scene.v().getSootClass(className);
-            if (sc.isPhantom()) continue;
-            
-            // Iterate over all methods with that name (handling overloads)
-            for (SootMethod sm : sc.getMethods()) {
-                if (sm.getName().equals(methodName)) {
-                    if (!sm.hasActiveBody()) {
-                        try {
-                            sm.retrieveActiveBody();
-                        } catch (Exception e) {
-                            continue;
-                        }
-                    }
-                    
-                    try {
-                        for (Unit u : sm.getActiveBody().getUnits()) {
-                            for (ValueBox vb : u.getUseBoxes()) {
-                                if (vb.getValue() instanceof StringConstant) {
-                                    String value = ((StringConstant) vb.getValue()).value;
-                                    // Check Hash again in context
-                                    if (HEX_HASH_PATTERN.matcher(value).matches()) {
-                                        checkHashUsage(value, sc.getName() + "." + sm.getName(), findings, u);
-                                    }
-                                }
-                            }
-                        }
-                    } catch (Exception e) {
-                        // ignore
-                    }
-                }
-            }
-        }
+        // Note: Soot analysis was removed during Tai-e migration. 
+        // This is a placeholder for future Tai-e based context analysis.
+        logger.debug("Skipping deep context analysis for {} methods (not implemented in Tai-e yet).", methodSigs.size());
         return findings;
     }
 
-    private void checkHashUsage(String value, String location, List<SecretFinding> findings, Unit u) {
-        boolean isSuspicious = false;
-        String reason = "";
-
-        // Context 1: Method Call (e.g., equals, unknown_check)
-        if (u instanceof soot.jimple.InvokeStmt) {
-            soot.jimple.InvokeExpr invoke = ((soot.jimple.InvokeStmt) u).getInvokeExpr();
-            String methodName = invoke.getMethod().getName();
-            if (methodName.equals("equals") || methodName.equals("equalsIgnoreCase") || methodName.equals("contentEquals")) {
-                isSuspicious = true;
-                reason = "Hardcoded Hash in equality check";
-            }
-        } else if (u instanceof soot.jimple.AssignStmt) {
-             soot.jimple.AssignStmt assign = (soot.jimple.AssignStmt) u;
-             
-             // Context 2: Assignment to Field/Variable with sensitive name
-             // Check Left Hand Side (Target)
-             Value left = assign.getLeftOp();
-             if (left instanceof soot.jimple.FieldRef) {
-                 String fieldName = ((soot.jimple.FieldRef) left).getField().getName();
-                 if (SENSITIVE_VAR_NAME.matcher(fieldName).find()) {
-                     isSuspicious = true;
-                     reason = "Assigned to sensitive field: " + fieldName;
-                 }
-             } 
-             
-             // Check Right Hand Side (Invoke)
-             // e.g., boolean x = token.equals("hash");
-             if (assign.getRightOp() instanceof soot.jimple.InvokeExpr) {
-                 soot.jimple.InvokeExpr invoke = (soot.jimple.InvokeExpr) assign.getRightOp();
-                 String methodName = invoke.getMethod().getName();
-                 if (methodName.equals("equals") || methodName.equals("equalsIgnoreCase") || methodName.equals("contentEquals")) {
-                     // Verify if our string is one of the args
-                     for (Value arg : invoke.getArgs()) {
-                         if (arg instanceof StringConstant && ((StringConstant)arg).value.equals(value)) {
-                             isSuspicious = true;
-                             reason = "Hardcoded Hash in equality check";
-                             break;
-                         }
-                     }
-                 }
-             }
-         }
-        
-        if (isSuspicious) {
-            findings.add(new SecretFinding("Hardcoded Hash Credential", location, value, reason, "HIGH"));
-        }
-    }
-    
     private boolean isBase64(String s) {
         return BASE64_PATTERN.matcher(s).matches();
     }

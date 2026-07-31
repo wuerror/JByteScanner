@@ -1,6 +1,7 @@
 package com.jbytescanner;
 
 import com.jbytescanner.config.ConfigManager;
+import com.jbytescanner.core.ClasspathPlanner;
 import com.jbytescanner.core.JarLoader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -14,7 +15,7 @@ import java.util.concurrent.Callable;
 import java.util.List;
 
 @Command(name = "JByteScanner", mixinStandardHelpOptions = true, version = "1.0",
-        description = "Java Bytecode Security Scanner based on Soot")
+        description = "Java Bytecode Security Scanner based on Tai-e")
 public class JByteScanner implements Callable<Integer> {
     private static final Logger logger = LoggerFactory.getLogger(JByteScanner.class);
 
@@ -30,6 +31,15 @@ public class JByteScanner implements Callable<Integer> {
     @Option(names = {"-m", "--mode"}, defaultValue = "scan", description = "Execution mode: 'api' (Asset Discovery only) or 'scan' (Full Vulnerability Scan)")
     private String mode;
 
+    @Option(names = {"--worker"}, description = "Run Tai-e analysis in an isolated worker JVM (default: true)", negatable = true, defaultValue = "true")
+    private boolean worker = true;
+
+    @Option(names = {"--max-heap-mb"}, description = "Worker JVM -Xmx in megabytes (default: 8192)")
+    private Integer maxHeapMb;
+
+    @Option(names = {"--timeout-minutes"}, description = "Worker wall-clock timeout in minutes; 0 disables (default: 0)")
+    private Integer timeoutMinutes;
+
     public static void main(String[] args) {
         int exitCode = new CommandLine(new JByteScanner()).execute(args);
         System.exit(exitCode);
@@ -40,6 +50,15 @@ public class JByteScanner implements Callable<Integer> {
         System.out.println("==========================================");
         System.out.println("   JByteScanner - Next Gen Static Analysis");
         System.out.println("==========================================");
+
+        // Memory check: host heap only matters for discovery/secret; Tai-e uses worker budget.
+        if ("scan".equalsIgnoreCase(mode) && !worker) {
+            long maxHeapMB = Runtime.getRuntime().maxMemory() / (1024 * 1024);
+            if (maxHeapMB < 4096) {
+                System.out.println("[WARN] In-process mode: max heap is only " + maxHeapMB + " MB. Large projects may OOM.");
+                System.out.println("[WARN] Prefer default worker mode, or: java -Xmx8g -jar JByteScanner.jar --no-worker ...");
+            }
+        }
 
         // 0. Determine Workspace Directory (.jbytescanner)
         File targetFile = new File(targetPath);
@@ -56,6 +75,7 @@ public class JByteScanner implements Callable<Integer> {
         // 1. Initialize Configuration (Project Specific)
         ConfigManager configManager = new ConfigManager();
         configManager.init(workspaceDir);
+        applyResourceBudgetOverrides(configManager);
 
         // 2. Load JARs (Now separated into App and Lib jars, with Promotion logic)
         JarLoader jarLoader = new JarLoader();
@@ -89,6 +109,11 @@ public class JByteScanner implements Callable<Integer> {
                 logger.warn("Could not infer base package. Analysis will cover ALL application classes (slower).");
             }
         }
+
+        // P0.2: classpath preflight, SHA/version mediation, mixed-JAR package scope.
+        ClasspathPlanner.PlanResult classpathPlan =
+                new ClasspathPlanner().plan(loadedJars, scanPackages, workspaceDir);
+        loadedJars = classpathPlan.jars;
         
         System.out.println("------------------------------------------");
         System.out.println("Target: " + targetPath);
@@ -96,16 +121,16 @@ public class JByteScanner implements Callable<Integer> {
         System.out.println("Target App Jars (Analysis Scope): " + loadedJars.targetAppJars.size());
         System.out.println("Dependency App Jars: " + loadedJars.depAppJars.size());
         System.out.println("Lib Jars: " + loadedJars.libJars.size());
+        if (classpathPlan.report != null) {
+            System.out.println("Classpath preflight: droppedDup=" + classpathPlan.report.droppedDuplicateCount
+                    + ", mixedExtract=" + classpathPlan.report.mixedJarExtractions
+                    + ", warnings=" + classpathPlan.report.warnings.size());
+        }
         System.out.println("------------------------------------------");
 
         // 3. Phase 2: Asset Discovery
         String projectName = new File(targetPath).getName();
         File apiFile = new File(workspaceDir, "api.txt");
-        
-        // Force scan if filter is provided OR api.txt is missing
-        // If mode is API, we always run discovery (unless explicitly cached? No, explicit mode usually implies execution)
-        // Actually, if user runs -m api, they likely want to see the output, so we should run it.
-        // But if they run -m scan, we only run discovery if needed.
         
         boolean isApiMode = "api".equalsIgnoreCase(mode);
         boolean isScanMode = "scan".equalsIgnoreCase(mode);
@@ -115,24 +140,29 @@ public class JByteScanner implements Callable<Integer> {
             return 1;
         }
 
+        // Design: api.txt acts as a human-editable source whitelist.
+        // Once it exists, we assume the user has curated it — we will NOT
+        // auto-overwrite it even if the classpath changes.
+        // - missing api.txt → always discover
+        // - -m api              → always rediscover
+        // - --filter-annotation → always rediscover
+        // - api.txt exists      → skip discovery, respect manual edits
         boolean forceDiscovery = (filterAnnotations != null && !filterAnnotations.isEmpty()) || isApiMode;
-        
+        boolean cacheStale = com.jbytescanner.engine.DiscoveryEngine.isApiCacheStale(
+                workspaceDir, loadedJars.targetAppJars);
+
         if (!apiFile.exists() || forceDiscovery) {
-            com.jbytescanner.engine.DiscoveryEngine discoveryEngine = 
+            com.jbytescanner.engine.DiscoveryEngine discoveryEngine =
                     new com.jbytescanner.engine.DiscoveryEngine(loadedJars.targetAppJars, loadedJars.depAppJars, loadedJars.libJars, workspaceDir, filterAnnotations);
             discoveryEngine.run();
             System.out.println("Phase 2 Complete. API list generated for project: " + projectName);
         } else {
-            System.out.println("Phase 2 Skipped. Using existing api.txt for project: " + projectName);
-        }
-
-        // Phase 2.5: Secret Scanner (Execute in BOTH api and scan modes)
-        // Ensure Soot is initialized if Discovery was skipped (e.g. in 'scan' mode with existing api.txt)
-        // Note: In 'api' mode, DiscoveryEngine.run() already initializes Soot.
-        if (isScanMode && apiFile.exists() && !forceDiscovery) {
-             List<String> combinedLibs = new java.util.ArrayList<>(loadedJars.libJars);
-             if (loadedJars.depAppJars != null) combinedLibs.addAll(loadedJars.depAppJars);
-             com.jbytescanner.core.SootManager.initSoot(loadedJars.targetAppJars, combinedLibs, false);
+            if (cacheStale) {
+                System.out.println("Phase 2: api.txt exists but classpath has changed. Using existing api.txt as-is.");
+                System.out.println("         Run with -m api to regenerate the full route list.");
+            } else {
+                System.out.println("Phase 2 Skipped. Using existing api.txt for project: " + projectName);
+            }
         }
 
         System.out.println("------------------------------------------");
@@ -207,5 +237,23 @@ public class JByteScanner implements Callable<Integer> {
         System.out.println("Phase 3 Complete. Analysis finished.");
         
         return 0;
+    }
+
+    private void applyResourceBudgetOverrides(ConfigManager configManager) {
+        com.jbytescanner.config.ScanConfig scanConfig = configManager.getConfig().getScanConfig();
+        if (scanConfig == null) {
+            return;
+        }
+        com.jbytescanner.config.ResourceBudget budget = scanConfig.getResourceBudget();
+        budget.setWorkerEnabled(worker);
+        if (maxHeapMb != null && maxHeapMb > 0) {
+            budget.setMaxHeapMb(maxHeapMb);
+        }
+        if (timeoutMinutes != null && timeoutMinutes >= 0) {
+            budget.setTimeoutMinutes(timeoutMinutes);
+        }
+        System.out.println("Resource budget: worker=" + budget.isWorkerEnabled()
+                + ", maxHeapMb=" + budget.getMaxHeapMb()
+                + ", timeoutMinutes=" + budget.getTimeoutMinutes());
     }
 }

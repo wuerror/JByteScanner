@@ -57,16 +57,15 @@ result.execute();                        // this.field reaches sink — needs su
 
 ### 8.1 Secret Scanner (Tri-Layer Architecture)
 *   **Layer 1: Static String Analysis**
-    *   Iterate `Scene.v().getApplicationClasses()` -> Fields & Method Bodies (`ldc`).
-    *   **Entropy Check**: Calculate Shannon Entropy for strings > 20 chars. High entropy (>4.5) suggests keys/tokens.
+    *   ASM-based `AsmStringCollector` traverses class constant pools from `targetAppJars`.
+    *   **Entropy Check**: Calculate Shannon Entropy for strings > 20 chars. High entropy (>4.6) suggests keys/tokens.
     *   **Pattern Match**: Regex for specific providers (AWS `AKIA...`, Private Key Headers).
 *   **Layer 2: Config File Analysis**
-    *   Class: `ConfigScanner`.
-    *   Logic: Unzip JAR, scan `application.properties`, `application.yml`, `bootstrap.yml`.
-    *   Keyword Search: `password`, `secret`, `key` (case-insensitive keys) + High Entropy Values.
+    *   Class: `SecretScanner`.
+    *   Logic: Scan `application.properties`, `application.yml`, `bootstrap.yml`, `.xml`, `.json` inside JARs.
+    *   Keyword Search: `password`, `secret`, `key` (case-insensitive) + High Entropy Values.
 *   **Layer 3: Encoded Secret Detection**
-    *   Control Flow Analysis: Detect `Base64.getDecoder().decode(StringConstant)`.
-    *   Decode statically and re-run entropy/pattern checks on the decoded value.
+    *   Detect Base64 strings in constant pools, decode, and re-run entropy/pattern checks recursively.
 
 ### 8.2 Vulnerability Scorer (5-Dimensional)
 *   **Class**: `com.jbytescanner.analysis.VulnerabilityScorer`
@@ -161,27 +160,22 @@ result.execute();                        // this.field reaches sink — needs su
 
 ### 10.1 Offensive SCA
 *   **Multi-Fingerprint**:
-    *   SHA-1 Hash.
-    *   Maven `pom.properties` (GroupId/ArtifactId).
-    *   **Class Signature**: Check for existence of specific classes/methods to identify shaded jars.
-*   **Data Source**: Embedded `nvd_lite.json` or `known_vuln_libs.json`.
+    *   Maven `pom.properties` (GroupId/ArtifactId/Version).
+    *   JAR filename parsing (name-version.jar pattern).
+    *   MANIFEST.MF metadata.
+*   **Data Source**: Embedded `gadgets.json` (400+ known gadgets from java-chains), matched against detected library versions.
 
-### 10.2 Interactive Audit Shell
+### 10.2 Interactive Audit Shell (计划中)
 *   **Technology**: JLine3.
 *   **Features**:
     *   `search`: Regex search for methods.
     *   `path`: Shortest path query.
-    *   `inspect`: Dump Jimple.
+    *   `inspect`: IR inspection.
     *   `add-sink`: Runtime rule modification.
-    *   `export`: Export CallGraph to `.dot` or Burp format.
+    *   `export`: Export call graph.
 
-### 10.3 Enhanced Reporting (Source Code Mapping)
-*   **Problem**: Microservices (multiple JARs) cause SARIF path collisions.
-*   **Solution**: JAR-Aware URI Prefixing.
-    *   SARIF `uri` format: `{jarNameWithoutVersion}/{packagePath}/{ClassName}.java`.
-    *   Example: `user-service/com/example/UserController.java`.
-*   **Workflow**:
-    1.  User decompiles JARs into folders matching the JAR name (e.g., `decompile/user-service/`).
-    2.  JByteScanner generates SARIF with matching prefixes.
-    3.  VSCode SARIF Viewer automatically resolves the correct file.
-*   **Helper**: JByteScanner can output a `decompile.sh` script to automate the folder creation and CFR execution.
+### 10.3 Enhanced Reporting
+*   **Finding Pipeline (P0.6)**: Four-tier output — `raw-flows.jsonl`, `results-suppressed.jsonl`, `low-confidence.jsonl`, `result.sarif`.
+*   **Sink Strength Classification**: Classifies sinks as CONSTRUCTOR, PARSER, INTERMEDIATE, or TERMINAL_SIDE_EFFECT with configurable suppression policies.
+*   **Auth Scoring**: Worker-compatible auth detection using ASM-extracted route annotations; no dependency on host Tai-e World.
+*   **PoC Generation**: Burp Suite-compatible HTTP requests with context-aware payload injection for discovered vulnerabilities.

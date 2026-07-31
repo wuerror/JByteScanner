@@ -3,6 +3,18 @@ on:
   push:
     tags:
       - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag (e.g. v1.6)'
+        required: true
+        type: string
+        default: 'v1.6'
+      description:
+        description: 'Release description'
+        required: false
+        type: string
+        default: ''
 
 permissions:
   contents: write
@@ -12,10 +24,26 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - name: Set up JDK 11
+
+      - name: Set tag name
+        id: tag
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "value=${{ github.event.inputs.tag }}" >> $GITHUB_OUTPUT
+          else
+            echo "value=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create tag (workflow_dispatch)
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          git tag ${{ steps.tag.outputs.value }}
+          git push origin ${{ steps.tag.outputs.value }}
+
+      - name: Set up JDK 17
         uses: actions/setup-java@v3
         with:
-          java-version: '11'
+          java-version: '17'
           distribution: 'temurin'
           cache: maven
       - name: Build with Maven
@@ -25,7 +53,9 @@ jobs:
         id: create_release
         uses: softprops/action-gh-release@v1
         with:
-          generate_release_notes: true
+          tag_name: ${{ steps.tag.outputs.value }}
+          body: ${{ github.event.inputs.description || '' }}
+          generate_release_notes: ${{ github.event_name != 'workflow_dispatch' }}
           files: target/JByteScanner-*.jar
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -1,5 +1,57 @@
+rules_version: 7
+
 config:
   max_depth: 15
+  # Tai-e 0.5.4 Spring DI/WEC modeling; disable for non-Spring targets or tight memory budgets.
+  spring_analysis: true
+  # Match taint rules at reachable invoke statements even when PTA cannot resolve
+  # an interface/abstract callee (for example MultipartFile.getInputStream()).
+  taint_call_site_mode: true
+  # Fallback for incomplete Spring classpaths where Tai-e's full Spring plugin is unsafe.
+  # Service parameters are not marked as request sources; this only makes their bodies reachable.
+  spring_service_entry_fallback: false
+  # Persistent/cache typed-source inference: off | on | auto (default on for common projects).
+  # auto disables when app classpath entries exceed persistent_source_auto_max_app_classpath.
+  persistent_source_analysis: on
+  persistent_source_max_patterns: 10000
+  persistent_source_max_supplemental_entries: 5000
+  persistent_source_auto_max_app_classpath: 120
+  # P0.6: post-PTA precision pipeline (FindingPipeline). Main SARIF is a triage view.
+  # finding_packages defaults to scan_packages when empty.
+  # finding_packages:
+  #   - "com.example"
+  noise_filter:
+    enabled: true
+    weak_sink_outside_package: suppress
+    terminal_outside_package: keep_demote_confidence
+    library_internal_weak: suppress
+    demote_plain_json_parse: true
+    demote_template_without_path_evidence: true
+    # Outside/library: suppress. In-app constructors always demote (cross-method openStream may exist).
+    constructor_without_side_effect: suppress
+    dedupe: exact
+    fan_in_rules:
+      - SQL_Injection
+      - Velocity_Injection
+      - FreeMarker_Injection
+      - Thymeleaf_Injection
+      - Pebble_Injection
+    main_sarif_min_confidence: 0.5
+    main_sarif_always_include_terminal: true
+    max_instances_in_sarif: 10
+    emit_raw_flows: false
+    emit_suppressed_file: true
+    emit_low_confidence_file: true
+  # P0.3: isolate Tai-e World/PTA in a worker JVM with explicit heap and diagnostics.
+  resource_budget:
+    worker_enabled: true
+    allow_in_process_fallback: false
+    max_heap_mb: 8192
+    min_heap_mb: 0
+    timeout_minutes: 0
+    gc_log: true
+    heap_dump_on_oom: true
+    execution_mode: single
   # Scan packages: List package prefixes to include in the scan.
   # Important: If your business logic resides in dependencies (BOOT-INF/lib),
   # you MUST add their package prefixes here to promote them to Application Classes.
@@ -63,62 +115,705 @@ sinks:
     category: "cmd-exec"
     signature: "<java.lang.ProcessBuilder: java.lang.ProcessBuilder command(java.util.List)>"
 
-  # --- Code Injection / Expression Injection ---
-  # Score: 10.0 (In-Memory Code Exec)
-  
-  # Script Engine
+  # Attacker-controlled argument arrays passed to a dynamically selected method.
   - type: "method"
-    vuln_type: "RCE"
+    vuln_type: "Reflection_RCE"
     category: "code-exec"
-    signature: "<javax.script.ScriptEngine: java.lang.Object eval(java.lang.String)>"
+    signature: "<java.lang.reflect.Method: java.lang.Object invoke(java.lang.Object,java.lang.Object[])>"
+    index: 1
+
+  # --- Code Injection / Expression Injection ---
+  # Score: 10.0 (In-Memory Code Exec); vuln_type names the concrete engine/language.
+
+  # Script Engine
   - type: "method"
     vuln_type: "Script_Engine_Injection"
     category: "code-exec"
-    signature: "<groovy.lang.GroovyShell: java.lang.Object evaluate(java.lang.String)>"
-
-  # OGNL/MVEL/SpEL expression evaluation
+    signature: "<javax.script.ScriptEngine: java.lang.Object eval(java.lang.String)>"
   - type: "method"
-    vuln_type: "RCE"
+    vuln_type: "Groovy_Injection"
+    category: "code-exec"
+    signature: "<groovy.lang.GroovyShell: java.lang.Object evaluate(java.lang.String)>"
+    index: 0
+  - type: "method"
+    vuln_type: "Groovy_Injection"
+    category: "code-exec"
+    signature: "<groovy.lang.GroovyShell: groovy.lang.Script parse(java.lang.String)>"
+    index: 0
+  - type: "method"
+    vuln_type: "Groovy_Injection"
+    category: "code-exec"
+    signature: "<groovy.lang.GroovyClassLoader: java.lang.Class parseClass(java.lang.String)>"
+    index: 0
+
+  # OGNL / SpEL / MVEL expression evaluation
+  - type: "method"
+    vuln_type: "OGNL_Injection"
     category: "code-exec"
     signature: "<ognl.Ognl: java.lang.Object getValue(java.lang.Object,java.lang.Object)>"
   - type: "method"
-    vuln_type: "RCE"
+    vuln_type: "SpEL_Injection"
     category: "code-exec"
     signature: "<org.springframework.expression.ExpressionParser: org.springframework.expression.Expression parseExpression(java.lang.String)>"
   - type: "method"
-    vuln_type: "RCE"
+    vuln_type: "MVEL_Injection"
     category: "code-exec"
     signature: "<org.mvel2.MVEL: java.lang.Object eval(java.lang.String)>"
 
-  # --- Deserialization ---
-  # Score: 8.5
-  
-  # Native
+  # --- Server-Side Template Injection (SSTI) ---
+  # Attacker-controlled template source / name reaches engine evaluation.
+
+  # FreeMarker
   - type: "method"
-    vuln_type: "Deserialization"
+    vuln_type: "FreeMarker_Injection"
+    category: "code-exec"
+    signature: "<freemarker.template.Template: void <init>(java.lang.String,java.lang.String,freemarker.template.Configuration)>"
+    index: 1
+  - type: "method"
+    vuln_type: "FreeMarker_Injection"
+    category: "code-exec"
+    signature: "<freemarker.template.Template: void <init>(java.lang.String,java.lang.String,freemarker.template.Configuration,java.lang.String)>"
+    index: 1
+  - type: "method"
+    vuln_type: "FreeMarker_Injection"
+    category: "code-exec"
+    signature: "<freemarker.cache.StringTemplateLoader: void putTemplate(java.lang.String,java.lang.String)>"
+    index: 1
+  - type: "method"
+    vuln_type: "FreeMarker_Injection"
+    category: "code-exec"
+    signature: "<freemarker.template.Template: void process(java.lang.Object,java.io.Writer)>"
+    index: "base"
+
+  # Velocity
+  - type: "method"
+    vuln_type: "Velocity_Injection"
+    category: "code-exec"
+    signature: "<org.apache.velocity.app.Velocity: boolean evaluate(org.apache.velocity.context.Context,java.io.Writer,java.lang.String,java.lang.String)>"
+    index: 3
+  - type: "method"
+    vuln_type: "Velocity_Injection"
+    category: "code-exec"
+    signature: "<org.apache.velocity.app.VelocityEngine: boolean evaluate(org.apache.velocity.context.Context,java.io.Writer,java.lang.String,java.lang.String)>"
+    index: 3
+  - type: "method"
+    vuln_type: "Velocity_Injection"
+    category: "code-exec"
+    signature: "<org.apache.velocity.Template: void merge(org.apache.velocity.context.Context,java.io.Writer)>"
+    index: "base"
+
+  # Thymeleaf
+  - type: "method"
+    vuln_type: "Thymeleaf_Injection"
+    category: "code-exec"
+    signature: "<org.thymeleaf.TemplateEngine: java.lang.String process(java.lang.String,org.thymeleaf.context.IContext)>"
+    index: 0
+  - type: "method"
+    vuln_type: "Thymeleaf_Injection"
+    category: "code-exec"
+    signature: "<org.thymeleaf.TemplateEngine: void process(java.lang.String,org.thymeleaf.context.IContext,java.io.Writer)>"
+    index: 0
+  - type: "method"
+    vuln_type: "Thymeleaf_Injection"
+    category: "code-exec"
+    signature: "<org.thymeleaf.ITemplateEngine: java.lang.String process(java.lang.String,org.thymeleaf.context.IContext)>"
+    index: 0
+
+  # Pebble (legacy + current package)
+  - type: "method"
+    vuln_type: "Pebble_Injection"
+    category: "code-exec"
+    signature: "<com.mitchellbosecke.pebble.PebbleEngine: com.mitchellbosecke.pebble.template.PebbleTemplate getTemplate(java.lang.String)>"
+    index: 0
+  - type: "method"
+    vuln_type: "Pebble_Injection"
+    category: "code-exec"
+    signature: "<com.mitchellbosecke.pebble.template.PebbleTemplate: void evaluate(java.io.Writer)>"
+    index: "base"
+  - type: "method"
+    vuln_type: "Pebble_Injection"
+    category: "code-exec"
+    signature: "<io.pebbletemplates.pebble.PebbleEngine: io.pebbletemplates.pebble.template.PebbleTemplate getTemplate(java.lang.String)>"
+    index: 0
+  - type: "method"
+    vuln_type: "Pebble_Injection"
+    category: "code-exec"
+    signature: "<io.pebbletemplates.pebble.template.PebbleTemplate: void evaluate(java.io.Writer)>"
+    index: "base"
+
+  # Beetl
+  - type: "method"
+    vuln_type: "Beetl_Injection"
+    category: "code-exec"
+    signature: "<org.beetl.core.GroupTemplate: org.beetl.core.Template getTemplate(java.lang.String)>"
+    index: 0
+  - type: "method"
+    vuln_type: "Beetl_Injection"
+    category: "code-exec"
+    signature: "<org.beetl.core.Template: void renderTo(java.io.Writer)>"
+    index: "base"
+  - type: "method"
+    vuln_type: "Beetl_Injection"
+    category: "code-exec"
+    signature: "<org.beetl.core.Template: java.lang.String render()>"
+    index: "base"
+
+  # Jinjava / Mustache
+  - type: "method"
+    vuln_type: "Jinjava_Injection"
+    category: "code-exec"
+    signature: "<com.hubspot.jinjava.Jinjava: java.lang.String render(java.lang.String,java.util.Map)>"
+    index: 0
+  - type: "method"
+    vuln_type: "Mustache_Injection"
+    category: "code-exec"
+    signature: "<com.github.mustachejava.MustacheFactory: com.github.mustachejava.Mustache compile(java.lang.String)>"
+    index: 0
+  - type: "method"
+    vuln_type: "Mustache_Injection"
+    category: "code-exec"
+    signature: "<com.github.mustachejava.Mustache: void execute(java.io.Writer,java.lang.Object)>"
+    index: "base"
+
+  # --- Workflow / Report Engine RCE ---
+  # Script tasks, UEL expressions, dynamic BPMN deploy, JRXML compile/fill.
+
+  # Activiti — script evaluation (language, script, scope)
+  - type: "method"
+    vuln_type: "Activiti_Script_Injection"
+    category: "code-exec"
+    signature: "<org.activiti.engine.impl.scripting.ScriptingEngines: java.lang.Object evaluate(java.lang.String,java.lang.String,org.activiti.engine.delegate.VariableScope)>"
+    index: 1
+  - type: "method"
+    vuln_type: "Activiti_Script_Injection"
+    category: "code-exec"
+    signature: "<org.activiti.engine.impl.scripting.ScriptingEngines: java.lang.Object evaluate(java.lang.String,java.lang.String,org.activiti.engine.delegate.VariableScope,boolean)>"
+    index: 1
+  - type: "method"
+    vuln_type: "Activiti_Expression_Injection"
+    category: "code-exec"
+    signature: "<org.activiti.engine.impl.el.ExpressionManager: org.activiti.engine.delegate.Expression createExpression(java.lang.String)>"
+    index: 0
+  - type: "method"
+    vuln_type: "Activiti_Deployment_RCE"
+    category: "code-exec"
+    signature: "<org.activiti.engine.repository.DeploymentBuilder: org.activiti.engine.repository.DeploymentBuilder addString(java.lang.String,java.lang.String)>"
+    index: 1
+  - type: "method"
+    vuln_type: "Activiti_Deployment_RCE"
+    category: "code-exec"
+    signature: "<org.activiti.engine.repository.DeploymentBuilder: org.activiti.engine.repository.DeploymentBuilder addInputStream(java.lang.String,java.io.InputStream)>"
+    index: 1
+  - type: "method"
+    vuln_type: "Activiti_Class_Injection"
+    category: "code-exec"
+    signature: "<org.activiti.engine.impl.util.ReflectUtil: java.lang.Object instantiate(java.lang.String)>"
+    index: 0
+  - type: "method"
+    vuln_type: "Activiti_Class_Injection"
+    category: "code-exec"
+    signature: "<org.activiti.engine.impl.util.ReflectUtil: java.lang.Class loadClass(java.lang.String)>"
+    index: 0
+
+  # Flowable — v6.x: script first, then language (unlike Activiti)
+  - type: "method"
+    vuln_type: "Flowable_Script_Injection"
+    category: "code-exec"
+    signature: "<org.flowable.common.engine.impl.scripting.ScriptingEngines: java.lang.Object evaluate(java.lang.String,java.lang.String,org.flowable.common.engine.api.variable.VariableContainer)>"
+    index: 0
+  - type: "method"
+    vuln_type: "Flowable_Script_Injection"
+    category: "code-exec"
+    signature: "<org.flowable.common.engine.impl.scripting.ScriptingEngines: java.lang.Object evaluate(java.lang.String,java.lang.String,org.flowable.common.engine.api.variable.VariableContainer,boolean)>"
+    index: 0
+  # Flowable 7+: ScriptEngineRequest path
+  - type: "method"
+    vuln_type: "Flowable_Script_Injection"
+    category: "code-exec"
+    signature: "<org.flowable.common.engine.impl.scripting.ScriptEngineRequest$Builder: org.flowable.common.engine.impl.scripting.ScriptEngineRequest$Builder script(java.lang.String)>"
+    index: 0
+  - type: "method"
+    vuln_type: "Flowable_Script_Injection"
+    category: "code-exec"
+    signature: "<org.flowable.common.engine.impl.scripting.ScriptingEngines: org.flowable.common.engine.impl.scripting.ScriptEvaluation evaluate(org.flowable.common.engine.impl.scripting.ScriptEngineRequest)>"
+    index: 0
+  - type: "method"
+    vuln_type: "Flowable_Expression_Injection"
+    category: "code-exec"
+    signature: "<org.flowable.common.engine.impl.el.ExpressionManager: org.flowable.common.engine.api.delegate.Expression createExpression(java.lang.String)>"
+    index: 0
+  - type: "method"
+    vuln_type: "Flowable_Deployment_RCE"
+    category: "code-exec"
+    signature: "<org.flowable.engine.repository.DeploymentBuilder: org.flowable.engine.repository.DeploymentBuilder addString(java.lang.String,java.lang.String)>"
+    index: 1
+  - type: "method"
+    vuln_type: "Flowable_Deployment_RCE"
+    category: "code-exec"
+    signature: "<org.flowable.engine.repository.DeploymentBuilder: org.flowable.engine.repository.DeploymentBuilder addInputStream(java.lang.String,java.io.InputStream)>"
+    index: 1
+  - type: "method"
+    vuln_type: "Flowable_Class_Injection"
+    category: "code-exec"
+    signature: "<org.flowable.common.engine.impl.util.ReflectUtil: java.lang.Object instantiate(java.lang.String)>"
+    index: 0
+  - type: "method"
+    vuln_type: "Flowable_Class_Injection"
+    category: "code-exec"
+    signature: "<org.flowable.common.engine.impl.util.ReflectUtil: java.lang.Class loadClass(java.lang.String)>"
+    index: 0
+
+  # JasperReports — malicious JRXML / report expressions
+  - type: "method"
+    vuln_type: "JasperReports_RCE"
+    category: "code-exec"
+    signature: "<net.sf.jasperreports.engine.JasperCompileManager: net.sf.jasperreports.engine.JasperReport compileReport(java.lang.String)>"
+    index: 0
+  - type: "method"
+    vuln_type: "JasperReports_RCE"
+    category: "code-exec"
+    signature: "<net.sf.jasperreports.engine.JasperCompileManager: net.sf.jasperreports.engine.JasperReport compileReport(java.io.InputStream)>"
+    index: 0
+  - type: "method"
+    vuln_type: "JasperReports_RCE"
+    category: "code-exec"
+    signature: "<net.sf.jasperreports.engine.JasperCompileManager: net.sf.jasperreports.engine.JasperReport compileReport(net.sf.jasperreports.engine.design.JasperDesign)>"
+    index: 0
+  - type: "method"
+    vuln_type: "JasperReports_RCE"
+    category: "code-exec"
+    signature: "<net.sf.jasperreports.engine.xml.JRXmlLoader: net.sf.jasperreports.engine.design.JasperDesign load(java.lang.String)>"
+    index: 0
+  - type: "method"
+    vuln_type: "JasperReports_RCE"
+    category: "code-exec"
+    signature: "<net.sf.jasperreports.engine.xml.JRXmlLoader: net.sf.jasperreports.engine.design.JasperDesign load(java.io.InputStream)>"
+    index: 0
+  - type: "method"
+    vuln_type: "JasperReports_RCE"
+    category: "code-exec"
+    signature: "<net.sf.jasperreports.engine.xml.JRXmlLoader: net.sf.jasperreports.engine.design.JasperDesign load(java.io.File)>"
+    index: 0
+  - type: "method"
+    vuln_type: "JasperReports_RCE"
+    category: "code-exec"
+    signature: "<net.sf.jasperreports.engine.JasperFillManager: net.sf.jasperreports.engine.JasperPrint fillReport(java.lang.String,java.util.Map)>"
+    index: 0
+  - type: "method"
+    vuln_type: "JasperReports_RCE"
+    category: "code-exec"
+    signature: "<net.sf.jasperreports.engine.JasperFillManager: net.sf.jasperreports.engine.JasperPrint fillReport(java.io.InputStream,java.util.Map)>"
+    index: 0
+  - type: "method"
+    vuln_type: "JasperReports_RCE"
+    category: "code-exec"
+    signature: "<net.sf.jasperreports.engine.design.JRDesignExpression: void setText(java.lang.String)>"
+    index: 0
+
+  # --- Dynamic Java Compile & Load ---
+  # API accepts source / bytecode and compiles or defines classes at runtime.
+
+  # JDK JavaCompiler (javax.tools)
+  - type: "method"
+    vuln_type: "Java_Compile_RCE"
+    category: "code-exec"
+    signature: "<javax.tools.JavaCompiler: javax.tools.JavaCompiler$CompilationTask getTask(java.io.Writer,javax.tools.JavaFileManager,javax.tools.DiagnosticListener,java.lang.Iterable,java.lang.Iterable,java.lang.Iterable)>"
+    index: 5
+  - type: "method"
+    vuln_type: "Java_Compile_RCE"
+    category: "code-exec"
+    signature: "<javax.tools.JavaCompiler: int run(java.io.InputStream,java.io.OutputStream,java.io.OutputStream,java.lang.String[])>"
+    index: 3
+  - type: "method"
+    vuln_type: "Java_Compile_RCE"
+    category: "code-exec"
+    signature: "<javax.tools.JavaCompiler$CompilationTask: java.lang.Boolean call()>"
+    index: "base"
+
+  # Janino / commons-compiler (in-process compile-from-string)
+  - type: "method"
+    vuln_type: "Java_Compile_RCE"
+    category: "code-exec"
+    signature: "<org.codehaus.janino.SimpleCompiler: void cook(java.lang.String)>"
+    index: 0
+  - type: "method"
+    vuln_type: "Java_Compile_RCE"
+    category: "code-exec"
+    signature: "<org.codehaus.janino.SimpleCompiler: void cook(java.lang.String,java.lang.String)>"
+    index: 1
+  - type: "method"
+    vuln_type: "Java_Compile_RCE"
+    category: "code-exec"
+    signature: "<org.codehaus.janino.SimpleCompiler: void cook(java.lang.String,java.io.Reader)>"
+    index: 1
+  - type: "method"
+    vuln_type: "Java_Compile_RCE"
+    category: "code-exec"
+    signature: "<org.codehaus.janino.ScriptEvaluator: void cook(java.lang.String)>"
+    index: 0
+  - type: "method"
+    vuln_type: "Java_Compile_RCE"
+    category: "code-exec"
+    signature: "<org.codehaus.janino.ScriptEvaluator: void cook(java.lang.String,java.lang.String)>"
+    index: 1
+  - type: "method"
+    vuln_type: "Java_Compile_RCE"
+    category: "code-exec"
+    signature: "<org.codehaus.janino.ClassBodyEvaluator: void cook(java.lang.String)>"
+    index: 0
+  - type: "method"
+    vuln_type: "Java_Compile_RCE"
+    category: "code-exec"
+    signature: "<org.codehaus.janino.ClassBodyEvaluator: void cook(java.lang.String,java.lang.String)>"
+    index: 1
+  - type: "method"
+    vuln_type: "Java_Compile_RCE"
+    category: "code-exec"
+    signature: "<org.codehaus.janino.ExpressionEvaluator: void cook(java.lang.String)>"
+    index: 0
+  - type: "method"
+    vuln_type: "Java_Compile_RCE"
+    category: "code-exec"
+    signature: "<org.codehaus.commons.compiler.ICookable: void cook(java.lang.String)>"
+    index: 0
+  - type: "method"
+    vuln_type: "Java_Compile_RCE"
+    category: "code-exec"
+    signature: "<org.codehaus.commons.compiler.ICookable: void cook(java.lang.String,java.lang.String)>"
+    index: 1
+  - type: "method"
+    vuln_type: "Java_Compile_RCE"
+    category: "code-exec"
+    signature: "<org.codehaus.commons.compiler.IScriptEvaluator: java.lang.Object evaluate(java.lang.Object[])>"
+    index: "base"
+
+  # OpenHFT / runtime compilers
+  - type: "method"
+    vuln_type: "Java_Compile_RCE"
+    category: "code-exec"
+    signature: "<net.openhft.compiler.CompilerUtils: java.lang.Class loadFromJava(java.lang.String,java.lang.String)>"
+    index: 1
+  - type: "method"
+    vuln_type: "Java_Compile_RCE"
+    category: "code-exec"
+    signature: "<net.openhft.compiler.CachedCompiler: java.lang.Class loadFromJava(java.lang.String,java.lang.String)>"
+    index: 1
+
+  # Bytecode define / native library load
+  # defineClass is a common framework primitive — keep severity below default code-exec 10.0.
+  - type: "method"
+    vuln_type: "Bytecode_Load_RCE"
+    category: "code-exec"
+    severity: 7.0
+    signature: "<java.lang.ClassLoader: java.lang.Class defineClass(java.lang.String,byte[],int,int)>"
+    index: 1
+  - type: "method"
+    vuln_type: "Bytecode_Load_RCE"
+    category: "code-exec"
+    severity: 7.0
+    signature: "<java.lang.ClassLoader: java.lang.Class defineClass(java.lang.String,java.nio.ByteBuffer,java.security.ProtectionDomain)>"
+    index: 1
+  - type: "method"
+    vuln_type: "Bytecode_Load_RCE"
+    category: "code-exec"
+    severity: 7.0
+    signature: "<java.lang.invoke.MethodHandles$Lookup: java.lang.Class defineClass(byte[])>"
+    index: 0
+  - type: "method"
+    vuln_type: "Native_Library_Load"
+    category: "code-exec"
+    signature: "<java.lang.System: void load(java.lang.String)>"
+    index: 0
+  - type: "method"
+    vuln_type: "Native_Library_Load"
+    category: "code-exec"
+    signature: "<java.lang.System: void loadLibrary(java.lang.String)>"
+    index: 0
+  - type: "method"
+    vuln_type: "Native_Library_Load"
+    category: "code-exec"
+    signature: "<java.lang.Runtime: void load(java.lang.String)>"
+    index: 0
+  - type: "method"
+    vuln_type: "Native_Library_Load"
+    category: "code-exec"
+    signature: "<java.lang.Runtime: void loadLibrary(java.lang.String)>"
+    index: 0
+
+  # --- JNDI Injection ---
+  - type: "method"
+    vuln_type: "JNDI_Injection"
+    category: "jndi"
+    signature: "<javax.naming.Context: java.lang.Object lookup(java.lang.String)>"
+    index: 0
+  - type: "method"
+    vuln_type: "JNDI_Injection"
+    category: "jndi"
+    signature: "<javax.naming.Context: java.lang.Object lookup(javax.naming.Name)>"
+    index: 0
+  - type: "method"
+    vuln_type: "JNDI_Injection"
+    category: "jndi"
+    signature: "<javax.naming.InitialContext: java.lang.Object lookup(java.lang.String)>"
+    index: 0
+  - type: "method"
+    vuln_type: "JNDI_Injection"
+    category: "jndi"
+    signature: "<javax.naming.directory.DirContext: java.lang.Object lookup(java.lang.String)>"
+    index: 0
+  - type: "method"
+    vuln_type: "JNDI_Injection"
+    category: "jndi"
+    signature: "<org.springframework.jndi.JndiTemplate: java.lang.Object lookup(java.lang.String)>"
+    index: 0
+
+  # --- Expression Language (JUEL / Tomcat / JSP EL) ---
+  - type: "method"
+    vuln_type: "EL_Injection"
+    category: "code-exec"
+    signature: "<javax.el.ExpressionFactory: javax.el.ValueExpression createValueExpression(javax.el.ELContext,java.lang.String,java.lang.Class)>"
+    index: 1
+  - type: "method"
+    vuln_type: "EL_Injection"
+    category: "code-exec"
+    signature: "<javax.el.ExpressionFactory: javax.el.MethodExpression createMethodExpression(javax.el.ELContext,java.lang.String,java.lang.Class,java.lang.Class[])>"
+    index: 1
+  - type: "method"
+    vuln_type: "EL_Injection"
+    category: "code-exec"
+    signature: "<javax.el.ValueExpression: java.lang.Object getValue(javax.el.ELContext)>"
+    index: "base"
+  - type: "method"
+    vuln_type: "EL_Injection"
+    category: "code-exec"
+    signature: "<jakarta.el.ExpressionFactory: jakarta.el.ValueExpression createValueExpression(jakarta.el.ELContext,java.lang.String,java.lang.Class)>"
+    index: 1
+  - type: "method"
+    vuln_type: "EL_Injection"
+    category: "code-exec"
+    signature: "<org.apache.el.ExpressionFactoryImpl: javax.el.ValueExpression createValueExpression(javax.el.ELContext,java.lang.String,java.lang.Class)>"
+    index: 1
+
+  # --- More script / rule engines ---
+  - type: "method"
+    vuln_type: "JEXL_Injection"
+    category: "code-exec"
+    signature: "<org.apache.commons.jexl3.JexlEngine: org.apache.commons.jexl3.JexlExpression createExpression(java.lang.String)>"
+    index: 0
+  - type: "method"
+    vuln_type: "JEXL_Injection"
+    category: "code-exec"
+    signature: "<org.apache.commons.jexl3.JexlExpression: java.lang.Object evaluate(org.apache.commons.jexl3.JexlContext)>"
+    index: "base"
+  - type: "method"
+    vuln_type: "JEXL_Injection"
+    category: "code-exec"
+    signature: "<org.apache.commons.jexl2.JexlEngine: org.apache.commons.jexl2.Expression createExpression(java.lang.String)>"
+    index: 0
+  - type: "method"
+    vuln_type: "Aviator_Injection"
+    category: "code-exec"
+    signature: "<com.googlecode.aviator.AviatorEvaluator: java.lang.Object execute(java.lang.String)>"
+    index: 0
+  - type: "method"
+    vuln_type: "Aviator_Injection"
+    category: "code-exec"
+    signature: "<com.googlecode.aviator.AviatorEvaluator: com.googlecode.aviator.Expression compile(java.lang.String)>"
+    index: 0
+  - type: "method"
+    vuln_type: "QLExpress_Injection"
+    category: "code-exec"
+    signature: "<com.ql.util.express.ExpressRunner: java.lang.Object execute(java.lang.String,com.ql.util.express.IExpressContext,java.util.List,boolean,boolean)>"
+    index: 0
+  - type: "method"
+    vuln_type: "BeanShell_Injection"
+    category: "code-exec"
+    signature: "<bsh.Interpreter: java.lang.Object eval(java.lang.String)>"
+    index: 0
+  - type: "method"
+    vuln_type: "Rhino_Injection"
+    category: "code-exec"
+    signature: "<org.mozilla.javascript.Context: java.lang.Object evaluateString(org.mozilla.javascript.Scriptable,java.lang.String,java.lang.String,int,java.lang.Object)>"
+    index: 1
+
+  # --- Spring remote / dynamic bean loading ---
+  - type: "method"
+    vuln_type: "Spring_Context_RCE"
+    category: "code-exec"
+    signature: "<org.springframework.context.support.ClassPathXmlApplicationContext: void <init>(java.lang.String)>"
+    index: 0
+  - type: "method"
+    vuln_type: "Spring_Context_RCE"
+    category: "code-exec"
+    signature: "<org.springframework.context.support.ClassPathXmlApplicationContext: void <init>(java.lang.String[])>"
+    index: 0
+  - type: "method"
+    vuln_type: "Spring_Context_RCE"
+    category: "code-exec"
+    signature: "<org.springframework.context.support.FileSystemXmlApplicationContext: void <init>(java.lang.String)>"
+    index: 0
+  - type: "method"
+    vuln_type: "Spring_Context_RCE"
+    category: "code-exec"
+    signature: "<org.springframework.context.support.FileSystemXmlApplicationContext: void <init>(java.lang.String[])>"
+    index: 0
+  - type: "method"
+    vuln_type: "Spring_Context_RCE"
+    category: "code-exec"
+    signature: "<org.springframework.context.support.GenericXmlApplicationContext: void load(java.lang.String[])>"
+    index: 0
+
+  # --- XSLT injection ---
+  - type: "method"
+    vuln_type: "XSLT_Injection"
+    category: "code-exec"
+    signature: "<javax.xml.transform.TransformerFactory: javax.xml.transform.Transformer newTransformer(javax.xml.transform.Source)>"
+    index: 0
+  - type: "method"
+    vuln_type: "XSLT_Injection"
+    category: "code-exec"
+    signature: "<javax.xml.transform.TransformerFactory: javax.xml.transform.Templates newTemplates(javax.xml.transform.Source)>"
+    index: 0
+  - type: "method"
+    vuln_type: "XSLT_Injection"
+    category: "code-exec"
+    signature: "<javax.xml.transform.Transformer: void transform(javax.xml.transform.Source,javax.xml.transform.Result)>"
+    index: "base"
+
+  # --- Camunda (workflow; ScriptingEngines has no evaluate — use SourceExecutableScript) ---
+  - type: "method"
+    vuln_type: "Camunda_Script_Injection"
+    category: "code-exec"
+    signature: "<org.camunda.bpm.engine.impl.scripting.SourceExecutableScript: void <init>(java.lang.String,java.lang.String)>"
+    index: 1
+  - type: "method"
+    vuln_type: "Camunda_Script_Injection"
+    category: "code-exec"
+    signature: "<org.camunda.bpm.engine.impl.scripting.SourceExecutableScript: void setScriptSource(java.lang.String)>"
+    index: 0
+  - type: "method"
+    vuln_type: "Camunda_Script_Injection"
+    category: "code-exec"
+    signature: "<org.camunda.bpm.engine.impl.scripting.SourceExecutableScript: java.lang.Object evaluate(javax.script.ScriptEngine,org.camunda.bpm.engine.delegate.VariableScope,javax.script.Bindings)>"
+    index: "base"
+  - type: "method"
+    vuln_type: "Camunda_Expression_Injection"
+    category: "code-exec"
+    signature: "<org.camunda.bpm.engine.impl.el.ExpressionManager: org.camunda.bpm.engine.impl.el.Expression createExpression(java.lang.String)>"
+    index: 0
+  - type: "method"
+    vuln_type: "Camunda_Deployment_RCE"
+    category: "code-exec"
+    signature: "<org.camunda.bpm.engine.repository.DeploymentBuilder: org.camunda.bpm.engine.repository.DeploymentBuilder addString(java.lang.String,java.lang.String)>"
+    index: 1
+
+  # --- Deserialization ---
+  # Score: 8.5; vuln_type names the concrete deserializer / format.
+
+  # Native Java serialization
+  - type: "method"
+    vuln_type: "Java_Deserialization"
     category: "deserialization"
     signature: "<java.io.ObjectInputStream: java.lang.Object readObject()>"
-  
+    index: "base"
+
+  # Common wrappers that perform native Java deserialization internally.
+  - type: "method"
+    vuln_type: "Java_Deserialization"
+    category: "deserialization"
+    signature: "<org.apache.commons.lang3.SerializationUtils: java.lang.Object deserialize(byte[])>"
+    index: 0
+  - type: "method"
+    vuln_type: "Java_Deserialization"
+    category: "deserialization"
+    signature: "<org.apache.commons.lang.SerializationUtils: java.lang.Object deserialize(byte[])>"
+    index: 0
+
   # SnakeYAML
   - type: "method"
-    vuln_type: "Deserialization"
+    vuln_type: "SnakeYAML_Deserialization"
     category: "deserialization"
     signature: "<org.yaml.snakeyaml.Yaml: java.lang.Object load(java.lang.String)>"
-  
-  # FastJSON
+
+  # Fastjson
   - type: "method"
-    vuln_type: "Deserialization"
+    vuln_type: "Fastjson_Deserialization"
     category: "deserialization"
     signature: "<com.alibaba.fastjson.JSON: java.lang.Object parse(java.lang.String)>"
   - type: "method"
-    vuln_type: "Deserialization"
+    vuln_type: "Fastjson_Deserialization"
     category: "deserialization"
     signature: "<com.alibaba.fastjson.JSON: java.lang.Object parseObject(java.lang.String)>"
   - type: "method"
-    vuln_type: "Deserialization"
+    vuln_type: "Fastjson_Deserialization"
     category: "deserialization"
     signature: "<com.alibaba.fastjson.JSON: com.alibaba.fastjson.JSONObject parseObject(java.lang.String)>"
-  
+
+  # Jackson
+  - type: "method"
+    vuln_type: "Jackson_Deserialization"
+    category: "deserialization"
+    signature: "<com.fasterxml.jackson.databind.ObjectMapper: java.lang.Object readValue(java.lang.String,java.lang.Class)>"
+
+  # Hessian (Caucho + Alibaba/Dubbo forks)
+  - type: "method"
+    vuln_type: "Hessian_Deserialization"
+    category: "deserialization"
+    signature: "<com.caucho.hessian.io.HessianInput: java.lang.Object readObject()>"
+    index: "base"
+  - type: "method"
+    vuln_type: "Hessian_Deserialization"
+    category: "deserialization"
+    signature: "<com.caucho.hessian.io.Hessian2Input: java.lang.Object readObject()>"
+    index: "base"
+  - type: "method"
+    vuln_type: "Hessian_Deserialization"
+    category: "deserialization"
+    signature: "<com.alibaba.com.caucho.hessian.io.HessianInput: java.lang.Object readObject()>"
+    index: "base"
+  - type: "method"
+    vuln_type: "Hessian_Deserialization"
+    category: "deserialization"
+    signature: "<com.alibaba.com.caucho.hessian.io.Hessian2Input: java.lang.Object readObject()>"
+    index: "base"
+
+  # XStream / XmlDecoder / Kryo / FST
+  - type: "method"
+    vuln_type: "XStream_Deserialization"
+    category: "deserialization"
+    signature: "<com.thoughtworks.xstream.XStream: java.lang.Object fromXML(java.lang.String)>"
+    index: 0
+  - type: "method"
+    vuln_type: "XStream_Deserialization"
+    category: "deserialization"
+    signature: "<com.thoughtworks.xstream.XStream: java.lang.Object fromXML(java.io.InputStream)>"
+    index: 0
+  - type: "method"
+    vuln_type: "XStream_Deserialization"
+    category: "deserialization"
+    signature: "<com.thoughtworks.xstream.XStream: java.lang.Object fromXML(java.io.Reader)>"
+    index: 0
+  - type: "method"
+    vuln_type: "XmlDecoder_Deserialization"
+    category: "deserialization"
+    signature: "<java.beans.XMLDecoder: java.lang.Object readObject()>"
+    index: "base"
+  - type: "method"
+    vuln_type: "Kryo_Deserialization"
+    category: "deserialization"
+    signature: "<com.esotericsoftware.kryo.Kryo: java.lang.Object readClassAndObject(com.esotericsoftware.kryo.io.Input)>"
+    index: 0
+  - type: "method"
+    vuln_type: "Kryo_Deserialization"
+    category: "deserialization"
+    signature: "<com.esotericsoftware.kryo.Kryo: java.lang.Object readObject(com.esotericsoftware.kryo.io.Input,java.lang.Class)>"
+    index: 0
+  - type: "method"
+    vuln_type: "FST_Deserialization"
+    category: "deserialization"
+    signature: "<org.nustaq.serialization.FSTConfiguration: java.lang.Object asObject(byte[])>"
+    index: 0
+
   # --- SQL Injection ---
   # Score: 8.0
   - type: "method"
@@ -142,19 +837,69 @@ sinks:
     category: "sqli"
     signature: "<org.springframework.jdbc.core.JdbcTemplate: java.util.List query(java.lang.String,org.springframework.jdbc.core.RowMapper)>"
 
-  # JDBC URL / Connection Abuse
+  # --- JDBC URL Injection (connect-time RCE / SSRF / deserialization via malicious jdbc:) ---
+  # Distinct from classic SQLi: attacker controls the JDBC URL (or host/path fragments
+  # concatenated into it), not a SQL statement string.
   - type: "method"
-    vuln_type: "JDBC_Driver_RCE"
-    category: "jdbc_driver_rce"
+    vuln_type: "JDBC_Injection"
+    category: "jdbc"
     signature: "<java.sql.DriverManager: java.sql.Connection getConnection(java.lang.String)>"
+    index: 0
   - type: "method"
-    vuln_type: "JDBC_Driver_RCE"
-    category: "jdbc_driver_rce"
-    signature: "<java.sql.DriverManager: java.sql.Connection getConnection(java.lang.String,java.util.Properties)>"
-  - type: "method"
-    vuln_type: "JDBC_Driver_RCE"
-    category: "jdbc_driver_rce"
+    vuln_type: "JDBC_Injection"
+    category: "jdbc"
     signature: "<java.sql.DriverManager: java.sql.Connection getConnection(java.lang.String,java.lang.String,java.lang.String)>"
+    index: 0
+  - type: "method"
+    vuln_type: "JDBC_Injection"
+    category: "jdbc"
+    signature: "<java.sql.DriverManager: java.sql.Connection getConnection(java.lang.String,java.util.Properties)>"
+    index: 0
+  - type: "method"
+    vuln_type: "JDBC_Injection"
+    category: "jdbc"
+    signature: "<com.zaxxer.hikari.HikariConfig: void setJdbcUrl(java.lang.String)>"
+    index: 0
+  - type: "method"
+    vuln_type: "JDBC_Injection"
+    category: "jdbc"
+    signature: "<com.zaxxer.hikari.HikariDataSource: void setJdbcUrl(java.lang.String)>"
+    index: 0
+  - type: "method"
+    vuln_type: "JDBC_Injection"
+    category: "jdbc"
+    signature: "<org.apache.commons.dbcp2.BasicDataSource: void setUrl(java.lang.String)>"
+    index: 0
+  - type: "method"
+    vuln_type: "JDBC_Injection"
+    category: "jdbc"
+    signature: "<org.apache.commons.dbcp.BasicDataSource: void setUrl(java.lang.String)>"
+    index: 0
+  - type: "method"
+    vuln_type: "JDBC_Injection"
+    category: "jdbc"
+    signature: "<org.apache.tomcat.dbcp.dbcp2.BasicDataSource: void setUrl(java.lang.String)>"
+    index: 0
+  - type: "method"
+    vuln_type: "JDBC_Injection"
+    category: "jdbc"
+    signature: "<com.alibaba.druid.pool.DruidDataSource: void setUrl(java.lang.String)>"
+    index: 0
+  - type: "method"
+    vuln_type: "JDBC_Injection"
+    category: "jdbc"
+    signature: "<com.alibaba.druid.pool.DruidDataSource: void setJdbcUrl(java.lang.String)>"
+    index: 0
+  - type: "method"
+    vuln_type: "JDBC_Injection"
+    category: "jdbc"
+    signature: "<org.springframework.boot.jdbc.DataSourceBuilder: org.springframework.boot.jdbc.DataSourceBuilder url(java.lang.String)>"
+    index: 0
+  - type: "method"
+    vuln_type: "JDBC_Injection"
+    category: "jdbc"
+    signature: "<org.springframework.jdbc.datasource.DriverManagerDataSource: void setUrl(java.lang.String)>"
+    index: 0
 
   # --- SSRF ---
   # Score: 7.5
@@ -166,6 +911,14 @@ sinks:
     vuln_type: "SSRF"
     category: "ssrf"
     signature: "<java.net.URL: java.net.URLConnection openConnection()>"
+  - type: "method"
+    vuln_type: "SSRF"
+    category: "ssrf"
+    signature: "<java.net.URL: void <init>(java.lang.String)>"
+  - type: "method"
+    vuln_type: "SSRF"
+    category: "ssrf"
+    signature: "<java.net.URI: void <init>(java.lang.String)>"
   - type: "method"
     vuln_type: "SSRF"
     category: "ssrf"
@@ -223,9 +976,8 @@ sinks:
     category: "redirect"
     signature: "<javax.servlet.http.HttpServletResponse: void sendRedirect(java.lang.String)>"
 
-  # --- Log Injection ---
-  # Score: 2.0 (Info)
-  - type: "method"
-    vuln_type: "Log_Injection"
-    category: "log-injection"
-    signature: "<org.slf4j.Logger: void info(java.lang.String)>"
+
+# Optional project/library summaries. These are merged with JByteScanner's built-in
+# String and upload/archive summaries. Use these for wrappers whose bodies are not
+# analyzed under only-app:true.
+transfers: []

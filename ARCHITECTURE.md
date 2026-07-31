@@ -3,210 +3,146 @@
 ## 1. Overview
 
 *   **Project Name**: JByteScanner (Java Bytecode Security Scanner)
-*   **Core Engine**: Soot 4.5+ (Java Bytecode Optimization and Analysis Framework)
+*   **Core Engine**: ASM (OW2) + Tai-e 0.5.4 (Java Bytecode Semantic Analysis)
 *   **Target Audience**: Security Auditors, Security Researchers
 *   **Key Value Proposition**: Single JAR execution, low memory footprint, database-free, highly configurable, and standardized SARIF output.
 
 ## 2. Architecture
 
-The tool adopts a **"Dual-Engine Microkernel"** architecture, decoupling lightweight information extraction (API scanning) from heavyweight data flow analysis (vulnerability scanning) to address memory consumption issues found in previous tools.
+The tool adopts a **"Dual-Engine Microkernel"** architecture, decoupling lightweight bytecode extraction (ASM) from heavyweight semantic analysis (Tai-e worker) to address memory consumption and stability issues.
 
 ```mermaid
 graph TD
-    User[User/Auditor] --> Launcher["Launcher (CLI)"]
+    User[User/Auditor] --> Launcher["Launcher (CLI - Picocli)"]
     Launcher --> ConfigMgr[Config Manager]
-    Launcher --> DiscoveryEngine["A. Asset Discovery Engine (Lightweight)"]
-    Launcher --> SecretScanner["B. Secret Scanner (Tactical)"]
-    Launcher --> TaintEngine["C. Taint Analysis Engine (Heavyweight)"]
+    Launcher --> DiscoveryEngine["A. Asset Discovery (ASM)"]
+    Launcher --> SecretScanner["B. Secret Scanner (ASM)"]
+    Launcher --> TaintEngine["C. Taint Analysis Engine (Tai-e)"]
     
-    ConfigMgr --> |Load/Gen| Rules["Rules (yaml)"]
+    ConfigMgr --> |Load/Gen| Rules["rules.yaml"]
     
-    DiscoveryEngine --> |"Soot (Structure)"| JARs[Target JARs]
+    DiscoveryEngine --> |ASM| JARs[Target App JARs]
     DiscoveryEngine --> |Extract| APIDict["api.txt (Route Dict)"]
-    DiscoveryEngine --> |Extract| ComponentDict["components.txt (SCA)"]
+    DiscoveryEngine --> |Fingerprint| FP["api-discovery.fingerprint"]
 
     SecretScanner --> |"ASM/Regex"| JARs
-    SecretScanner --> |"Scan Configs"| JARs
+    SecretScanner --> |"Scan Constants/Configs"| JARs
     SecretScanner --> |Export| Secrets["secrets.txt"]
     
+    GadgetInspector --> |"SCA/Lib Scan"| LibJars[Lib JARs]
+    GadgetInspector --> |Export| Gadgets["gadgets.txt"]
+    
     TaintEngine --> |Input| APIDict
-    TaintEngine --> |Input| ComponentDict
-    TaintEngine --> |"Soot (SPARK/Jimple)"| JARs
+    TaintEngine --> |"Tai-e PTA + Taint"| JARs
+    TaintEngine --> |"Worker JVM (optional)"| Worker[Independent Process]
     TaintEngine --> |Analyze| Vulnerabilities[Vulnerabilities]
     
     Vulnerabilities --> Scorer[Vulnerability Scorer]
     Scorer --> |"R-S-A-C Model"| ScoredVulns[Scored Vulnerabilities]
+    ScoredVulns --> FindingPipeline["Finding Pipeline (P0.6)"]
 
-    ScoredVulns --> ReportGen[Report Generator]
+    FindingPipeline --> ReportGen[Report Generator]
     ReportGen --> |Export| SARIF["result.sarif"]
+    ReportGen --> |Export| PoC["generated_pocs.txt"]
 ```
 
 ### Core Modules
 
 1.  **Loader Module**
-    *   **Responsibility**: Handles input directories, identifying all `.jar`, `.war` files.
-    *   **Optimization**: Automatically unpacks nested structures in SpringBoot/FatJARs, extracting `BOOT-INF/classes` and `lib` to build the necessary ClassPath for Soot. **(Implemented in Phase 2)**.
-    *   **Fat JAR Support**: Detects `BOOT-INF/classes` or `WEB-INF/classes` inside a JAR. Extracts them to a temporary directory along with dependent libraries (`BOOT-INF/lib/*.jar`) to reconstruct a valid classpath for static analysis.
+    *   **Responsibility**: Handles input directories, identifying all `.jar`, `.war` files. Automatically unpacks nested structures in SpringBoot/FatJARs (`BOOT-INF/classes`, `WEB-INF/classes`, `BOOT-INF/lib`) and exploded web applications.
+    *   **Smart Package Inference**: Automatically infers business package names (`scan_packages`) from class distribution when not explicitly configured.
+    *   **Classpath Preflight (P0.2)**: SHA-256 deduplication, version conflict mediation, mixed/shaded JAR application scope extraction. Outputs `classpath-preflight.json`.
+    *   **Role Classification**: Separates JARs into `targetAppJars` (business code), `depAppJars` (dependency application code), and `libJars` (third-party libraries).
 
 2.  **Configuration Manager**
-    *   **Improvement**: Replaces custom `.conf` formats with **YAML**.
-    *   **Logic**: Checks for `rules.yaml` in the current directory on startup. If missing, extracts a default template from the JAR resources; otherwise, loads the existing one. This addresses user pain points regarding configuration persistence and editability.
-    *   **Project Workspace**: Prioritizes reading configuration from the project-specific workspace (`.jbytescanner/rules.yaml`), enabling isolated configurations per scan target.
+    *   **Logic**: Checks for `rules.yaml` in `.jbytescanner/` on startup. If missing, extracts a default template from JAR resources; otherwise loads the existing one.
+    *   **Rules Migration**: Versioned migration (`rules_version`) backs up legacy project rules and merges newly bundled sources/sinks without overwriting user overrides.
+    *   **Project Workspace**: Prioritizes reading configuration from `.jbytescanner/rules.yaml`, enabling isolated configurations per scan target.
 
-3.  **Discovery Engine (Lightweight)**
-    *   **Goal**: Address Pain Point 1 (API Extraction) and Pain Point 4 (Memory Optimization).
-    *   **Technology**: Runs only Soot's `jb` (Jimple Body) phase. **Does not build a global Call Graph.**
-    *   **Function**: Rapidly traverses class annotations and inheritance hierarchies to extract Controller/Servlet definitions, outputting `api.txt`.
-    *   **Output Strategy**: Writes results to the project workspace (`.jbytescanner/api.txt`), preventing file conflicts between different projects.
-    *   **SCA Support (Planned Phase 2.5)**: Will identify versions of third-party libraries (e.g., Fastjson, Log4j) to prune unnecessary taint analysis rules.
+3.  **Discovery Engine (Lightweight - ASM)**
+    *   **Goal**: Rapid API route extraction without loading the full Tai-e World.
+    *   **Technology**: OW2 ASM for bytecode annotation/class scanning. Scans only `targetAppJars`.
+    *   **Function**: Traverses class annotations (`@RestController`, `@Controller`, `@RequestMapping`, `@GetMapping`, etc.) and inheritance hierarchies (`HttpServlet`, `@WebServlet`, `@Path` for JAX-RS). Also discovers routes from `web.xml` embedded in JARs.
+    *   **Output**: Writes `api.txt` and `api-discovery.fingerprint` to `.jbytescanner/`.
+    *   **Human-editable**: `api.txt` is treated as a curated whitelist. Once it exists, the tool will **not** auto-overwrite it even when the classpath changes. Use `-m api` to regenerate.
 
-4.  **Taint Engine (Heavyweight)**
-    *   **Technology**: Builds Pointer Analysis and Call Graph using Soot's `SPARK` or `CHA`.
-    *   **Strategy**: Uses **"Demand-Driven Analysis"**. Instead of analyzing the entire universe, it uses entry points from `api.txt` to build relevant call subgraphs, significantly reducing memory usage.
-    *   **Engine Update**: Now uses a **Worklist-based Engine** (Phase 7) to replace recursive analysis, preventing StackOverflow on deep chains.
-    *   **Optimization**: 
-        *   **Leaf Summaries**: Caches summaries for leaf methods to avoid redundant analysis.
-        *   Utilizes `components.txt` to skip analysis for safe library versions.
+4.  **Taint Engine (Heavyweight - Tai-e)**
+    *   **Technology**: Tai-e 0.5.4's `JavaWorldBuilder` frontend, Pointer Analysis (PTA), and taint analysis plugin.
+    *   **Strategy**: Entry points from `api.txt` are registered as Tai-e taint sources. The `RuleManager` translates JByteScanner's `rules.yaml` into Tai-e's `taint-config.yml` format.
+    *   **Worker Isolation (P0.3)**: Tai-e analysis runs in an independent worker JVM (`TaieWorkerLauncher`) with configurable heap (`--max-heap-mb`) and timeout (`--timeout-minutes`). Results are serialized back to the main process via structured JSON.
+    *   **Optimization**: Application-only scope (`only-app:true`), call-site taint mode, persistent source modeling, typed cache accessor inference, taint config sharding for large rule sets.
 
 5.  **Report Generator**
-    *   **Goal**: Address Pain Point 5.
-    *   **Format**: Supports SARIF (Standard Static Analysis Results Interchange Format) v2.1.0, enabling direct integration with VSCode, GitHub Security, etc.
-    *   **Enhancement**: Includes risk levels (CRITICAL, HIGH, etc.) and numerical scores derived from the Vulnerability Scorer.
+    *   **Format**: SARIF v2.1.0, enabling direct integration with VSCode, GitHub Security, etc.
+    *   **Finding Pipeline (P0.6)**: Pre-report processing with Sink strength classification, package provenance, deduplication, and four-tier output (raw/suppressed/low-confidence/main SARIF).
+    *   **PoC Generator**: Creates Burp Suite-compatible HTTP request payloads for discovered vulnerabilities with context-aware Content-Type and parameter binding.
 
-6.  **Secret Scanner (Tactical)**
-    *   **Goal**: Provide immediate value by identifying hardcoded credentials (Phase 8.1).
-    *   **Technology**: Uses ASM for bytecode string extraction and Regex/Entropy analysis. Does not require heavy Soot analysis.
-    *   **Capabilities**:
-        *   **Config Scan**: Parses `application.properties/yml` inside JARs.
-        *   **String Scan**: Detects keys (AWS, JDBC) in constant pools.
-        *   **Entropy**: Identifies high-entropy strings (potential secrets).
-        *   **Base64**: Decodes and recursively scans Base64 strings.
-        *   **Context-Aware**: Detects hash usage (e.g., `token.equals("md5")`).
+6.  **Secret Scanner (Tactical - ASM)**
+    *   **Technology**: ASM bytecode string extraction + Regex/Entropy analysis. Scans only `targetAppJars`.
+    *   **Capabilities**: Config file scanning (`application.properties/yml`), string constant pool scanning, entropy detection (>4.6), Base64 decode + recursive scan, context-aware hash detection.
 
-7.  **Vulnerability Scorer**
-    *   **Goal**: Prioritize findings for security auditors (Phase 8.2).
+7.  **Gadget Inspector (SCA)**
+    *   **Goal**: Recommend usable deserialization gadget chains based on detected library dependencies.
+    *   **Technology**: `ScaScanner` identifies library versions from `pom.properties`, MANIFEST.MF, and JAR filename parsing. `GadgetInspector` matches detection results against an embedded `gadgets.json` database of 400+ known gadgets.
+    *   **Output**: Writes `gadgets.txt` to the workspace, grouped by dependency set.
+
+8.  **Vulnerability Scorer**
     *   **Model**: **R-S-A-C** (Reachability * Severity * Auth * Confidence).
-    *   **Auth Detection**: Heuristically identifies `@PreAuthorize`, `@Secured`, etc., to determine if a vulnerability is behind an authentication barrier.
+    *   **Auth Detection**: Heuristically identifies `@PreAuthorize`, `@Secured`, and other auth annotations.
+    *   **Worker-compatible**: Auth scoring works without depending on the host-side Tai-e `World`.
 
 
 ## 3. Technology Stack & Principles
 
 ### 3.1 Technology Selection
-*   **Static Analysis Framework: Soot (4.5+)**
-    *   *Rationale*: De facto standard in academic and industrial Java research. Operates on bytecode (no source code required), crucial for the "audit deployment artifacts" use case. Its Jimple IR (Intermediate Representation) simplifies complex Java bytecode instructions into 3-address code, making analysis implementation significantly easier.
+*   **Bytecode Scanning: OW2 ASM**
+    *   *Rationale*: Lightweight, low-memory class file visitor framework. Used for route extraction, secret scanning, and SCA without loading classes into a JVM-level type system.
+*   **Semantic Analysis: Tai-e 0.5.4**
+    *   *Rationale*: State-of-the-art open-source static analysis framework from Nanjing University (OOPSLA'25). Provides native phantom class support, `invokedynamic`/Lambda handling, pointer analysis (PTA), and a configurable taint analysis plugin. Unmodified Tai-e runs in an isolated worker JVM.
 *   **CLI Framework: Picocli**
-    *   *Rationale*: Modern, type-safe command-line parsing with built-in help generation and sub-command support.
-*   **Configuration: YAML (Jackson)**
-    *   *Rationale*: Human-readable, widespread adoption, and hierarchical structure suitable for nested rules (Sources/Sinks).
+    *   *Rationale*: Modern, type-safe command-line parsing with built-in help generation.
+*   **Configuration: YAML (SnakeYAML)**
+    *   *Rationale*: Human-readable, hierarchical structure suitable for nested rules (Sources/Sinks/Transfers).
 *   **Reporting: SARIF**
     *   *Rationale*: OASIS standard for static analysis tools, enabling seamless integration with CI/CD pipelines (GitHub Actions, GitLab CI) and IDEs (VSCode).
 
 ### 3.2 Technical Principles & Algorithms
-The core analysis relies on **Inter-procedural Data Flow Analysis**.
+The core analysis relies on **Inter-procedural Data Flow Analysis** via Tai-e.
 
-#### A. Intermediate Representation (IR)
-We utilize **Jimple**, Soot's primary IR. It is a typed, stack-less, 3-address code representation.
-*   *Benefit*: Transforms stack-based bytecode (e.g., `aload_0`, `iload_1`, `iadd`) into variable-based statements (e.g., `a = b + c`), simplifying def-use chain construction.
+#### A. Tai-e IR & World Building
+Tai-e's `JavaWorldBuilder` frontend directly processes Java bytecode to build:
+*   **World**: The complete class hierarchy with phantom class support (missing dependencies are modeled as stubs rather than causing crashes).
+*   **IR (SsaIR)**: Tai-e's SSA-based intermediate representation, enabling precise def-use chain construction.
 
-#### B. Call Graph Construction
-The tool supports two modes to balance precision and performance:
-1.  **CHA (Class Hierarchy Analysis)**:
-    *   *Concept*: Conservatively assumes any method overriding a virtual call target could be invoked.
-    *   *Pros/Cons*: Extremely fast, low memory, but can introduce false positives (edges to methods that are never called at runtime).
-2.  **SPARK (Soot Pointer Analysis Research Kit)**:
-    *   *Concept*: Performs points-to analysis to determine which objects a variable can actually point to, filtering out impossible targets.
-    *   *Pros/Cons*: More precise, fewer false positives, but computationally expensive.
-    *   *Reference*: *Lhoták, O., & Hendren, L. (2003). Scaling Java points-to analysis using Spark.*
+#### B. Pointer Analysis (PTA)
+Tai-e supports configurable context-sensitive pointer analysis (e.g., `cs:ci`, `cs:2-obj`, `cs:2-type`).
+*   *Benefit*: Object-sensitive pointer analysis significantly reduces false positives compared to CHA, while Tai-e's efficient implementation maintains practical performance on large projects.
 
-#### C. Taint Analysis (Vulnerability Detection)
-The engine implements a **Forward Taint Propagation** algorithm combining intra- and inter-procedural analysis.
+#### C. Taint Analysis
+The taint analysis plugin runs on top of PTA results:
+1.  **Source Identification**: API parameters from `api.txt` are translated into entry methods. `RuleManager` maps `rules.yaml` sources/sinks/transfers into Tai-e's `taint-config.yml`.
+2.  **Propagation**: Context-sensitive taint propagation through pointer analysis results and transfer rules.
+3.  **Sink Matching**: Tainted values reaching configured sink methods are captured as `TaintFlow` results.
+4.  **Flow Capture**: `JBSScanEntryPointPlugin` collects all `TaintFlow` instances for downstream processing.
 
-1.  **Source Identification**: Based on `api.txt` and `rules.yaml`, all parameters of API entry-point methods are marked as "Tainted" at method entry.
-2.  **Intra-procedural Propagation** (`IntraTaintAnalysis` — `ForwardBranchedFlowAnalysis<FlowSet<Value>>`):
-    *   **Direct assignment**: `y = x` → `y` tainted if `x` tainted.
-    *   **Binary/cast**: `y = x + z`, `y = (T) x` → `y` tainted if operand tainted.
-    *   **Instance field read**: `y = obj.f` → `y` tainted if `obj` tainted.
-    *   **Static field read**: `y = Cls.f` → `y` tainted if `Cls.f` was previously written with tainted data (tracked in `taintedStaticFields`).
-    *   **Array read**: `y = arr[i]` → `y` tainted if `arr` tainted.
-    *   **Instance field write**: `obj.f = x` → `obj` tainted if `x` tainted.
-    *   **Static field write**: `Cls.f = x` → `Cls.f` added to `taintedStaticFields` if `x` tainted.
-    *   **Method return (instance)**: `y = obj.m(...)` → `y` tainted if `obj` tainted; `arg → return` is additionally applied only to setter-like instance methods to reduce taint explosion.
-    *   **Method return (static/any)**: `y = Cls.m(...)` → `y` tainted if any arg tainted.
-    *   **Setter/constructor receiver**: `obj.set(x)` or `new Obj(x)` → `obj` tainted if any arg tainted, but this receiver-tainting heuristic is restricted to setter-like methods and constructors. This enables the `setter → field → getter → sink` chain without broadly tainting service objects.
-    *   **Path sensitivity**: Null-check branches (`if x == null`) kill taint on the null path.
-3.  **Inter-procedural Propagation** (`WorklistEngine`):
-    *   Tainted arguments are mapped to callee parameter locals before scheduling.
-    *   Tainted receiver (`obj` in `obj.m(...)`) is mapped to callee `this` local.
-    *   `AnalysisState` (method + tainted-param-bitset + `thisTainted`) is used for memoization to avoid redundant re-analysis.
-4.  **Sink Matching**: A vulnerability is flagged when:
-    *   Any **argument** of a sink method call is tainted, OR
-    *   The **receiver** of an instance sink call is tainted for sink categories that enable receiver-based triggering. This receiver-based check is intentionally disabled for `sqli` to avoid false positives on tainted `Statement` / `Connection` objects.
-
-*Reference*: *Vallée-Rai et al. (1999). Soot - a Java optimization framework.*
-
-### 3.3 Internal Process Flows
-
-#### Discovery Engine Flow (Phase 2)
-```mermaid
-sequenceDiagram
-    participant CLI as Launcher
-    participant Ldr as JarLoader
-    participant Soot as Soot Framework
-    participant Ext as RouteExtractor
-    participant Out as File (api.txt)
-
-    CLI->>Ldr: Load JARs
-    Ldr-->>Ldr: Check FatJAR (BOOT-INF)
-    opt Is FatJAR
-        Ldr->>Ldr: Unpack classes & lib to temp
-    end
-    Ldr-->>CLI: ClassPath List (Jars + Temp Dirs)
-    CLI->>Soot: Initialize (jb phase only)
-    Soot->>Soot: Load Classes (Phantom Refs)
-    CLI->>Ext: Run Extraction
-    loop Every Class
-        Ext->>Soot: Get Annotations (@Controller, @Path)
-        Ext->>Soot: Check Hierarchy (extends HttpServlet)
-        opt Match Found
-            Ext->>Out: Write Route Info
-        end
-    end
-```
-
-#### Taint Analysis Flow (Phase 3/4)
-```mermaid
-flowchart TD
-    A[Start Analysis] --> B{Load Config}
-    B --> C["Initialize Soot (Whole Program)"]
-    C --> D["Build Call Graph (CHA/SPARK)"]
-    D --> E["Identify EntryPoints (from api.txt)"]
-    E --> F["Initialize Worklist (Sources)"]
-    
-    F --> G{Worklist Empty?}
-    G -- Yes --> H[Generate Report]
-    G -- No --> I["Pop Method/Variable"]
-    
-    I --> J[Intra-procedural Propagation]
-    J --> K{Reaches Sink?}
-    K -- Yes --> L[Record Vulnerability]
-    K -- No --> M["Find Callers/Callees"]
-    
-    M --> N["Map Taint to Args/Returns"]
-    N --> O[Push to Worklist]
-    O --> G
-```
+### 3.3 Worker Isolation (P0.3)
+Tai-e World building, PTA, and taint analysis run in an isolated JVM (`TaieWorkerLauncher`):
+*   **Input**: App classpath, library classpath, generated `taint-config.yml`, entry methods.
+*   **Output**: Structured JSON (`worker-result.json`) containing `TaintFlow` set and analysis metadata.
+*   **Benefits**: Heap isolation (OOM in worker doesn't crash host), configurable JVM args (`-Xmx`, heap dump on OOM), timeout support.
 
 ## 4. Detailed Design & Solutions
 
-### 4.1 Pain Point 1: API Route Extraction (api.txt)
+### 4.1 API Route Extraction (api.txt)
 
-Instead of Regex or ASM, we leverage Soot's superior annotation support. A `RouteExtractor` will be implemented.
+ASM-based `AsmRouteExtractor` scans bytecode directly without loading classes via a class loader.
 
 *   **Recognition Logic**:
-    *   **Spring Boot**: Scan `@RestController`, `@Controller` on classes and `@RequestMapping`, `@GetMapping`, `@PostMapping` on methods. Parse `value` or `path` attributes.
-    *   **Servlet**: Scan classes inheriting `javax.servlet.http.HttpServlet` and parse `web.xml` (if present) or `@WebServlet`.
+    *   **Spring Boot**: Scan `@RestController`, `@Controller` on classes and `@RequestMapping`, `@GetMapping`, `@PostMapping`, etc. on methods. Parse `value`/`path` attributes, merge with class-level path prefixes.
+    *   **Servlet**: Scan `web.xml` in JAR archives and classes with `@WebServlet` or extending `javax.servlet.http.HttpServlet`.
     *   **JAX-RS**: Scan `@Path`, `@GET`, `@POST`, `@PUT`, `@DELETE`, `@HEAD`, `@OPTIONS`, `@PATCH` and other JAX-RS annotations.
-*   **Output Format**: `METHOD /full/url/path class.method(params)`
+*   **Output Format**: `METHOD /path className methodSig | {"params":[...], "annotations":{...}, "contentType":"..."}`
+*   **Human-editable**: `api.txt` is a curated whitelist. Once present, the scanner respects user edits and skips re-discovery (use `-m api` to force regeneration).
 
 ### 4.2 Pain Points 2 & 3: Configurable Source/Sink (YAML)
 
@@ -239,15 +175,16 @@ if (!configFile.exists()) {
 Config config = ConfigLoader.load(configFile);
 ```
 
-### 4.3 Pain Point 4: Memory Optimization
+### 4.3 Memory Optimization
 
-High memory usage in previous tools often stems from loading the entire JRE `rt.jar` and building an excessive Call Graph.
+Tai-e and the dual-engine architecture provide memory efficiency through:
 
-**Optimization Strategies:**
-1.  **Phantom Refs**: Enable `Options.v().set_allow_phantom_refs(true)`. Do not load implementations of third-party libraries unless necessary.
-2.  **Exclusion List**: Aggressively exclude `java.*`, `javax.*`, `sun.*`, `org.slf4j.*` and other non-business logic packages from CallGraph construction.
-3.  **CHA vs SPARK**: Default to CHA (Class Hierarchy Analysis) for the base Call Graph as it is faster and memory-efficient. Enable SPARK only with a `--deep` flag.
-4.  **Iterative Analysis**: Implement a "Batch Mode" where jars are processed individually or in small groups (resetting `G.reset()`) if inter-service calls are not the focus.
+1.  **ASM Discovery**: API extraction and secret scanning use lightweight ASM visitors that never load classes into a JVM type system, keeping heap footprint minimal.
+2.  **Worker Isolation**: Tai-e World, PTA, and taint analysis run in an isolated worker JVM. If the worker OOMs, the host process remains alive and can report partial results.
+3.  **Application-Only Scope**: Only `targetAppJars` are treated as application code for IR generation and PTA. Library jars stay on classpath with signature-only resolution.
+4.  **Phantom Classes**: Tai-e natively supports incomplete classpaths, modeling missing classes as phantom stubs. No more `DANGLING` exceptions from missing optional dependencies.
+5.  **Taint Config Sharding**: Large sink rule sets are automatically sharded to fit within SnakeYAML document size limits, reducing serialization overhead.
+6.  **Classpath Preflight**: Duplicate artifact detection and version selection happen before analysis, preventing redundant class loading across identical JARs.
 
 ### 4.4 Pain Point 5: SARIF Report
 
