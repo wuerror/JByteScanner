@@ -22,9 +22,9 @@
     *   **Auth Bypass**: 分析 Spring Security 配置与 Controller 映射的差异，发现未授权访问接口。（未实现）
 *   **交互式审计**: 提供 REPL Shell，允许专家手动查询调用图（`path source sink`），弥补自动化工具的盲区。（未实现）
 *   **高性能引擎**:
-    *   **ASM 资产发现**: 无需构建全局 IR 即可快速提取 API、字符串与组件信息。
-    *   **Tai-e 0.5.4 新前端**: 使用 OOPSLA'25 的 Java 字节码前端生成 Tai-e IR，不再依赖 Soot 前端。
-    *   **原生指针/污点分析**: 基于 Tai-e PTA 与 taint plugin 构建调用图和数据流。
+    *   **ASM 资产发现**: 基于 OW2 ASM 快速提取 API 路由、常量字符串与组件指纹，无需构建全局 IR。
+    *   **Tai-e 0.5.4 语义分析**: 使用 OOPSLA'25 原版 Java 字节码前端构建 Tai-e IR 与 World，通过指针分析 (PTA) 和污点分析 (taint) 插件完成调用图与数据流。
+    *   **Worker 隔离**: Tai-e 分析在独立 JVM 子进程中运行，主进程负责轻量资产发现与结果后处理，避免 OOM 级联崩溃。
     *   **Phantom Class 容错**: 缺失可选依赖时保留 phantom class 并继续分析。
 
 ---
@@ -49,26 +49,34 @@ mvn clean package -DskipTests
 
 **轻量扫描:**
 
--m api模式，此模式下会完成三项工作：提取api，扫描硬编码，根据现有的依赖推荐java-chains中可以打的gadget
+`-m api` 模式完成三项工作：提取 API 路由、扫描硬编码密钥、根据依赖库推荐可打的 Gadget Chain。
 
-生成api.txt，secrets.txt，gadgets.txt，rules.yaml
+生成 `api.txt`、`secrets.txt`、`gadgets.txt`、`rules.yaml`
 
 ```bash
-# 仅提取 API 路由列表 (api.txt)
+# 提取 API 路由列表 + 密钥扫描 + Gadget 推荐 (不运行污点分析)
 java -jar JByteScanner-1.5.0.jar /path/to/app.jar -m api
 ```
 
-api.txt格式如下
+`api.txt` 格式如下：
 
 ```
-options /path methodsign | paramjson
+METHOD /path className methodSignature | {"contentType":"...","params":["arg0:type",...],"annotations":{"arg0":"AnnotationType",...}}
 ```
 
-可通过`awk '{print $2;}' test_jars/.jbytescanner/api.txt`获取api路径字典，context路径需要人工补充
+示例：
+```
+GET /api/user com.example.UserController java.lang.String getUser(String) | {"params":["userId:String"],"annotations":{"userId":"PathVariable"}}
+POST /api/upload com.example.FileController void upload(MultipartFile) | {"contentType":"multipart/form-data","params":["file:MultipartFile"],"annotations":{"file":"RequestParam"}}
+```
+
+可通过 `awk '{print $2;}' .jbytescanner/api.txt` 获取 API 路径字典，context 路径需人工补充。
 
 **修改source或者sink**
 
-提取的api.txt会作为全量扫描的source来源，对于通过注解鉴权的情况，提供`--filter-annotation`用于选择含有关键词的注解。
+提取的 `api.txt` 会作为全量扫描的 source 来源。**一旦 `api.txt` 存在，工具将其视为人工可编辑的白名单——即使 classpath 变化也不会自动覆盖。** 如需重新生成完整路由列表，使用 `-m api`。
+
+对于通过注解鉴权的情况，提供 `--filter-annotation` 用于选择含有关键词的注解。
 
 比如获取匿名可访问的接口
 
@@ -84,18 +92,16 @@ java -jar JByteScanner-1.5.0.jar -m api --filter-annotation AnonymousValidator /
 
 **全量扫描 (漏洞挖掘):**
 
--m scan或者什么都不带。如果.jbytescanner目录下已经有api.txt那么会跳过phase2
+默认模式 `-m scan`（或不带 `-m`）。如果 `.jbytescanner` 目录下已有 `api.txt`，则跳过 Phase 2 资产发现，直接使用现有 `api.txt`（尊重人工编辑）。
 
-Tai-e 指针分析和调用图构建阶段在大型项目上可能耗时较久
+Tai-e 污点分析 (PTA + taint) 在大型项目上可能耗时较久，默认以独立 Worker JVM 运行（`--worker`）。
 
 ```bash
-# 扫描单个 Jar或者一个目录 (执行完整扫描: 资产发现 + 漏洞分析 + 战术情报)
+# 扫描单个 Jar 或目录 (完整流程: 资产发现 + 密钥扫描 + Gadget + 污点分析)
 java -jar JByteScanner-1.5.0.jar /path
 ```
 
-若存在漏洞，结果会输出到result.sarif文件
-
-生成的示例请求会在generated_pocs.txt。（可能会有错误）
+若存在漏洞，结果输出到 `result.sarif`，生成的 PoC 请求示例在 `generated_pocs.txt`。
 
 **交互式模式 (未实现):**
 
@@ -108,18 +114,24 @@ java -jar target/JByteScanner-1.5.0.jar /path/to/app.jar --interactive
 
 ## 📅 开发路线图 (Roadmap)
 
-### 已完成 (Core Engine)
-- [x] **Phase 1-5**: 基础架构、配置管理、ASM 资产发现、Tai-e 集成、SARIF 报告。
-- [x] **Phase 6**: 性能优化（结构化状态、反向剪枝、强依赖隔离）。
-- [x] **Phase 7**: 高级分析引擎（Worklist 迭代引擎、方法摘要、叶子节点优化）。
-- [x] **Phase 8: 战术情报 (Tactical Intelligence)**: Secret 扫描、漏洞评分、Smart PoC 生成。
+> 详细版见 [ROADMAP.md](./ROADMAP.md)
 
-### 进行中 (Advanced Exploitation)
-- [ ] **Phase 9: 深度利用链**
-  - [ ] **Auth Bypass**: 鉴权绕过检测（Config vs Code）。
-  - [ ] **Gadget Miner**: 反序列化利用链挖掘。
+### 已完成
+- [x] **Tai-e 迁移**: 全面迁移至 Tai-e 0.5.4，移除 Soot 依赖。ASM 资产发现 + Tai-e PTA/taint 语义分析。
+- [x] **轻重分离**: 轻量 ASM 资产发现（API/Secret/Gadget）独立于重量 Tai-e Worker 进程。
+- [x] **Worker 隔离**: Tai-e 分析运行在独立 JVM 子进程，主进程负责结果后处理。
+- [x] **Secret Scanner**: 硬编码密钥扫描（配置、常量池、熵分析、Base64）。
+- [x] **Gadget Inspector**: 依赖分析 + 反序列化 Gadget Chain 推荐。
+- [x] **漏洞评分**: R-S-A-C 模型 + SARIF 报告 + PoC 生成。
+- [x] **Classpath Preflight**: SHA/版本校验、重复 artifact 去重、mixed JAR 处理。
 
-- [ ] **Phase 10: 交互与 SCA**
-  - [ ] **Offensive SCA**: 攻击型组件指纹识别。
-  - [ ] **Interactive Shell**: 内存调用图查询 REPL。
+### 进行中
+- [ ] **P0 精度管线**: FindingPipeline、Sink 强度矩阵、四层产物（raw/suppressed/low-confidence/main SARIF）。
+- [ ] **P0 Unified ClassIndex**: 统一 ASM 索引层，消除多模块重复解析。
+
+### 计划中
+- [ ] **Auth Bypass**: 鉴权绕过检测（Spring Security 配置 vs Controller 映射差异分析）。
+- [ ] **规则迁移 v4**: 构造/解析 API 从终态 sink 分离为 transfer，规则身份与撤销能力。
+- [ ] **增量缓存**: ClassIndex 持久化和跨次扫描复用。
+- [ ] **交互式 Shell**: 内存调用图查询 REPL。
 

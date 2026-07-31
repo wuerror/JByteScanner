@@ -5,6 +5,10 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Changed
+- **api.txt as human-curated whitelist**: Once `api.txt` exists, the scanner treats it as user-curated and will not auto-overwrite it, even when the classpath changes. Users can manually delete or edit routes to narrow the scan scope. A warning is printed when the classpath fingerprint is stale; use `-m api` to force regeneration.
+- **Classpath Preflight (P0.2)**: Added `ClasspathPlanner` for SHA-256 deduplication, version conflict mediation, and mixed/shaded JAR application scope extraction.
+- **Tai-e Worker Isolation (P0.3)**: Tai-e analysis now defaults to an independent worker JVM (`--worker`), with configurable `--max-heap-mb` and `--timeout-minutes`.
+- **Finding Pipeline foundation (P0.6-A)**: Introduced `FindingPipeline` structural layer with `TaintFlow` field preservation, `SinkLocationKey` (+`sinkStmtIndex`), and `instances[]` aggregation. Full suppress/demote strategy and tiered output pending in P0.6-B.
 - Upgraded Tai-e from 0.5.2 to 0.5.4 and raised the build/runtime baseline to Java 17.
 - Switched embedded World construction to the new `pascal.taie.frontend.java.JavaWorldBuilder` frontend.
 - Removed use of deprecated `-pp` and `-ap` options; Tai-e 0.5.4 now selects the current JRE and permits phantom classes by default.

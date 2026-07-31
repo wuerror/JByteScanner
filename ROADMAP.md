@@ -1,7 +1,7 @@
 # JByteScanner 大型项目优化路线图
 
-> 更新日期：2026-07-28（P0.6 已按同事评审修订：强度矩阵 / SinkLocationKey+stmtIndex / 四层产物 / severity·confidence 分离）
-> 适用基线：`feature/taie-migration` 当前代码及工作区未提交改动
+> 更新日期：2026-07-31（P0.6 已按同事评审修订；P0.2/P0.3 已实现；api.txt 人工白名单已落地）
+> 适用基线：`feature/taie-migration`
 > 历史功能阶段请参考 `CHANGELOG.md`；本文件聚焦 Tai-e 迁移后在真实大型项目上的可完成性、准确性和产物质量。
 
 ## 1. 路线图依据
@@ -119,22 +119,26 @@ Workspace/Config Migration
 
 ---
 
-## 2. 当前未提交改动评估
+## 2. 已提交改动评估
 
-当前工作区的改动已纳入本路线图。`mvn test` 于 2026-07-23 执行通过：7 tests、0 failures、0 errors。
+以下改动已合入 `feature/taie-migration` 并提交（`mvn test` 通过：7 tests, 0 failures, 0 errors）。
 
 | 当前改动 | 状态 | 对大型项目的价值 | 仍需处理的问题 |
 |---|---|---|---|
-| `JarLoader` 发现 `WEB-INF/classes`、`BOOT-INF/classes` 等 loose class directory | 已实现并有测试 | 修复 ecology 一类 exploded Web 应用业务类漏扫 | 只解决“漏扫”，未解决 mixed/shaded JAR 整体提升、重复 artifact 和类冲突 |
-| `rules_version: 3`、旧规则备份和增量合并 | 已实现并有测试 | 允许升级默认规则而不直接覆盖用户配置 | 当前只会添加/补字段，不能安全撤销已经证明高噪声的 bundled rule；规则缺少稳定 ID 和来源标记 |
-| source/sink `index` 和 source `taint_type` | 已实现 | 可精确描述 receiver、参数和 call result，避免所有参数都成为 sink | 大量旧规则仍未配置 index；结果模型和日志 parser 仍丢弃 source/sink index |
-| 可配置 `transfers` 及内置 String、上传、压缩、集合转换 | 已实现 | 改善 `only-app:true` 下的跨库传播漏报 | transfer 数量继续增长前应建立语义测试；部分宽泛 collection transfer 可能扩大传播范围 |
-| `call-site-mode`、Spring 分析和 Service fallback 开关 | 已实现，部分为实验能力 | 改善接口调用、Spring DI 不完整导致的漏报 | `call-site-mode:true` 和 supplemental entry 可能放大 flow；必须用两个大样本做 A/B 性能与噪声回归 |
-| typed cache persistent source 和 model accessor 推断 | 已实现，默认开启 | 能发现“持久化数据读取后进入危险 sink”的二阶流 | 对 app classpath 进行多轮 ASM 扫描，并增加 supplemental entry/source；大项目上需要预算、缓存和默认策略评估 |
-| 大型 taint config 分片 | 已实现并有测试 | 解决 SnakeYAML 文档大小限制，35,000 entry 测试可生成 14 个 shard | 仍先序列化完整文档，再复制 `subList` 和二次序列化；降低格式限制但没有完全降低瞬时内存 |
-| sink 预扫描 | 已实现 | 不向 Tai-e 写入完全未引用的 sink，减少 phantom/missing method 问题 | 当前 key 只有 `owner + methodName`，不能区分 overload/descriptor；同一 JAR 被重复扫描时也没有 class hash 去重 |
-| TaintFlow 日志 parser 和 IR stmt sink 解析增强 | 已实现并有测试 | 修复 constructor、call-result source 和同名方法误判 | 仍依赖 `tai-e.log`；仍全量 `readAllLines`；没有直接消费已经捕获的 `Set<TaintFlow>` |
-| OOM 捕获和 stderr stack trace | 部分实现 | 比仅捕获 Exception 更完整 | 文件日志仍主要只有 `t.toString()`；OOM 后继续处于同一 JVM 风险高，缺少 heap dump、GC 和阶段资源记录 |
+| `JarLoader` 发现 `WEB-INF/classes`、`BOOT-INF/classes` 等 loose class directory | 已实现 | 修复 ecology 一类 exploded Web 应用业务类漏扫 | 只解决"漏扫"，未解决 mixed/shaded JAR 整体提升 |
+| `ClasspathPlanner` (P0.2)：SHA-256 去重、版本冲突调解、mixed JAR 提取 | 已实现 | artifact 级别去重和选版本 | — |
+| Tai-e Worker 隔离 (P0.3)：独立 JVM、资源预算、HOD on OOM | 已实现 | OOM 不级联崩溃，可配置内存/超时 | — |
+| `api.txt` 人工白名单：存在即视为用户已编辑，不再自动覆盖 | 已实现 | 人工可缩小 source 范围做定向审计 | classpath 变化时仅警告，不自动重组 |
+| `rules_version: 3`、旧规则备份和增量合并 | 已实现 | 允许升级默认规则而不直接覆盖用户配置 | 不能安全撤销已证明高噪声的 bundled rule |
+| source/sink `index` 和 source `taint_type` | 已实现 | 精确描述 receiver、参数和 call result | 大量旧规则仍未配置 index |
+| 可配置 `transfers` 及内置 String、上传、压缩、集合转换 | 已实现 | 改善 `only-app:true` 下的跨库传播漏报 | transfer 数量增长前应建立语义测试 |
+| `call-site-mode`、Spring 分析和 Service fallback 开关 | 已实现，部分为实验能力 | 改善接口调用、Spring DI 不完整导致的漏报 | 可能放大 flow；需 A/B 回归 |
+| typed cache persistent source 和 model accessor 推断 | 已实现，默认开启 | 能发现持久化数据读取后的二阶流 | 增加 supplemental entry/source 消耗 |
+| 大型 taint config 分片 | 已实现 | 解决 SnakeYAML 文档大小限制 | 瞬时内存未完全降低 |
+| sink 预扫描 | 已实现 | 不向 Tai-e 写入完全未引用的 sink | key 只有 `owner + methodName`，不能区分 overload/descriptor |
+| FindingPipeline (P0.6-A)：TaintFlow 全字段保留、SinkLocationKey、instances 聚合 | 已实现 | 结果模型不再丢字段 | 策略层 suppress/demote 待 P0.6-B |
+| TaintFlow 日志 parser 和 IR stmt sink 解析增强 | 已实现 | 修复 constructor、call-result source 和同名方法误判 | 仍依赖 `tai-e.log` |
+| OOM 捕获和 stderr stack trace | 部分实现 | 比仅捕获 Exception 更完整 | 缺少 heap dump、GC 和阶段资源记录 |
 
 ### 2.1 当前改动尚未解决的关键事实
 
@@ -149,6 +153,8 @@ Workspace/Config Migration
 ---
 
 ## 3. P0：控制 ecology10 的规模放大和失败方式
+
+> **进度**：P0.2 ClasspathPreflight ✅ | P0.3 Worker 隔离 ✅ | P0.6-A FindingPipeline 结构 ✅ | api.txt 人工白名单 ✅ | P0.1/P0.4/P0.5 待实施
 
 完成标准：已知 entry/source 重复归零；扫描前能够估算规模并选择单次或分区模式；在资源预算不足时安全停止并输出覆盖率、完成批次和失败原因。单次全量完成是加分目标，不是硬性发布门槛。
 
