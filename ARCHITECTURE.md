@@ -131,6 +131,10 @@ Tai-e World building, PTA, and taint analysis run in an isolated JVM (`TaieWorke
 *   **Output**: Structured JSON (`worker-result.json`) containing `TaintFlow` set and analysis metadata.
 *   **Benefits**: Heap isolation (OOM in worker doesn't crash host), configurable JVM args (`-Xmx`, heap dump on OOM), timeout support.
 
+### 3.4 Audit CLI (targeted diagnosis)
+
+The `diagnose` command requests bounded evidence for one sink (optionally one source) while Tai-e's Worker is alive. The `query` command reads existing artifacts without launching Tai-e. Ordinary scans keep their current outputs and do not emit extra diagnostic records. Diagnostic JSON records evidence states (`yes`, `no`, `unknown`) and its provenance; endpoint-only flow summaries are not represented as complete propagation paths. See [CLI audit plan](docs/CLI_AUDIT_PLAN.md).
+
 ## 4. Detailed Design & Solutions
 
 ### 4.1 API Route Extraction (api.txt)

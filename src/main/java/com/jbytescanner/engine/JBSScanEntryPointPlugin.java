@@ -2,20 +2,37 @@ package com.jbytescanner.engine;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import com.jbytescanner.diagnose.TaiEMethodSignature;
+import com.jbytescanner.worker.EntryCheckEvidence;
+import com.jbytescanner.worker.TargetDiagnosticEvidence;
+import com.jbytescanner.worker.TargetDiagnosticRequest;
+import com.jbytescanner.worker.TargetInvokeEvidence;
 import pascal.taie.World;
+import pascal.taie.analysis.graph.callgraph.CallGraph;
+import pascal.taie.analysis.pta.core.cs.element.CSCallSite;
+import pascal.taie.analysis.pta.core.cs.element.CSMethod;
 import pascal.taie.analysis.pta.core.solver.DeclaredParamProvider;
 import pascal.taie.analysis.pta.core.solver.EntryPoint;
 import pascal.taie.analysis.pta.core.solver.Solver;
 import pascal.taie.analysis.pta.plugin.Plugin;
+import pascal.taie.ir.IR;
+import pascal.taie.ir.proginfo.MethodRef;
+import pascal.taie.ir.stmt.Invoke;
+import pascal.taie.ir.stmt.Stmt;
 import pascal.taie.language.classes.ClassHierarchy;
 import pascal.taie.language.classes.JClass;
 import pascal.taie.language.classes.JMethod;
+import pascal.taie.language.type.Type;
 
 import pascal.taie.analysis.pta.plugin.taint.TaintAnalysis;
 import pascal.taie.analysis.pta.plugin.taint.TaintFlow;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -60,6 +77,12 @@ public class JBSScanEntryPointPlugin implements Plugin {
 
     /** Last onStart/onFinish inject and capture counts for expansion metrics. */
     public static volatile ExpansionMetrics lastInjectMetrics = new ExpansionMetrics();
+
+    /** Set only by targeted diagnose; ordinary scans leave this null. */
+    public static volatile TargetDiagnosticRequest diagnosticTarget;
+
+    /** Bounded target evidence captured before the worker's World is released. */
+    public static volatile TargetDiagnosticEvidence lastDiagnosticEvidence;
 
     private Solver solver;
 
@@ -173,6 +196,7 @@ public class JBSScanEntryPointPlugin implements Plugin {
             injectMetrics.serviceFallbackMethodsInjected = serviceMethods;
         }
         lastInjectMetrics = injectMetrics;
+        collectEntryChecks(ch, addedMethods);
     }
 
     @Override
@@ -190,6 +214,8 @@ public class JBSScanEntryPointPlugin implements Plugin {
             lastInjectMetrics.capturedTaintFlows = flowCount;
         }
 
+        collectTargetEvidence();
+
         // Optional focused call-graph diagnostics for false-negative investigations.
         // Example: -Djbs.reachability.filter=com.example.feature
         String reachabilityFilter = System.getProperty("jbs.reachability.filter");
@@ -201,6 +227,239 @@ public class JBSScanEntryPointPlugin implements Plugin {
                     .sorted()
                     .forEach(signature -> logger.info("[JBS-Reachable] {}", signature));
         }
+    }
+
+    private void collectEntryChecks(ClassHierarchy ch, Set<JMethod> addedMethods) {
+        TargetDiagnosticRequest request = diagnosticTarget;
+        if (request == null || request.entrySignaturesToCheck == null
+                || request.entrySignaturesToCheck.isEmpty()) {
+            return;
+        }
+        TargetDiagnosticEvidence evidence = ensureDiagnosticEvidence();
+        Set<String> listedEntries = new HashSet<>();
+        for (String entry : entrySignatures) {
+            listedEntries.add(TaiEMethodSignature.canonicalize(entry));
+        }
+        for (String signature : request.entrySignaturesToCheck) {
+            if (signature == null || signature.isBlank()) {
+                continue;
+            }
+            EntryCheckEvidence check = new EntryCheckEvidence();
+            check.signature = signature;
+            JMethod method = resolveMethod(ch, signature);
+            if (method == null) {
+                check.status = "UNRESOLVED";
+                check.detail = "signature did not resolve in the Tai-e World";
+                evidence.entryChecks.add(check);
+                continue;
+            }
+            check.inApplicationScope = method.isApplication();
+            check.declaringClassPhantom = method.getDeclaringClass().isPhantom();
+            if (!listedEntries.contains(TaiEMethodSignature.canonicalize(signature))) {
+                check.status = "NOT_IN_ENTRY_LIST";
+                check.detail = "resolved but was not injected as an entry signature";
+            } else if (method.getDeclaringClass().isPhantom()) {
+                check.status = "PHANTOM_CLASS";
+                check.detail = "declaring class is phantom";
+            } else if (method.isAbstract()) {
+                check.status = "ABSTRACT";
+                check.detail = "entry method is abstract";
+            } else if (method.isNative()) {
+                check.status = "NATIVE";
+                check.detail = "entry method is native";
+            } else if (addedMethods.contains(method)) {
+                check.status = "INJECTED";
+                check.detail = "entry method injected with declared-parameter provider";
+            } else {
+                check.status = "DUPLICATE_NOT_INJECTED";
+                check.detail = "method was already injected under another entry identity";
+            }
+            evidence.entryChecks.add(check);
+        }
+    }
+
+    private void collectTargetEvidence() {
+        TargetDiagnosticRequest request = diagnosticTarget;
+        if (request == null) {
+            return;
+        }
+        TargetDiagnosticEvidence evidence = ensureDiagnosticEvidence();
+        evidence.limits.put("maxTargetInvokes", request.maxTargetInvokes);
+        evidence.limits.put("maxReachableMethods", request.maxReachableMethods);
+        evidence.limits.put("maxApplicationMethods", request.maxApplicationMethods);
+        evidence.limits.put("maxCalleesPerInvoke", request.maxCalleesPerInvoke);
+        TaiEMethodSignature target = TaiEMethodSignature.parseNullable(request.sinkSignature);
+        if (target == null) {
+            evidence.notes.add("target sink signature could not be parsed in the worker");
+            lastDiagnosticEvidence = evidence;
+            return;
+        }
+        int maxInvokes = request.maxTargetInvokes > 0 ? request.maxTargetInvokes : 200;
+        int maxCallees = request.maxCalleesPerInvoke > 0 ? request.maxCalleesPerInvoke : 64;
+        List<Sighting> sightings = new ArrayList<>();
+        boolean invokeTruncated = false;
+        long maxApplicationMethods = request.maxApplicationMethods > 0
+                ? request.maxApplicationMethods : 2_000_000L;
+        long applicationMethodsScanned = 0;
+        outer:
+        for (JClass clazz : World.get().getClassHierarchy().applicationClasses().toList()) {
+            for (JMethod method : clazz.getDeclaredMethods()) {
+                if (method.isAbstract() || method.isNative()
+                        || method.getDeclaringClass().isPhantom()) {
+                    continue;
+                }
+                applicationMethodsScanned++;
+                if (applicationMethodsScanned > maxApplicationMethods) {
+                    evidence.irScanTruncated = true;
+                    evidence.notes.add("application IR scan reached maxApplicationMethods");
+                    break outer;
+                }
+                IR ir;
+                try {
+                    ir = method.getIR();
+                } catch (Throwable ignored) {
+                    continue;
+                }
+                if (ir == null) {
+                    continue;
+                }
+                for (Stmt stmt : ir) {
+                    if (!(stmt instanceof Invoke invoke)) {
+                        continue;
+                    }
+                    // InvokeDynamic has no MethodRef in Tai-e and throws
+                    // UnsupportedOperationException. It can never be the exact
+                    // named sink signature, so skip it.
+                    if (invoke.isDynamic()) {
+                        continue;
+                    }
+                    MethodRef ref = invoke.getMethodRef();
+                    String declaredSignature = methodRefSignature(ref);
+                    if (!target.canonical().equals(declaredSignature)) {
+                        continue;
+                    }
+                    if (sightings.size() >= maxInvokes) {
+                        invokeTruncated = true;
+                        break outer;
+                    }
+                    TargetInvokeEvidence item = new TargetInvokeEvidence();
+                    item.containerSignature = method.getSignature();
+                    item.stmtIndex = invoke.getIndex();
+                    item.lineNumber = invoke.getLineNumber();
+                    item.invokeText = invoke.toString();
+                    item.declaredSignature = declaredSignature;
+                    JMethod resolved = ref.resolveNullable();
+                    item.resolvedSignature = resolved != null ? resolved.getSignature() : null;
+                    sightings.add(new Sighting(item, invoke));
+                }
+            }
+        }
+        evidence.applicationMethodsScanned = applicationMethodsScanned;
+        if (invokeTruncated) {
+            evidence.limits.put("targetInvokesTruncated", true);
+            evidence.notes.add("target invoke collection reached maxTargetInvokes");
+        }
+
+        CallGraph<CSCallSite, CSMethod> callGraph = solver != null
+                ? solver.getCallGraph() : null;
+        evidence.callGraphAvailable = callGraph != null;
+        if (callGraph == null) {
+            evidence.notes.add("call graph unavailable in the worker");
+            evidence.targetInvokes = sightings.stream().map(Sighting::evidence).toList();
+            lastDiagnosticEvidence = evidence;
+            return;
+        }
+
+        Set<String> containerSignatures = new LinkedHashSet<>();
+        for (Sighting sighting : sightings) {
+            containerSignatures.add(sighting.evidence().containerSignature);
+        }
+        Map<String, CSMethod> reachableContainers = new HashMap<>();
+        long reachableCount = 0;
+        long maxReachable = request.maxReachableMethods > 0
+                ? request.maxReachableMethods : 2_000_000L;
+        try (var reachable = callGraph.reachableMethods()) {
+            var iterator = reachable.iterator();
+            while (iterator.hasNext()) {
+                CSMethod csMethod = iterator.next();
+                reachableCount++;
+                if (reachableCount > maxReachable) {
+                    evidence.reachableScanTruncated = true;
+                    evidence.notes.add("reachable method scan reached maxReachableMethods");
+                    break;
+                }
+                String signature = csMethod.getMethod().getSignature();
+                if (containerSignatures.contains(signature)
+                        && !reachableContainers.containsKey(signature)) {
+                    reachableContainers.put(signature, csMethod);
+                }
+            }
+        } catch (Throwable t) {
+            evidence.notes.add("reachable method scan failed: " + t);
+        }
+        evidence.reachableMethodCount = reachableCount;
+
+        for (Sighting sighting : sightings) {
+            TargetInvokeEvidence item = sighting.evidence();
+            CSMethod container = reachableContainers.get(item.containerSignature);
+            item.callerReachable = container != null;
+            if (container == null) {
+                continue;
+            }
+            try {
+                for (CSCallSite callSite : callGraph.getCallSitesIn(container)) {
+                    if (!callSite.getCallSite().equals(sighting.invoke())) {
+                        continue;
+                    }
+                    Set<CSMethod> callees = callGraph.getCalleesOf(callSite);
+                    if (callees != null) {
+                        int added = 0;
+                        for (CSMethod callee : callees) {
+                            if (added >= maxCallees) {
+                                evidence.limits.put("calleesTruncated", true);
+                                break;
+                            }
+                            String calleeSignature = callee.getMethod().getSignature();
+                            if (!item.resolvedCallees.contains(calleeSignature)) {
+                                item.resolvedCallees.add(calleeSignature);
+                                added++;
+                            }
+                            if (target.canonical().equals(calleeSignature)) {
+                                item.calleeReachable = true;
+                            }
+                        }
+                    }
+                    item.callEdgeObserved = !item.resolvedCallees.isEmpty();
+                    break;
+                }
+            } catch (Throwable t) {
+                evidence.notes.add("call edge lookup failed for "
+                        + item.containerSignature + ": " + t);
+            }
+        }
+        evidence.targetInvokes = sightings.stream().map(Sighting::evidence).toList();
+        lastDiagnosticEvidence = evidence;
+    }
+
+    private TargetDiagnosticEvidence ensureDiagnosticEvidence() {
+        if (lastDiagnosticEvidence == null) {
+            lastDiagnosticEvidence = new TargetDiagnosticEvidence();
+        }
+        return lastDiagnosticEvidence;
+    }
+
+    private static String methodRefSignature(MethodRef ref) {
+        List<Type> parameters = ref.getParameterTypes();
+        List<String> names = new ArrayList<>(parameters.size());
+        for (Type parameter : parameters) {
+            names.add(parameter.getName());
+        }
+        return "<" + ref.getDeclaringClass().getName() + ": "
+                + ref.getReturnType().getName() + " " + ref.getName()
+                + "(" + String.join(",", names) + ")>";
+    }
+
+    private record Sighting(TargetInvokeEvidence evidence, Invoke invoke) {
     }
 
     /**

@@ -786,7 +786,7 @@ public class TaintEngine {
         }
     }
 
-    private List<ApiRoute> loadEntryPoints(File apiFile) {
+    public static List<ApiRoute> loadEntryPoints(File apiFile) {
         List<ApiRoute> routes = new ArrayList<>();
         try {
             List<String> lines = readLogLinesLenient(apiFile.toPath());

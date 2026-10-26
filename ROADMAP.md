@@ -933,3 +933,7 @@ authSource
 - **禁止**无条件 hard-drop 全部业务包外 flow。
 - 扩大召回：关闭 `noise_filter`、放宽 `finding_packages`、降低主 SARIF confidence 门槛或导出 sidecar——**不要**把库内弱构造/裸 parse 重新灌回默认 CRITICAL 队列。
 - 实施顺序固定为 **P0.6-A → B → C → D**；未完成 A 不得默认开启 B 的 suppress。
+
+## 11. 审计 CLI 与断链诊断（已实现 v1）
+
+完整命令、证据协议和验收要求见 [CLI_AUDIT_PLAN.md](docs/CLI_AUDIT_PLAN.md)。定向 `diagnose` 和离线 `query` 已实现，使人工与本地 AI 可以查询漏报原因和已有 finding 证据。普通扫描保持现有产物；仅定向诊断采集有上限的局部证据。当前不规划 MCP 服务。

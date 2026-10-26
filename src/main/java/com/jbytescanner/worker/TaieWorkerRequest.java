@@ -47,4 +47,8 @@ public class TaieWorkerRequest {
 
     @JsonProperty("executionMode")
     public String executionMode = "single";
+
+    /** Optional bounded target evidence request; null for ordinary scans. */
+    @JsonProperty("diagnosticTarget")
+    public TargetDiagnosticRequest diagnosticTarget;
 }

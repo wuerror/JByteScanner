@@ -86,6 +86,10 @@ public class TaieWorkerResult {
     @JsonProperty("expansionInject")
     public Map<String, Object> expansionInject = new LinkedHashMap<>();
 
+    /** Present only for targeted diagnose requests. */
+    @JsonProperty("diagnostic")
+    public TargetDiagnosticEvidence diagnostic;
+
     public PhaseMetrics phase(String name) {
         for (PhaseMetrics p : phases) {
             if (name.equals(p.name)) {

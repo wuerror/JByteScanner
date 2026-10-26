@@ -49,6 +49,24 @@ class ClasspathPlannerTest {
     }
 
     @Test
+    void noReportModePreservesExistingPreflight() throws Exception {
+        Path jar = tempDir.resolve("lib-a.jar");
+        Files.write(jar, buildJar(List.of("com/vendor/A.class"), null));
+
+        JarLoader.LoadedJars discovered = new JarLoader.LoadedJars();
+        discovered.libJars.add(jar.toString());
+
+        Path workspace = tempDir.resolve("ws-no-report");
+        Files.createDirectories(workspace);
+        Path report = workspace.resolve("classpath-preflight.json");
+        Files.writeString(report, "sentinel", StandardCharsets.UTF_8);
+
+        new ClasspathPlanner().plan(discovered, List.of("com.example"), workspace.toFile(), false);
+
+        assertEquals("sentinel", Files.readString(report, StandardCharsets.UTF_8));
+    }
+
+    @Test
     void warnsAndKeepsFirstForSameNameVersionDifferentContent() throws Exception {
         Path a = tempDir.resolve("foo-1.0.0.jar");
         Path b = tempDir.resolve("other/foo-1.0.0.jar");

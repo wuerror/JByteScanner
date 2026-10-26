@@ -38,6 +38,17 @@ public class JarLoader {
         }
     }
 
+    /** A two-segment package prefix and the number of application classes under it. */
+    public static final class PackageCandidate {
+        public final String packagePrefix;
+        public final int classCount;
+
+        public PackageCandidate(String packagePrefix, int classCount) {
+            this.packagePrefix = packagePrefix;
+            this.classCount = classCount;
+        }
+    }
+
     public LoadedJars loadJars(String path, List<String> scanPackages) {
 
         File root = new File(path);
@@ -181,15 +192,52 @@ public class JarLoader {
      * Prioritizes exploded classes directories (from Fat JARs) over standalone JARs.
      */
     public String inferBasePackage(List<String> appJars) {
+        List<PackageCandidate> candidates = rankBasePackageCandidates(appJars, 1);
+        return candidates.isEmpty() ? null : candidates.get(0).packagePrefix;
+    }
+
+    /**
+     * Rank two-segment application package prefixes by class count. This does not
+     * change the automatic selection: callers still add only the first candidate
+     * to scan_packages. The full list is for audit logging so a human can decide
+     * whether a second business root (for example {@code org.hzero}) should be
+     * added manually.
+     *
+     * <p>Only application class roots / target artifacts passed by the caller are
+     * counted. BOOT-INF/lib third-party jars are not part of this list when the
+     * caller passes the discovered target application jars. Known library
+     * prefixes are also ignored by {@link #updatePackageCount(String, Map)}.
+     */
+    public List<PackageCandidate> rankBasePackageCandidates(List<String> appJars, int limit) {
+        if (appJars == null || appJars.isEmpty() || limit <= 0) {
+            return List.of();
+        }
+        Map<String, Integer> packageCounts = countPackageClasses(appJars);
+        return packageCounts.entrySet().stream()
+                .sorted((e1, e2) -> {
+                    int byCount = Integer.compare(e2.getValue(), e1.getValue());
+                    return byCount != 0 ? byCount : e1.getKey().compareTo(e2.getKey());
+                })
+                .limit(limit)
+                .map(e -> new PackageCandidate(e.getKey(), e.getValue()))
+                .collect(Collectors.toList());
+    }
+
+    private Map<String, Integer> countPackageClasses(List<String> appJars) {
         Map<String, Integer> packageCounts = new HashMap<>();
 
         // Strategy: Prioritize directories (exploded Fat JAR classes) over JAR files
         // because directories usually contain the core business logic from BOOT-INF/classes
-        boolean hasDirectories = appJars.stream().anyMatch(path -> new File(path).isDirectory());
-        
+        boolean hasDirectories = appJars.stream()
+                .filter(Objects::nonNull)
+                .anyMatch(path -> new File(path).isDirectory());
+
         for (String jarPath : appJars) {
+            if (jarPath == null || jarPath.isBlank()) {
+                continue;
+            }
             File jarFile = new File(jarPath);
-            
+
             // If we have verified business code directories, ignore potential noise from standalone JARs
             if (hasDirectories && !jarFile.isDirectory()) {
                 continue;
@@ -197,16 +245,11 @@ public class JarLoader {
 
             if (jarFile.isDirectory()) {
                 scanDirectoryForPackages(jarFile, "", packageCounts);
-            } else {
+            } else if (jarFile.isFile()) {
                 scanJarForPackages(jarPath, packageCounts);
             }
         }
-
-        return packageCounts.entrySet().stream()
-            .sorted((e1, e2) -> e2.getValue().compareTo(e1.getValue())) // Descending
-            .map(Map.Entry::getKey)
-            .findFirst()
-            .orElse(null);
+        return packageCounts;
     }
 
     private void scanJarForPackages(String jarPath, Map<String, Integer> counts) {
@@ -249,20 +292,23 @@ public class JarLoader {
         String[] parts = pkg.split("\\.");
         if (parts.length >= 2) {
             String basePkg = parts[0] + "." + parts[1];
-            
-            // Check ignore list
-            boolean ignored = false;
-            for (String ignore : IGNORED_PREFIXES) {
-                if (basePkg.startsWith(ignore) || (basePkg + ".").startsWith(ignore)) {
-                    ignored = true;
-                    break;
-                }
-            }
-            
-            if (!ignored) {
+            if (!isIgnoredPackagePrefix(basePkg)) {
                 counts.put(basePkg, counts.getOrDefault(basePkg, 0) + 1);
             }
         }
+    }
+
+    /** True for common third-party/runtime prefixes that should not be package candidates. */
+    public static boolean isIgnoredPackagePrefix(String packagePrefix) {
+        if (packagePrefix == null) {
+            return false;
+        }
+        for (String ignore : IGNORED_PREFIXES) {
+            if (packagePrefix.startsWith(ignore) || (packagePrefix + ".").startsWith(ignore)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private LoadedJars processFatJars(List<String> rawJars, List<String> scanPackages) {

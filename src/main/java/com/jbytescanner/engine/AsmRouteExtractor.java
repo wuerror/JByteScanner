@@ -15,11 +15,13 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -88,15 +90,8 @@ public class AsmRouteExtractor {
 
     public List<ApiRoute> extract() {
         // Phase 1: scan all class files and collect metadata
-        Map<String, ClassInfo> classInfoMap = new HashMap<>();
-        for (String jarPath : targetJars) {
-            File f = new File(jarPath);
-            if (f.isDirectory()) {
-                scanDirectory(f, classInfoMap);
-            } else if (f.isFile() && jarPath.endsWith(".jar")) {
-                scanJar(f, classInfoMap);
-            }
-        }
+        ClassScan scan = scanClasses();
+        Map<String, ClassInfo> classInfoMap = scan.classes;
         logger.info("AsmRouteExtractor: scanned {} classes.", classInfoMap.size());
 
         // Phase 2: web.xml routes (WebXmlParser has no Tai-e dependency)
@@ -127,17 +122,157 @@ public class AsmRouteExtractor {
         return routes;
     }
 
+    /**
+     * Per-package entry-point statistics produced by the same ASM metadata scan
+     * used for API discovery. Counts are declared in bytecode, not runtime
+     * reachability, and web.xml routes cannot be attributed to a package.
+     */
+    public record PackageEntryStats(int classCount,
+                                    int controllerClasses,
+                                    int webEntryClasses,
+                                    int routeCount,
+                                    boolean entryScanConfirmed,
+                                    int scannedClasses,
+                                    int failedClasses,
+                                    int sourceModuleCount,
+                                    List<String> sourceModules) {
+    }
+
+    /**
+     * Summarize every two-segment package prefix found in the supplied roots.
+     * Class counts are unique class names (duplicate class names across nested
+     * module copies are collapsed by the scanner's class map).
+     */
+    public Map<String, PackageEntryStats> summarizeAllEntryPoints() {
+        return summarizeEntryPoints(null);
+    }
+
+    /**
+     * Summarize annotation/servlet/JAX-RS entry points for the requested
+     * two-segment package prefixes without running Tai-e. Callers that want to
+     * include platform/business modules under BOOT-INF/lib must pass those
+     * module JARs explicitly; this method does not decide artifact relevance.
+     */
+    public Map<String, PackageEntryStats> summarizeEntryPoints(Collection<String> packagePrefixes) {
+        Set<String> wanted = null;
+        Map<String, MutableStats> counts = new LinkedHashMap<>();
+        if (packagePrefixes != null) {
+            wanted = new LinkedHashSet<>();
+            for (String prefix : packagePrefixes) {
+                if (prefix != null && !prefix.isBlank()) {
+                    wanted.add(prefix);
+                    counts.put(prefix, new MutableStats());
+                }
+            }
+            if (wanted.isEmpty()) {
+                return Map.of();
+            }
+        }
+
+        ClassScan scan = scanClasses();
+        boolean confirmed = !scan.classes.isEmpty()
+                && scan.failedClasses == 0
+                && scan.unsupportedInputs == 0;
+        for (ClassInfo ci : scan.classes.values()) {
+            String prefix = packagePrefix(ci.className);
+            if (prefix == null || (wanted != null && !wanted.contains(prefix))) {
+                continue;
+            }
+            MutableStats counter = counts.computeIfAbsent(prefix, ignored -> new MutableStats());
+            counter.classCount++;
+            boolean springController = ci.hasAnnotation(DESC_REST_CONTROLLER)
+                    || ci.hasAnnotation(DESC_CONTROLLER);
+            boolean servlet = isServlet(ci, scan.classes);
+            boolean jaxRs = isJaxRs(ci);
+            if (!springController && !servlet && !jaxRs) {
+                continue;
+            }
+            int routes = 0;
+            if (springController) {
+                counter.controllerClasses++;
+                routes += extractSpringRoutes(ci).size();
+            }
+            if (servlet) {
+                routes += extractServletRoutes(ci).size();
+            }
+            if (jaxRs) {
+                routes += extractJaxRsRoutes(ci).size();
+            }
+            counter.webEntryClasses++;
+            counter.routeCount += routes;
+            if (ci.sourceArtifact != null && !ci.sourceArtifact.isBlank()) {
+                counter.sources.add(ci.sourceArtifact);
+            }
+        }
+
+        Map<String, PackageEntryStats> result = new LinkedHashMap<>();
+        for (Map.Entry<String, MutableStats> entry : counts.entrySet()) {
+            MutableStats c = entry.getValue();
+            List<String> sources = new ArrayList<>(c.sources);
+            Collections.sort(sources);
+            result.put(entry.getKey(), new PackageEntryStats(
+                    c.classCount, c.controllerClasses, c.webEntryClasses, c.routeCount,
+                    confirmed, scan.classes.size(), scan.failedClasses,
+                    sources.size(),
+                    List.copyOf(sources.subList(0, Math.min(3, sources.size())))));
+        }
+        return result;
+    }
+
+    private static class MutableStats {
+        int classCount;
+        int controllerClasses;
+        int webEntryClasses;
+        int routeCount;
+        final Set<String> sources = new LinkedHashSet<>();
+    }
+
+    private static String packagePrefix(String className) {
+        if (className == null) {
+            return null;
+        }
+        int first = className.indexOf('.');
+        if (first < 0) {
+            return null;
+        }
+        int second = className.indexOf('.', first + 1);
+        return second < 0 ? null : className.substring(0, second);
+    }
+
+    private static class ClassScan {
+        final Map<String, ClassInfo> classes = new HashMap<>();
+        int failedClasses;
+        int unsupportedInputs;
+    }
+
+    private ClassScan scanClasses() {
+        ClassScan scan = new ClassScan();
+        for (String jarPath : targetJars) {
+            File f = new File(jarPath);
+            if (f.isDirectory()) {
+                scanDirectory(f, scan);
+            } else if (f.isFile() && jarPath.endsWith(".jar")) {
+                scanJar(f, scan);
+            } else {
+                scan.unsupportedInputs++;
+            }
+        }
+        return scan;
+    }
+
     // ---- Internal Data Model ----
 
     private static class ClassInfo {
         final String className;         // dot-separated, e.g. "com.example.UserController"
         final String internalSuperName; // slash-separated, e.g. "javax/servlet/http/HttpServlet"
+        final String sourceArtifact;    // application class root or nested module JAR name
         final List<AnnInfo> annotations = new ArrayList<>();
         final List<MethodInfo> methods  = new ArrayList<>();
 
-        ClassInfo(String className, String internalSuperName) {
+        ClassInfo(String className, String internalSuperName, String sourceArtifact) {
             this.className = className;
             this.internalSuperName = internalSuperName;
+            this.sourceArtifact = sourceArtifact;
         }
 
         boolean hasAnnotation(String descriptor) {
@@ -227,37 +362,44 @@ public class AsmRouteExtractor {
 
     // ---- ASM Scanning ----
 
-    private void scanDirectory(File dir, Map<String, ClassInfo> classInfoMap) {
+    private void scanDirectory(File dir, ClassScan scan) {
         try (Stream<Path> walk = Files.walk(dir.toPath())) {
             walk.filter(p -> p.toString().endsWith(".class")).forEach(p -> {
                 try (InputStream is = Files.newInputStream(p)) {
-                    readClass(is, classInfoMap);
-                } catch (Exception ignored) { }
+                    readClass(is, dir.getName(), scan.classes);
+                } catch (Exception ignored) {
+                    scan.failedClasses++;
+                }
             });
         } catch (IOException e) {
+            scan.unsupportedInputs++;
             logger.error("Error walking directory for ASM: {}", dir, e);
         }
     }
 
-    private void scanJar(File jarFile, Map<String, ClassInfo> classInfoMap) {
+    private void scanJar(File jarFile, ClassScan scan) {
         try (ZipFile zip = new ZipFile(jarFile)) {
             Enumeration<? extends ZipEntry> entries = zip.entries();
             while (entries.hasMoreElements()) {
                 ZipEntry entry = entries.nextElement();
                 if (entry.getName().endsWith(".class")) {
                     try (InputStream is = zip.getInputStream(entry)) {
-                        readClass(is, classInfoMap);
-                    } catch (Exception ignored) { }
+                        readClass(is, jarFile.getName(), scan.classes);
+                    } catch (Exception ignored) {
+                        scan.failedClasses++;
+                    }
                 }
             }
         } catch (IOException e) {
+            scan.unsupportedInputs++;
             logger.error("Error reading jar for ASM: {}", jarFile, e);
         }
     }
 
-    private void readClass(InputStream is, Map<String, ClassInfo> classInfoMap) throws IOException {
+    private void readClass(InputStream is, String sourceArtifact,
+                           Map<String, ClassInfo> classInfoMap) throws IOException {
         ClassReader cr = new ClassReader(is);
-        RouteClassVisitor visitor = new RouteClassVisitor();
+        RouteClassVisitor visitor = new RouteClassVisitor(sourceArtifact);
         // SKIP_CODE: skip method bytecode (we only need metadata/annotations)
         // SKIP_DEBUG: skip line numbers and local variable names
         // SKIP_FRAMES: skip stack map frames
@@ -270,16 +412,18 @@ public class AsmRouteExtractor {
     // ---- ASM Visitors ----
 
     private static class RouteClassVisitor extends ClassVisitor {
+        private final String sourceArtifact;
         ClassInfo classInfo;
 
-        RouteClassVisitor() {
+        RouteClassVisitor(String sourceArtifact) {
             super(Opcodes.ASM9);
+            this.sourceArtifact = sourceArtifact;
         }
 
         @Override
         public void visit(int version, int access, String name, String signature,
                           String superName, String[] interfaces) {
-            classInfo = new ClassInfo(name.replace('/', '.'), superName);
+            classInfo = new ClassInfo(name.replace('/', '.'), superName, sourceArtifact);
         }
 
         @Override

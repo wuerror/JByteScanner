@@ -103,12 +103,7 @@ java -jar JByteScanner-1.5.0.jar /path
 
 若存在漏洞，结果输出到 `result.sarif`，生成的 PoC 请求示例在 `generated_pocs.txt`。
 
-**交互式模式 (未实现):**
-
-```bash
-# 扫描结束后进入 REPL Shell
-java -jar target/JByteScanner-1.5.0.jar /path/to/app.jar --interactive
-```
+**AI/人工审计 CLI:** `diagnose` 定向诊断未命中的 source/sink，`query` 以 JSON 离线查询已有扫描证据。普通扫描保持现有输出；仅定向诊断额外采集有上限的局部证据。命令、退出码、JSON schema 与证据边界见 [CLI 审计与断链诊断计划](docs/CLI_AUDIT_PLAN.md)。
 
 ---
 
@@ -133,5 +128,5 @@ java -jar target/JByteScanner-1.5.0.jar /path/to/app.jar --interactive
 - [ ] **Auth Bypass**: 鉴权绕过检测（Spring Security 配置 vs Controller 映射差异分析）。
 - [ ] **规则迁移 v4**: 构造/解析 API 从终态 sink 分离为 transfer，规则身份与撤销能力。
 - [ ] **增量缓存**: ClassIndex 持久化和跨次扫描复用。
-- [ ] **交互式 Shell**: 内存调用图查询 REPL。
+- [x] **审计 CLI**: 目标 sink 漏报诊断、离线查询和机器可读证据输出；当前不规划 MCP。
 

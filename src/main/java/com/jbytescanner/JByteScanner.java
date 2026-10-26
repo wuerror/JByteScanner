@@ -1,8 +1,12 @@
 package com.jbytescanner;
 
+import com.jbytescanner.cli.DiagnoseCommand;
+import com.jbytescanner.cli.QueryCommand;
 import com.jbytescanner.config.ConfigManager;
 import com.jbytescanner.core.ClasspathPlanner;
 import com.jbytescanner.core.JarLoader;
+import com.jbytescanner.engine.PackageScopeAdvisor;
+import com.jbytescanner.engine.PackageScopeReporter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import picocli.CommandLine;
@@ -11,15 +15,19 @@ import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
 
 import java.io.File;
-import java.util.concurrent.Callable;
 import java.util.List;
+import java.util.concurrent.Callable;
 
-@Command(name = "JByteScanner", mixinStandardHelpOptions = true, version = "1.0",
-        description = "Java Bytecode Security Scanner based on Tai-e")
+@Command(name = "JByteScanner", mixinStandardHelpOptions = true, version = "1.5.0",
+        description = "Java Bytecode Security Scanner based on Tai-e",
+        subcommands = {DiagnoseCommand.class, QueryCommand.class},
+        footer = "Ordinary scanning remains 'JByteScanner <target> [-m scan|api]'. "
+                + "Use 'diagnose' for targeted missed-flow analysis and 'query' for offline artifacts.")
 public class JByteScanner implements Callable<Integer> {
     private static final Logger logger = LoggerFactory.getLogger(JByteScanner.class);
 
-    @Parameters(index = "0", description = "Target directory or JAR file to scan")
+    @Parameters(index = "0", arity = "0..1",
+            description = "Target directory or JAR file to scan")
     private String targetPath;
 
     @Option(names = {"-c", "--config"}, description = "Path to custom configuration file (optional)")
@@ -47,6 +55,10 @@ public class JByteScanner implements Callable<Integer> {
 
     @Override
     public Integer call() throws Exception {
+        if (targetPath == null || targetPath.isBlank()) {
+            System.err.println("Missing required parameter: '<targetPath>'");
+            return 1;
+        }
         System.out.println("==========================================");
         System.out.println("   JByteScanner - Next Gen Static Analysis");
         System.out.println("==========================================");
@@ -92,10 +104,15 @@ public class JByteScanner implements Callable<Integer> {
             List<String> initialAppJars = new java.util.ArrayList<>(loadedJars.targetAppJars);
             initialAppJars.addAll(loadedJars.depAppJars);
             
-            String inferredPackage = jarLoader.inferBasePackage(initialAppJars);
-            
+            List<JarLoader.PackageCandidate> candidates =
+                    jarLoader.rankBasePackageCandidates(initialAppJars, 25);
+            String inferredPackage = candidates.isEmpty()
+                    ? null : candidates.get(0).packagePrefix;
+
             if (inferredPackage != null) {
                 logger.info("Inferred Base Package: {}", inferredPackage);
+                logPackageScopeCandidates(inferredPackage, candidates,
+                        initialAppJars, loadedJars.libJars);
                 configManager.updateScanPackage(inferredPackage);
                 // Reload scanPackages variable
                 scanPackages = configManager.getConfig().getScanConfig().getScanPackages();
@@ -237,6 +254,17 @@ public class JByteScanner implements Callable<Integer> {
         System.out.println("Phase 3 Complete. Analysis finished.");
         
         return 0;
+    }
+
+    private void logPackageScopeCandidates(String selectedPackage,
+                                           List<JarLoader.PackageCandidate> legacyCandidates,
+                                           List<String> appRoots,
+                                           List<String> nestedModules) {
+        PackageScopeAdvisor.ScopeReport report = PackageScopeAdvisor.analyze(
+                selectedPackage, legacyCandidates, appRoots, nestedModules);
+        for (String line : PackageScopeReporter.describe(report)) {
+            logger.info(line);
+        }
     }
 
     private void applyResourceBudgetOverrides(ConfigManager configManager) {

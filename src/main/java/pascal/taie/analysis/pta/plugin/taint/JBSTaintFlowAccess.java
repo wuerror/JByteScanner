@@ -117,6 +117,11 @@ public final class JBSTaintFlowAccess {
             if (inv.getIndex() <= sinkIdx) {
                 continue;
             }
+            // Lambda/metafactory call sites are not ordinary methods and have
+            // no MethodRef in Tai-e.
+            if (inv.isDynamic()) {
+                continue;
+            }
             String name = inv.getMethodRef().getName();
             String owner = inv.getMethodRef().getDeclaringClass().getName();
             String nameLower = name.toLowerCase(Locale.ROOT);

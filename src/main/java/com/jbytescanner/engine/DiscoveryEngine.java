@@ -85,7 +85,7 @@ public class DiscoveryEngine {
         }
     }
 
-    static String computeFingerprint(List<String> targetAppJars) {
+    public static String computeFingerprint(List<String> targetAppJars) {
         List<String> lines = new ArrayList<>();
         if (targetAppJars != null) {
             for (String path : targetAppJars) {

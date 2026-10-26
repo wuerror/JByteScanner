@@ -70,6 +70,19 @@ public class ClasspathPlanner {
     public PlanResult plan(JarLoader.LoadedJars discovered,
                            List<String> scanPackages,
                            File workspaceDir) {
+        return plan(discovered, scanPackages, workspaceDir, true);
+    }
+
+    /**
+     * @param writeReport when false, canonicalize the classpath without replacing the
+     *                    workspace's ordinary-scan {@code classpath-preflight.json}.
+     *                    Targeted diagnosis uses this so it cannot destroy the
+     *                    artifact identity recorded by the last ordinary scan.
+     */
+    public PlanResult plan(JarLoader.LoadedJars discovered,
+                           List<String> scanPackages,
+                           File workspaceDir,
+                           boolean writeReport) {
         ClasspathPreflightReport report = new ClasspathPreflightReport();
         report.generatedAt = Instant.now().toString();
         if (scanPackages != null) {
@@ -215,7 +228,9 @@ public class ClasspathPlanner {
         report.depAppCount = canonical.depAppJars.size();
         report.libraryCount = canonical.libJars.size();
 
-        writeReport(workspaceDir, report);
+        if (writeReport) {
+            writeReport(workspaceDir, report);
+        }
         logger.info("Classpath preflight: target={}, depApp={}, lib={}, droppedDup={}, mixedExtract={}, "
                         + "duplicateClassGroups={}, warnings={}",
                 report.targetAppCount, report.depAppCount, report.libraryCount,

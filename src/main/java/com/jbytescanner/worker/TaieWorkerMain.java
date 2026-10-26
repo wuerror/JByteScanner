@@ -108,6 +108,7 @@ public final class TaieWorkerMain {
             int code = TaieWorkerResult.STATUS_OOM.equals(status) ? EXIT_OOM : EXIT_FAILED;
             handleThrowable(result, t, status, code);
         } finally {
+            copyDiagnosticEvidence(result);
             tryWriteResult(resultPath, result, totalStart);
         }
         return result;
@@ -122,6 +123,8 @@ public final class TaieWorkerMain {
                         : List.of();
         JBSScanEntryPointPlugin.springServiceEntryFallback = request.springServiceEntryFallback;
         JBSScanEntryPointPlugin.capturedTaintFlows = null;
+        JBSScanEntryPointPlugin.diagnosticTarget = request.diagnosticTarget;
+        JBSScanEntryPointPlugin.lastDiagnosticEvidence = null;
 
         List<String> args = new ArrayList<>();
         if (request.targetAppJars != null && !request.targetAppJars.isEmpty()) {
@@ -228,6 +231,23 @@ public final class TaieWorkerMain {
             // best-effort metric. Let the worker fail instead of silently
             // falling back to ambiguous log-text inference.
             throw new IllegalStateException("Failed to serialize captured Tai-e taint flows", t);
+        }
+    }
+
+    private static void copyDiagnosticEvidence(TaieWorkerResult result) {
+        try {
+            if (JBSScanEntryPointPlugin.diagnosticTarget == null) {
+                return;
+            }
+            result.diagnostic = JBSScanEntryPointPlugin.lastDiagnosticEvidence;
+            if (result.diagnostic == null) {
+                result.diagnostic = new TargetDiagnosticEvidence();
+                result.diagnostic.notes.add(
+                        "worker stopped before targeted evidence could be collected");
+            }
+        } catch (Throwable t) {
+            result.diagnostic = new TargetDiagnosticEvidence();
+            result.diagnostic.notes.add("failed to copy targeted evidence: " + t);
         }
     }
 
