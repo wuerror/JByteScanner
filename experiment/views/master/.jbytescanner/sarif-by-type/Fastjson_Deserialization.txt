@@ -1,0 +1,219 @@
+Sink: <com.alibaba.fastjson.JSON: java.lang.Object parse(java.lang.String)>
+Total chains: 28
+================================================================================
+
+Chain #1:
+<com.alibaba.fastjson.JSON: java.lang.Object parse(java.lang.String)>
+    <com.alibaba.fastjson.JSON: com.alibaba.fastjson.JSONObject parseObject(java.lang.String)> @L254 stmt#1
+        <org.srm.iam.api.controller.v1.CompanyImportController: java.util.List userAccountImport(java.util.List)> idx=0 route=POST /v1/company-import/user-account
+
+Chain #2:
+<com.alibaba.fastjson.JSON: java.lang.Object parse(java.lang.String)>
+    <com.alibaba.fastjson.serializer.SerializeFilterable: java.lang.Object processValue(com.alibaba.fastjson.serializer.JSONSerializer,com.alibaba.fastjson.serializer.BeanContext,java.lang.Object,java.lang.String,java.lang.Object,int)> @L229 stmt#33
+        <org.srm.iam.api.controller.v1.CompanyImportController: java.util.List userAccountImport(java.util.List)> idx=0 route=POST /v1/company-import/user-account
+
+Chain #3:
+<com.alibaba.fastjson.JSON: java.lang.Object parse(java.lang.String)>
+    <com.alibaba.fastjson.JSON: com.alibaba.fastjson.JSONObject parseObject(java.lang.String)> @L254 stmt#1
+        <org.srm.iam.api.controller.v1.UserSynchronizeController: org.springframework.http.ResponseEntity createUser(java.lang.Long,org.srm.iam.api.dto.UserDTO)> idx=1 route=POST /v1/{organizationId}/user/synchronize
+
+Chain #4:
+<com.alibaba.fastjson.JSON: java.lang.Object parse(java.lang.String)>
+    <com.alibaba.fastjson.serializer.SerializeFilterable: java.lang.Object processValue(com.alibaba.fastjson.serializer.JSONSerializer,com.alibaba.fastjson.serializer.BeanContext,java.lang.Object,java.lang.String,java.lang.Object,int)> @L229 stmt#33
+        <org.srm.iam.api.controller.v1.UserSynchronizeController: org.springframework.http.ResponseEntity createUser(java.lang.Long,org.srm.iam.api.dto.UserDTO)> idx=1 route=POST /v1/{organizationId}/user/synchronize
+
+Chain #5:
+<com.alibaba.fastjson.JSON: java.lang.Object parse(java.lang.String)>
+    <com.alibaba.fastjson.JSON: com.alibaba.fastjson.JSONObject parseObject(java.lang.String)> @L254 stmt#1
+        <org.srm.iam.api.controller.v1.UserSynchronizeController: org.springframework.http.ResponseEntity userAuthority(java.lang.Long,org.srm.iam.api.dto.UserDTO)> idx=1 route=POST /v1/{organizationId}/user/synchronize/authority
+
+Chain #6:
+<com.alibaba.fastjson.JSON: java.lang.Object parse(java.lang.String)>
+    <com.alibaba.fastjson.serializer.SerializeFilterable: java.lang.Object processValue(com.alibaba.fastjson.serializer.JSONSerializer,com.alibaba.fastjson.serializer.BeanContext,java.lang.Object,java.lang.String,java.lang.Object,int)> @L229 stmt#33
+        <org.srm.iam.api.controller.v1.UserSynchronizeController: org.springframework.http.ResponseEntity userAuthority(java.lang.Long,org.srm.iam.api.dto.UserDTO)> idx=1 route=POST /v1/{organizationId}/user/synchronize/authority
+
+Chain #7:
+<com.alibaba.fastjson.JSON: java.lang.Object parse(java.lang.String)>
+    <com.alibaba.fastjson.JSON: com.alibaba.fastjson.JSONObject parseObject(java.lang.String)> @L254 stmt#1
+        <org.srm.mobile.config.api.controller.v1.ThirdPartyCallbackController: org.springframework.http.ResponseEntity dingTalk(java.lang.String,java.lang.String,java.lang.String,java.lang.String,java.lang.String,org.srm.mobile.config.api.dto.DingTalkResponse)> idx=3 route=POST /v1/third-party-callback/ding-talk/{appClient}
+
+Chain #8:
+<com.alibaba.fastjson.JSON: java.lang.Object parse(java.lang.String)>
+    <com.alibaba.fastjson.serializer.SerializeFilterable: java.lang.Object processValue(com.alibaba.fastjson.serializer.JSONSerializer,com.alibaba.fastjson.serializer.BeanContext,java.lang.Object,java.lang.String,java.lang.Object,int)> @L229 stmt#33
+        <org.srm.mobile.config.api.controller.v1.ThirdPartyCallbackController: org.springframework.http.ResponseEntity dingTalk(java.lang.String,java.lang.String,java.lang.String,java.lang.String,java.lang.String,org.srm.mobile.config.api.dto.DingTalkResponse)> idx=3 route=POST /v1/third-party-callback/ding-talk/{appClient}
+
+Chain #9:
+<com.alibaba.fastjson.JSON: java.lang.Object parse(java.lang.String)>
+    <com.alibaba.fastjson.JSON: com.alibaba.fastjson.JSONObject parseObject(java.lang.String)> @L254 stmt#1
+        <org.srm.mobile.config.api.controller.v1.ThirdPartyCallbackController: org.springframework.http.ResponseEntity dingTalk(java.lang.String,java.lang.String,java.lang.String,java.lang.String,java.lang.String,org.srm.mobile.config.api.dto.DingTalkResponse)> idx=4 route=POST /v1/third-party-callback/ding-talk/{appClient}
+
+Chain #10:
+<com.alibaba.fastjson.JSON: java.lang.Object parse(java.lang.String)>
+    <com.alibaba.fastjson.serializer.SerializeFilterable: java.lang.Object processValue(com.alibaba.fastjson.serializer.JSONSerializer,com.alibaba.fastjson.serializer.BeanContext,java.lang.Object,java.lang.String,java.lang.Object,int)> @L229 stmt#33
+        <org.srm.mobile.config.api.controller.v1.ThirdPartyCallbackController: org.springframework.http.ResponseEntity dingTalk(java.lang.String,java.lang.String,java.lang.String,java.lang.String,java.lang.String,org.srm.mobile.config.api.dto.DingTalkResponse)> idx=4 route=POST /v1/third-party-callback/ding-talk/{appClient}
+
+Chain #11:
+<com.alibaba.fastjson.JSON: java.lang.Object parse(java.lang.String)>
+    <com.alibaba.fastjson.JSON: com.alibaba.fastjson.JSONObject parseObject(java.lang.String)> @L254 stmt#1
+        <org.srm.mobile.config.api.controller.v1.ThirdPartyCallbackController: org.springframework.http.ResponseEntity dingTalk(java.lang.String,java.lang.String,java.lang.String,java.lang.String,java.lang.String,org.srm.mobile.config.api.dto.DingTalkResponse)> idx=5 route=POST /v1/third-party-callback/ding-talk/{appClient}
+
+Chain #12:
+<com.alibaba.fastjson.JSON: java.lang.Object parse(java.lang.String)>
+    <com.alibaba.fastjson.serializer.SerializeFilterable: java.lang.Object processValue(com.alibaba.fastjson.serializer.JSONSerializer,com.alibaba.fastjson.serializer.BeanContext,java.lang.Object,java.lang.String,java.lang.Object,int)> @L229 stmt#33
+        <org.srm.mobile.config.api.controller.v1.ThirdPartyCallbackController: org.springframework.http.ResponseEntity dingTalk(java.lang.String,java.lang.String,java.lang.String,java.lang.String,java.lang.String,org.srm.mobile.config.api.dto.DingTalkResponse)> idx=5 route=POST /v1/third-party-callback/ding-talk/{appClient}
+
+Chain #13:
+<com.alibaba.fastjson.JSON: java.lang.Object parse(java.lang.String)>
+    <com.alibaba.fastjson.JSON: com.alibaba.fastjson.JSONObject parseObject(java.lang.String)> @L254 stmt#1
+        <org.srm.platform.api.controller.v1.CompanyCaAuthInfoController: org.springframework.http.ResponseEntity toPayNotify(java.lang.Long,javax.servlet.http.HttpServletRequest,org.srm.platform.domain.vo.ToPayResultVO)> idx=2 route=POST /v1/{organizationId}/company-ca-auth-info/to_pay_notify
+
+Chain #14:
+<com.alibaba.fastjson.JSON: java.lang.Object parse(java.lang.String)>
+    <com.alibaba.fastjson.serializer.SerializeFilterable: java.lang.Object processValue(com.alibaba.fastjson.serializer.JSONSerializer,com.alibaba.fastjson.serializer.BeanContext,java.lang.Object,java.lang.String,java.lang.Object,int)> @L229 stmt#33
+        <org.srm.platform.api.controller.v1.CompanyCaAuthInfoController: org.springframework.http.ResponseEntity toPayNotify(java.lang.Long,javax.servlet.http.HttpServletRequest,org.srm.platform.domain.vo.ToPayResultVO)> idx=2 route=POST /v1/{organizationId}/company-ca-auth-info/to_pay_notify
+
+Chain #15:
+<com.alibaba.fastjson.JSON: java.lang.Object parse(java.lang.String)>
+    <com.alibaba.fastjson.JSON: com.alibaba.fastjson.JSONObject parseObject(java.lang.String)> @L254 stmt#1
+        <org.srm.platform.api.controller.v1.DashboardClauseController: java.util.List QueryDashboardClause(java.lang.Long,java.lang.String)> idx=1 route=GET /v1/{organizationId}/dashboard_clause/getClauseCount
+
+Chain #16:
+<com.alibaba.fastjson.JSON: java.lang.Object parse(java.lang.String)>
+    <com.alibaba.fastjson.serializer.SerializeFilterable: java.lang.Object processValue(com.alibaba.fastjson.serializer.JSONSerializer,com.alibaba.fastjson.serializer.BeanContext,java.lang.Object,java.lang.String,java.lang.Object,int)> @L229 stmt#33
+        <org.srm.platform.api.controller.v1.DashboardClauseController: java.util.List QueryDashboardClause(java.lang.Long,java.lang.String)> idx=1 route=GET /v1/{organizationId}/dashboard_clause/getClauseCount
+
+Chain #17:
+<com.alibaba.fastjson.JSON: java.lang.Object parse(java.lang.String)>
+    <com.alibaba.fastjson.JSON: com.alibaba.fastjson.JSONObject parseObject(java.lang.String)> @L254 stmt#1
+        <org.srm.platform.api.controller.v1.DashboardClauseController: java.util.List testfeignQueryDashboardClauseMap(java.lang.String)> idx=0 route=GET /v1/{organizationId}/dashboard_clause/test
+
+Chain #18:
+<com.alibaba.fastjson.JSON: java.lang.Object parse(java.lang.String)>
+    <com.alibaba.fastjson.serializer.SerializeFilterable: java.lang.Object processValue(com.alibaba.fastjson.serializer.JSONSerializer,com.alibaba.fastjson.serializer.BeanContext,java.lang.Object,java.lang.String,java.lang.Object,int)> @L229 stmt#33
+        <org.srm.platform.api.controller.v1.DashboardClauseController: java.util.List testfeignQueryDashboardClauseMap(java.lang.String)> idx=0 route=GET /v1/{organizationId}/dashboard_clause/test
+
+Chain #19:
+<com.alibaba.fastjson.JSON: java.lang.Object parse(java.lang.String)>
+    <com.alibaba.fastjson.JSON: com.alibaba.fastjson.JSONObject parseObject(java.lang.String)> @L254 stmt#1
+        <org.srm.platform.api.controller.v1.DocDeliverRecordController: org.springframework.http.ResponseEntity deliverTo(java.lang.Long,java.lang.String,org.srm.platform.domain.entity.DocDeliverRecord)> idx=2 route=POST /v1/{organizationId}/doc-deliver-records/deliver-to
+
+Chain #20:
+<com.alibaba.fastjson.JSON: java.lang.Object parse(java.lang.String)>
+    <com.alibaba.fastjson.serializer.SerializeFilterable: java.lang.Object processValue(com.alibaba.fastjson.serializer.JSONSerializer,com.alibaba.fastjson.serializer.BeanContext,java.lang.Object,java.lang.String,java.lang.Object,int)> @L229 stmt#33
+        <org.srm.platform.api.controller.v1.DocDeliverRecordController: org.springframework.http.ResponseEntity deliverTo(java.lang.Long,java.lang.String,org.srm.platform.domain.entity.DocDeliverRecord)> idx=2 route=POST /v1/{organizationId}/doc-deliver-records/deliver-to
+
+Chain #21:
+<com.alibaba.fastjson.JSON: java.lang.Object parse(java.lang.String)>
+    <com.alibaba.fastjson.JSON: com.alibaba.fastjson.JSONObject parseObject(java.lang.String)> @L254 stmt#1
+        <org.srm.platform.api.controller.v1.EventMessageOrgController: boolean reSend(org.srm.platform.domain.entity.EventMessage,java.lang.Long)> idx=0 route=PUT /v1/{organizationId}/event-messages
+
+Chain #22:
+<com.alibaba.fastjson.JSON: java.lang.Object parse(java.lang.String)>
+    <com.alibaba.fastjson.serializer.SerializeFilterable: java.lang.Object processValue(com.alibaba.fastjson.serializer.JSONSerializer,com.alibaba.fastjson.serializer.BeanContext,java.lang.Object,java.lang.String,java.lang.Object,int)> @L229 stmt#33
+        <org.srm.platform.api.controller.v1.EventMessageOrgController: boolean reSend(org.srm.platform.domain.entity.EventMessage,java.lang.Long)> idx=0 route=PUT /v1/{organizationId}/event-messages
+
+Chain #23:
+<com.alibaba.fastjson.JSON: java.lang.Object parse(java.lang.String)>
+    <com.alibaba.fastjson.JSON: com.alibaba.fastjson.JSONObject parseObject(java.lang.String)> @L254 stmt#1
+        <org.srm.platform.api.controller.v1.EventMessageSiteController: boolean reSend(org.srm.platform.domain.entity.EventMessage)> idx=0 route=PUT /v1/event-messages
+
+Chain #24:
+<com.alibaba.fastjson.JSON: java.lang.Object parse(java.lang.String)>
+    <com.alibaba.fastjson.serializer.SerializeFilterable: java.lang.Object processValue(com.alibaba.fastjson.serializer.JSONSerializer,com.alibaba.fastjson.serializer.BeanContext,java.lang.Object,java.lang.String,java.lang.Object,int)> @L229 stmt#33
+        <org.srm.platform.api.controller.v1.EventMessageSiteController: boolean reSend(org.srm.platform.domain.entity.EventMessage)> idx=0 route=PUT /v1/event-messages
+
+Chain #25:
+<com.alibaba.fastjson.JSON: java.lang.Object parse(java.lang.String)>
+    <com.alibaba.fastjson.JSON: com.alibaba.fastjson.JSONObject parseObject(java.lang.String)> @L254 stmt#1
+        <org.srm.platform.api.controller.v1.HrController: org.springframework.http.ResponseEntity batchCreateOrUpdateEmployee(java.lang.Long,java.util.List)> idx=1 route=POST /v1/{organizationId}/hr/employees
+
+Chain #26:
+<com.alibaba.fastjson.JSON: java.lang.Object parse(java.lang.String)>
+    <com.alibaba.fastjson.serializer.SerializeFilterable: java.lang.Object processValue(com.alibaba.fastjson.serializer.JSONSerializer,com.alibaba.fastjson.serializer.BeanContext,java.lang.Object,java.lang.String,java.lang.Object,int)> @L229 stmt#33
+        <org.srm.platform.api.controller.v1.HrController: org.springframework.http.ResponseEntity batchCreateOrUpdateEmployee(java.lang.Long,java.util.List)> idx=1 route=POST /v1/{organizationId}/hr/employees
+
+Chain #27:
+<com.alibaba.fastjson.JSON: java.lang.Object parse(java.lang.String)>
+    <com.alibaba.fastjson.JSON: com.alibaba.fastjson.JSONObject parseObject(java.lang.String)> @L254 stmt#1
+        <org.srm.platform.api.controller.v1.HrController: org.springframework.http.ResponseEntity batchCreateOrUpdatePosition(java.lang.Long,java.util.List)> idx=1 route=POST /v1/{organizationId}/hr/positions
+
+Chain #28:
+<com.alibaba.fastjson.JSON: java.lang.Object parse(java.lang.String)>
+    <com.alibaba.fastjson.serializer.SerializeFilterable: java.lang.Object processValue(com.alibaba.fastjson.serializer.JSONSerializer,com.alibaba.fastjson.serializer.BeanContext,java.lang.Object,java.lang.String,java.lang.Object,int)> @L229 stmt#33
+        <org.srm.platform.api.controller.v1.HrController: org.springframework.http.ResponseEntity batchCreateOrUpdatePosition(java.lang.Long,java.util.List)> idx=1 route=POST /v1/{organizationId}/hr/positions
+
+
+Sink: <com.alibaba.fastjson.JSON: com.alibaba.fastjson.JSONObject parseObject(java.lang.String)>
+Total chains: 14
+================================================================================
+
+Chain #1:
+<com.alibaba.fastjson.JSON: com.alibaba.fastjson.JSONObject parseObject(java.lang.String)>
+    <com.alibaba.fastjson.JSONPath: java.lang.Object getPropertyValue(java.lang.Object,java.lang.String,long)> @L3523 stmt#9
+        <org.srm.iam.api.controller.v1.CompanyImportController: java.util.List userAccountImport(java.util.List)> idx=0 route=POST /v1/company-import/user-account
+
+Chain #2:
+<com.alibaba.fastjson.JSON: com.alibaba.fastjson.JSONObject parseObject(java.lang.String)>
+    <com.alibaba.fastjson.JSONPath: java.lang.Object getPropertyValue(java.lang.Object,java.lang.String,long)> @L3523 stmt#9
+        <org.srm.iam.api.controller.v1.UserSynchronizeController: org.springframework.http.ResponseEntity createUser(java.lang.Long,org.srm.iam.api.dto.UserDTO)> idx=1 route=POST /v1/{organizationId}/user/synchronize
+
+Chain #3:
+<com.alibaba.fastjson.JSON: com.alibaba.fastjson.JSONObject parseObject(java.lang.String)>
+    <com.alibaba.fastjson.JSONPath: java.lang.Object getPropertyValue(java.lang.Object,java.lang.String,long)> @L3523 stmt#9
+        <org.srm.iam.api.controller.v1.UserSynchronizeController: org.springframework.http.ResponseEntity userAuthority(java.lang.Long,org.srm.iam.api.dto.UserDTO)> idx=1 route=POST /v1/{organizationId}/user/synchronize/authority
+
+Chain #4:
+<com.alibaba.fastjson.JSON: com.alibaba.fastjson.JSONObject parseObject(java.lang.String)>
+    <com.alibaba.fastjson.JSONPath: java.lang.Object getPropertyValue(java.lang.Object,java.lang.String,long)> @L3523 stmt#9
+        <org.srm.mobile.config.api.controller.v1.ThirdPartyCallbackController: org.springframework.http.ResponseEntity dingTalk(java.lang.String,java.lang.String,java.lang.String,java.lang.String,java.lang.String,org.srm.mobile.config.api.dto.DingTalkResponse)> idx=3 route=POST /v1/third-party-callback/ding-talk/{appClient}
+
+Chain #5:
+<com.alibaba.fastjson.JSON: com.alibaba.fastjson.JSONObject parseObject(java.lang.String)>
+    <com.alibaba.fastjson.JSONPath: java.lang.Object getPropertyValue(java.lang.Object,java.lang.String,long)> @L3523 stmt#9
+        <org.srm.mobile.config.api.controller.v1.ThirdPartyCallbackController: org.springframework.http.ResponseEntity dingTalk(java.lang.String,java.lang.String,java.lang.String,java.lang.String,java.lang.String,org.srm.mobile.config.api.dto.DingTalkResponse)> idx=4 route=POST /v1/third-party-callback/ding-talk/{appClient}
+
+Chain #6:
+<com.alibaba.fastjson.JSON: com.alibaba.fastjson.JSONObject parseObject(java.lang.String)>
+    <com.alibaba.fastjson.JSONPath: java.lang.Object getPropertyValue(java.lang.Object,java.lang.String,long)> @L3523 stmt#9
+        <org.srm.mobile.config.api.controller.v1.ThirdPartyCallbackController: org.springframework.http.ResponseEntity dingTalk(java.lang.String,java.lang.String,java.lang.String,java.lang.String,java.lang.String,org.srm.mobile.config.api.dto.DingTalkResponse)> idx=5 route=POST /v1/third-party-callback/ding-talk/{appClient}
+
+Chain #7:
+<com.alibaba.fastjson.JSON: com.alibaba.fastjson.JSONObject parseObject(java.lang.String)>
+    <com.alibaba.fastjson.JSONPath: java.lang.Object getPropertyValue(java.lang.Object,java.lang.String,long)> @L3523 stmt#9
+        <org.srm.platform.api.controller.v1.CompanyCaAuthInfoController: org.springframework.http.ResponseEntity toPayNotify(java.lang.Long,javax.servlet.http.HttpServletRequest,org.srm.platform.domain.vo.ToPayResultVO)> idx=2 route=POST /v1/{organizationId}/company-ca-auth-info/to_pay_notify
+
+Chain #8:
+<com.alibaba.fastjson.JSON: com.alibaba.fastjson.JSONObject parseObject(java.lang.String)>
+    <com.alibaba.fastjson.JSONPath: java.lang.Object getPropertyValue(java.lang.Object,java.lang.String,long)> @L3523 stmt#9
+        <org.srm.platform.api.controller.v1.DashboardClauseController: java.util.List QueryDashboardClause(java.lang.Long,java.lang.String)> idx=1 route=GET /v1/{organizationId}/dashboard_clause/getClauseCount
+
+Chain #9:
+<com.alibaba.fastjson.JSON: com.alibaba.fastjson.JSONObject parseObject(java.lang.String)>
+    <com.alibaba.fastjson.JSONPath: java.lang.Object getPropertyValue(java.lang.Object,java.lang.String,long)> @L3523 stmt#9
+        <org.srm.platform.api.controller.v1.DashboardClauseController: java.util.List testfeignQueryDashboardClauseMap(java.lang.String)> idx=0 route=GET /v1/{organizationId}/dashboard_clause/test
+
+Chain #10:
+<com.alibaba.fastjson.JSON: com.alibaba.fastjson.JSONObject parseObject(java.lang.String)>
+    <com.alibaba.fastjson.JSONPath: java.lang.Object getPropertyValue(java.lang.Object,java.lang.String,long)> @L3523 stmt#9
+        <org.srm.platform.api.controller.v1.DocDeliverRecordController: org.springframework.http.ResponseEntity deliverTo(java.lang.Long,java.lang.String,org.srm.platform.domain.entity.DocDeliverRecord)> idx=2 route=POST /v1/{organizationId}/doc-deliver-records/deliver-to
+
+Chain #11:
+<com.alibaba.fastjson.JSON: com.alibaba.fastjson.JSONObject parseObject(java.lang.String)>
+    <com.alibaba.fastjson.JSONPath: java.lang.Object getPropertyValue(java.lang.Object,java.lang.String,long)> @L3523 stmt#9
+        <org.srm.platform.api.controller.v1.EventMessageOrgController: boolean reSend(org.srm.platform.domain.entity.EventMessage,java.lang.Long)> idx=0 route=PUT /v1/{organizationId}/event-messages
+
+Chain #12:
+<com.alibaba.fastjson.JSON: com.alibaba.fastjson.JSONObject parseObject(java.lang.String)>
+    <com.alibaba.fastjson.JSONPath: java.lang.Object getPropertyValue(java.lang.Object,java.lang.String,long)> @L3523 stmt#9
+        <org.srm.platform.api.controller.v1.EventMessageSiteController: boolean reSend(org.srm.platform.domain.entity.EventMessage)> idx=0 route=PUT /v1/event-messages
+
+Chain #13:
+<com.alibaba.fastjson.JSON: com.alibaba.fastjson.JSONObject parseObject(java.lang.String)>
+    <com.alibaba.fastjson.JSONPath: java.lang.Object getPropertyValue(java.lang.Object,java.lang.String,long)> @L3523 stmt#9
+        <org.srm.platform.api.controller.v1.HrController: org.springframework.http.ResponseEntity batchCreateOrUpdateEmployee(java.lang.Long,java.util.List)> idx=1 route=POST /v1/{organizationId}/hr/employees
+
+Chain #14:
+<com.alibaba.fastjson.JSON: com.alibaba.fastjson.JSONObject parseObject(java.lang.String)>
+    <com.alibaba.fastjson.JSONPath: java.lang.Object getPropertyValue(java.lang.Object,java.lang.String,long)> @L3523 stmt#9
+        <org.srm.platform.api.controller.v1.HrController: org.springframework.http.ResponseEntity batchCreateOrUpdatePosition(java.lang.Long,java.util.List)> idx=1 route=POST /v1/{organizationId}/hr/positions
+

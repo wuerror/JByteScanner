@@ -1,0 +1,263 @@
+### Potential Gadgets (Grouped by Dependencies) ###
+==================================================
+Dependency Set: [snakeyaml, spring-bean]
+--------------------------------------------------
+* 生成SnakeYaml Jndi注入 Payload (SnakeyamlJndi2)
+  Desc: 通过 org.springframework.jndi.support.SimpleJndiBeanFactory 实现jndi注入
+
+==================================================
+Dependency Set: [fastjson]
+--------------------------------------------------
+* Fastjson DNSLog (FastjsonDns)
+* JdbcRowSetImpl 1.2.47 (FastjsonJdbcRowSetImpl)
+
+==================================================
+Dependency Set: [c3p0, snakeyaml]
+--------------------------------------------------
+* 生成SnakeYaml 二次反序列化Payload (SnakeyamlC3p0)
+  Desc: 通过 com.mchange.v2.c3p0.WrapperConnectionPoolDataSource 实现二次反序列化
+
+==================================================
+Dependency Set: [c3p0, fastjson]
+--------------------------------------------------
+* C3p0 1.2.47 (FastjsonC3p0)
+
+==================================================
+Dependency Set: [spring-aop, spring-context]
+--------------------------------------------------
+* Spring相关链 (SpringAbstractBeanFactoryPointcutAdvisor)
+* Spring JNDI链 (SpringPartiallyComparableAdvisorHolder)
+
+==================================================
+Dependency Set: [js, thymeleaf]
+--------------------------------------------------
+* thymeleaf表达式js加载字节码 (ThymeleafConvert2)
+  Desc: thymeleaf 调用 js 来实现加载字节码
+
+==================================================
+Dependency Set: [hibernate]
+--------------------------------------------------
+* Hibernate1链 版本3/4 (Hibernate1)
+* Hibernate2链 版本3/4 (Hibernate2)
+
+==================================================
+Dependency Set: [JDK]
+--------------------------------------------------
+* JRMPClient2 (JRMPClient2)
+  Desc: java.rmi.server.UnicastRemoteObject
+
+==================================================
+Dependency Set: [spring]
+--------------------------------------------------
+* Spring字节码加载 (SpringLoaderFromParam)
+  Desc: 从指定参数中获取字节码并加载
+
+==================================================
+Dependency Set: [spring-core]
+--------------------------------------------------
+* 通过SerializationUtils触发二次Java原生反序列化 (LazyValueWithDS)
+  Desc: 通过 org.springframework.util.SerializationUtils 触发Java原生反序列化，建立起了Hessian反序列化和Java反序列化的桥梁
+* Xslt整合链 一键代码执行 (XsltSpring)
+  Desc: 使用JavaUtils写xml文件，之后再调用Process函数解析进行任意代码执行\\n可适用于Nacos7848端口RCE场景，但是需要额外的MetadataOperation对象封装，否则该洞导致只能打一次\\n注意这里依赖Spring方法：org.springframework.cglib.core.ReflectUtils\\n注意执行后会在指定目录下残留两个文件。此链可重复执行，会覆盖之前的Payload文件
+
+==================================================
+Dependency Set: [only]
+--------------------------------------------------
+* 写库文件和加载动态链接库的代码执行链 (SystemLoad)
+  Desc: 使用JavaUtils写入dylib文件，之后再配合System.load进行加载动态链接库，实现任意代码执行\\n优先使用Base64编码
+
+==================================================
+Dependency Set: [jdk, velocity]
+--------------------------------------------------
+* 将byte[]字节码转换为Velocity表达式字符串 (VelocityConvert)
+  Desc: 内部嵌套使用bcel来实现加载字节码，所以额外要求jdk版本
+
+==================================================
+Dependency Set: [c3p0]
+--------------------------------------------------
+* 远程类加载 (C3P0WrapperConnPool)
+* C3P0 Reference 类加载 (C3p0_C3p0Reference)
+  Desc: 支持LDAP远程字节码加载、本地 BeanFactory el表达式执行等\\n目前仍然影响c3p0最新版 0.10.1 版本的依赖\\ncom.mchange:c3p0:0.10.1 搭配 TomcatElRef 测试中发现重复发送相同包只会触发一次Payload，想要重复触发需要重新生成payload，创建新的字节码类名才可以\\n而 0.9.5.5 版本可以重复触发相同类名字节码
+* C3P0 Reference 类加载 (MchangeC3p0Reference)
+  Desc: 支持LDAP远程字节码加载、本地 BeanFactory el表达式执行等\\n目前仍然影响c3p0最新版 0.10.1 版本的依赖\\ncom.mchange:c3p0:0.10.1 搭配 TomcatElRef 测试中发现重复发送相同包只会触发一次Payload，想要重复触发需要重新生成payload，创建新的字节码类名才可以\\n而 0.9.5.5 版本可以重复触发相同类名字节码
+* JNDI C3P0 二次反序列化 (JavaBeanObjectFactoryHexDS)
+  Desc: factory: com.mchange.v2.naming.JavaBeanObjectFactory\\n利用 com.mchange.v2.c3p0.WrapperConnectionPoolDataSource 类实现二次反序列化
+
+==================================================
+Dependency Set: [rome]
+--------------------------------------------------
+* equals调用本链 rometools EqualsBean链2 (RomeEqualsBean2)
+  Desc: equals触发此链，仅依赖EqualsBean类，调用指定beanClass的所有getter方法。本链同时支持Java反序列化和Hessian反序列化
+* toString调用本链 ROME ToStringBean链2 (RomeToStringBean2)
+  Desc: 需toString触发此链，仅依赖ToStringBean类，可触发getter方法
+
+==================================================
+Dependency Set: [1, groovy]
+--------------------------------------------------
+* Groovy 1.2.83 (FastjsonGroovy)
+  Desc: 需要发送两个payload才能实现远程加载 groovy jar\\n恶意 Groovy jar 包可在 「OtherPayload -> GroovyJarConvert」 中生成
+
+==================================================
+Dependency Set: [spring-beans]
+--------------------------------------------------
+* JNDI注入 (SpringPropertyPathFactory)
+
+==================================================
+Dependency Set: [ognl]
+--------------------------------------------------
+* Ongl表达式执行命令 (OnglExec1)
+  Desc: 简单通过Runtime执行命令
+* Ongl表达式执行命令 (OnglExec2)
+  Desc: 简单通过ProcessBuilder执行命令
+
+==================================================
+Dependency Set: [mvel]
+--------------------------------------------------
+* 将byte[]字节码转换为Mvel表达式字符串 (MvelConvert)
+  Desc: 内部使用js引擎来实现加载字节码
+
+==================================================
+Dependency Set: [org]
+--------------------------------------------------
+* ReplicatedTree链 (ReplicatedTreeGadget)
+
+==================================================
+Dependency Set: [el]
+--------------------------------------------------
+* 将byte[]字节码转换为EL表达式字符串 (ElConvert)
+  Desc: 默认不包含括号，内部使用js引擎来实现加载字节码
+
+==================================================
+Dependency Set: [commons-collections]
+--------------------------------------------------
+* 执行指定的系统命令 (TransformerWithExec)
+  Desc: 使用 java.lang.Runtime 执行系统命令
+
+==================================================
+Dependency Set: [jdk, ognl]
+--------------------------------------------------
+* jdk高版本Ongl表达式执行Java代码 (OnglConvert2)
+  Desc: 使用jdk.jshell.Jshell执行java代码
+
+==================================================
+Dependency Set: [commons-beanutils, commons-logging]
+--------------------------------------------------
+* CB 1.9 链 (CommonsBeanutils1)
+  Desc: 调用任意字段的getter方法，org.apache.commons.beanutils.BeanComparator: serialVersionUID -2044202215314119608L\\n适用依赖版本范围：commons-beanutils-1.9.0 ~ 1.9.4\\n\\ncommons-beanutils 1.8.3 无内置 commons-collections\\ncommons-beanutils 1.9.2 内置 commons-collections:3.2.1\\ncommons-beanutils 1.9.3 内置 commons-collections:3.2.2\\ncommons-beanutils 1.10.0 内置 commons-collections:3.2.2\\n
+
+==================================================
+Dependency Set: [spring-context]
+--------------------------------------------------
+* 执行win/linux命令 (SpringExec)
+  Desc: 通过 org.springframework.beans.factory.config.MethodInvokingFactoryBean 实现调用任意方法\\n本链调用 java.lang.Runtime.getRuntime 实现命令执行
+* 向外发起JNDI连接，推荐使用 (SpringJndi1)
+  Desc: 利用 spring 中的 org.springframework.jndi.support.SimpleJndiBeanFactory 发起JNDI请求
+* 执行linux命令 (SpringLinuxExec)
+  Desc: 通过 org.springframework.beans.factory.config.MethodInvokingFactoryBean 实现调用任意方法\\n本链调用 java.lang.Runtime.getRuntime 实现命令执行\\n本链执行模板: bash -c 'cmd'
+* 任意文件上传 (SpringUpload)
+  Desc: 通过 org.springframework.beans.factory.config.MethodInvokingFactoryBean 实现调用任意方法\\n本链调用 com.sun.org.apache.xml.internal.security.utils.JavaUtils 实现任意文件写入\\n之后可配合 SpringLoadJar 链实现任意代码执行
+
+==================================================
+Dependency Set: [jdk]
+--------------------------------------------------
+* UnicastRef2 (UnicastRef2Gadget)
+  Desc: sun.rmi.server.UnicastRef2 配合 JRMPListener 进行RCE
+* UnicastRef (UnicastRefGadget)
+  Desc: sun.rmi.server.UnicastRef 配合 JRMPListener 进行RCE
+* 加载LazyValue相关链 (ProxyLazyValueUIDefaults)
+  Desc: 使用 UIDefaults.ProxyLazyValue 加载 LazyValue 相关链, 能够调用任意类的任意方法
+* 加载LazyValue相关链 (SwingLazyValueUIDefaults)
+  Desc: 使用 sun.swing.SwingLazyValue 加载 LazyValue 相关链\\n注意 SwingLazyValue.createValue 加载类的过程中classLoader为null，只能调用到rt.jar中的类
+* Hessian加载Reference (DirContextJndi)
+  Desc: 转为类似JNDI利用，可远程加载字节码、Tomcat EL等利用
+* 写文件 (SwingLazyValueJarWrite)
+  Desc: sun.tools.jar.Main\\nreference: https://github.com/Boogipop/JavaSec/blob/main/src/main/java/com/javasec/pocs/hessian/HessianProxyLVJarWrite.java
+* MethodUtil JDK原生链 (SwingLazyValueMethodUtil)
+  Desc: 本链利用 sun.reflect.misc.MethodUtil 通过调用 Unsafe的defineAnonymousClass 方法加载任意字节码，实现原生JDK RCE，但是JDK可能会崩，实战慎用
+* Xslt整合链2 一键通过js实现代码执行 (XsltOnlyJdk)
+  Desc: 使用JavaUtils写xml文件，之后再调用Process函数解析进行任意代码执行，使用JS表达式来执行\\n不同于Xslt1链，本链使用Js来执行，不依赖Spring环境\\n注意执行后会在指定目录下残留两个文件\\n此链可重复执行，会覆盖之前的Payload文件
+* Xslt写xml文件链 (XsltWrite)
+  Desc: 使用JavaUtils写xml文件，之后再配合XsltRead进行任意代码执行\\n执行后会在临时目录下生成xml文件，例如 /tmp/data_temp
+* Xslt解析xml文件链 (XsltRead)
+  Desc: 需要先使用XsltWrite或其他方式写入xml文件，之后通过本链读取解析指定xml文件实现代码执行.\\n执行后默认会在临时目录下生成class文件，例如 /tmp/data_temp.class
+* JdbcRowSetImpl JNDI链 (JdbcRowSetImpl)
+  Desc: getter RCE
+* TemplatesImpl加载字节码 (TemplatesImpl)
+  Desc: 加载的字节码会被自动设置为继承 AbstractTranslet 类\\n\\n不适用于高版本JDK，例如 JDK 17\\nHessian 反序列化下的部分场景无法使用\\n
+* BCEL 加载字节码 (XMLBceLoader)
+* 简单的 Dnslog 请求探测Payoad (XMLDnsLog)
+  Desc: 通过java.net.URL触发dnslog请求
+* ClassLoader defineClass 加载字节码 (XMLJdkDefineClass)
+* JdbcRowSetImpl JNDI (XMLJNDI)
+  Desc: 通过 com.sun.rowset.JdbcRowSetImpl 发起 JNDI 请求
+* 通过 js 加载字节码 (XMLJsLoader)
+* 服务器延迟 (XMLSleep)
+
+==================================================
+Dependency Set: [commons-io, fastjson]
+--------------------------------------------------
+* Fastjson CommonsIo 1.2.68/1.2.80 写文件 (FastjsonCmonsio)
+  Desc: Fastjson（1.2.68/1.2.75-80 版本）结合 CommonsIo 实现文件写入时，因 Fastjson 在不同系统环境下的随机性表现存在差异：若随机匹配到 decoder，仅支持写入字符串类型文件；若未匹配到 decoder，则会调用 charset 构造解码器，此时可写入二进制文件。此外，当 LockableFileWriter 创建实例报错时，需尝试修改 lockDir 目录，该问题大概率是由于存在 lck 缓存文件导致.
+
+==================================================
+Dependency Set: [groovy]
+--------------------------------------------------
+* 将字节码转为Groovy Jar包字节流 (GroovyJarConvert)
+  Desc: 适用于Fastjson远程加载Groovy Jar包 RCE场景\\n会自动在jar包内创建 META-INF/services/org.codehaus.groovy.transform.ASTTransformation 文件，并将文件内容设置字节码类名
+* GroovyGString (GroovyGString)
+  Desc: Hessian Groovy GString chain. ConcurrentHashMap -> GString -> Closure from next gadget.
+* Groovy链 (LazyValueWithGroovy)
+  Desc: 通过 groovy.util.Eval 实现 Groovy 代码执行
+
+==================================================
+Dependency Set: [druid]
+--------------------------------------------------
+* Druid 加载jdbc，转为jdbc url利用 (DruidJdbcAttack)
+  Desc: factory: com.alibaba.druid.pool.DruidDataSourceFactory
+
+==================================================
+Dependency Set: [js, velocity]
+--------------------------------------------------
+* velocity表达式js加载字节码 (VelocityConvert2)
+  Desc: velocity 调用 js 实现执行字节码\\nReference: https://github.com/ReaJason/MemShellParty
+
+==================================================
+Dependency Set: [bsh]
+--------------------------------------------------
+* 将byte[]字节码转换为Beanshell字符串 (BeanshellConvert)
+  Desc: 内部使用js引擎来实现加载字节码
+
+==================================================
+Dependency Set: [8]
+--------------------------------------------------
+* 将byte[]字节码转换为Js表达式字符串 (JsConver3)
+  Desc: 使用ClassLoader进行加载,最大程度上提供类兼容
+* 将byte[]字节码转换为Js表达式字符串 (JsConvert)
+  Desc: 使用theUnsafe实现字节码加载\\nJava 6/7的js解析引擎是 Mozilla Rhino，从java8开始改为 Oracle Nashorn, Nashorn在jdk15中被移除, Rhino和Nashorn细节有所差异
+* 将byte[]字节码转换为Js表达式字符串 (JsConvert2)
+  Desc: 在Rhino下使用theUnsafe实现字节码加载
+
+==================================================
+Dependency Set: [spring-bean]
+--------------------------------------------------
+* 将字节码封装进spring bean.xml中，返回xml文件内容 (SpringBeanXmlClassLoader)
+  Desc: 适用于ClassPathXmlApplicationContext加载xml文件场景，例如在PostgreSQL jdbc url利用，通过加载bean.xml文件实现字节码执行RCE
+* 将XMLDecoder payload封装进spring bean.xml中，返回xml文件内容 (SpringBeanXMLDecoderClassLoader)
+  Desc: 适用于ClassPathXmlApplicationContext加载xml文件场景，通过XMLDecoder解码并触发XML payload
+* 执行命令 (SpringBeanXmlExec)
+  Desc: 适用于 ClassPathXmlApplicationContext 加载xml文件场景，例如在 PostgreSQL jdbc url 利用，通过加载bean.xml文件 通过 ProcessBuilder 实现命令执行
+
+==================================================
+Dependency Set: [snakeyaml]
+--------------------------------------------------
+* 生成SnakeYaml简单的dnslog请求探测Payoad (SnakeyamlDnslog)
+  Desc: 通过java.net.URL触发dnslog请求，注意此payload非类探测
+* 将字节码转为SnakeYaml Jar包字节流 (SnakeyamlJarConvert)
+  Desc: 适用于SnakeYaml远程加载Jar包 RCE，会自动创建 META-INF/services/javax.script.ScriptEngineFactory 文件，并将文件内容设置为字节码名称
+* SnakeYaml远程加载JAR包 (SnakeyamlJarSpi)
+  Desc: 利用SPI机制，基于ScriptEngineManager利用链，远程加载特定的jar包，实现任意字节码执行
+* SnakeYaml远程加载JAR包 仅适用于JNDI模块 (SnakeyamlJarSpi4JNDI)
+  Desc: 注意，本Gadget只适用于在JNDI Chains Exploit 模块中使用\\n利用SPI机制，基于ScriptEngineManager利用链，远程加载特定的jar包，实现任意字节码执行\\n该 JNDI 版会自动缓存jar包到JNDI服务器中的HTTP Server中，并自动设置 http 请求路径，实现自动化利用
+* 生成SnakeYaml Jndi注入 Payload (SnakeyamlJndi1)
+  Desc: 通过 com.sun.rowset.JdbcRowSetImpl 实现jndi注入
+

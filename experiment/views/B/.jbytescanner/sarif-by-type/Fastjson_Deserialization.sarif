@@ -1,0 +1,2197 @@
+{
+  "version" : "2.1.0",
+  "$schema" : "https://schemastore.azurewebsites.net/schemas/json/sarif-2.1.0-rtm.5.json",
+  "runs" : [ {
+    "tool" : {
+      "driver" : {
+        "name" : "JByteScanner",
+        "version" : "1.0"
+      }
+    },
+    "results" : [ {
+      "ruleId" : "Fastjson_Deserialization",
+      "level" : "error",
+      "message" : {
+        "text" : "[HIGH] Score: 8.5 | Fastjson_Deserialization flow from <org.srm.iam.api.controller.v1.CompanyImportController: java.util.List userAccountImport(java.util.List)> to <com.alibaba.fastjson.JSON: java.lang.Object parse(java.lang.String)>"
+      },
+      "properties" : {
+        "score" : 8.5,
+        "confidence" : 0.4675,
+        "riskLevel" : "HIGH",
+        "severityScore" : 8.5,
+        "rankScore" : 3.9737500000000003,
+        "sinkStrength" : "TERMINAL_SIDE_EFFECT",
+        "evidenceLevel" : "ENDPOINT_ONLY",
+        "sinkContainer" : "<com.alibaba.fastjson.JSON: com.alibaba.fastjson.JSONObject parseObject(java.lang.String)>",
+        "sinkStmtIndex" : 1,
+        "sinkIndex" : "0",
+        "sourceIndex" : "0",
+        "sourceCount" : 1,
+        "packageProvenance" : "OUTSIDE_FINDING_PACKAGES",
+        "reasonCodes" : [ "TERMINAL_OUTSIDE_APP_PACKAGE" ]
+      },
+      "locations" : [ {
+        "physicalLocation" : {
+          "artifactLocation" : {
+            "uri" : "<com.alibaba.fastjson.JSON: com.alibaba.fastjson.JSONObject parseObject(java.lang.String)>"
+          }
+        }
+      } ],
+      "codeFlows" : [ {
+        "threadFlows" : [ {
+          "locations" : [ {
+            "location" : {
+              "message" : {
+                "text" : "<org.srm.iam.api.controller.v1.CompanyImportController: java.util.List userAccountImport(java.util.List)> idx=0 route=POST /v1/company-import/user-account (Source/representative)"
+              }
+            }
+          }, {
+            "location" : {
+              "message" : {
+                "text" : "<com.alibaba.fastjson.JSON: com.alibaba.fastjson.JSONObject parseObject(java.lang.String)> @L254 stmt#1 (Container)"
+              }
+            }
+          }, {
+            "location" : {
+              "message" : {
+                "text" : "<com.alibaba.fastjson.JSON: java.lang.Object parse(java.lang.String)> (Sink)"
+              }
+            }
+          } ]
+        } ]
+      } ]
+    }, {
+      "ruleId" : "Fastjson_Deserialization",
+      "level" : "error",
+      "message" : {
+        "text" : "[HIGH] Score: 8.5 | Fastjson_Deserialization flow from <org.srm.iam.api.controller.v1.CompanyImportController: java.util.List userAccountImport(java.util.List)> to <com.alibaba.fastjson.JSON: com.alibaba.fastjson.JSONObject parseObject(java.lang.String)>"
+      },
+      "properties" : {
+        "score" : 8.5,
+        "confidence" : 0.4675,
+        "riskLevel" : "HIGH",
+        "severityScore" : 8.5,
+        "rankScore" : 3.9737500000000003,
+        "sinkStrength" : "TERMINAL_SIDE_EFFECT",
+        "evidenceLevel" : "ENDPOINT_ONLY",
+        "sinkContainer" : "<com.alibaba.fastjson.JSONPath: java.lang.Object getPropertyValue(java.lang.Object,java.lang.String,long)>",
+        "sinkStmtIndex" : 9,
+        "sinkIndex" : "0",
+        "sourceIndex" : "0",
+        "sourceCount" : 1,
+        "packageProvenance" : "OUTSIDE_FINDING_PACKAGES",
+        "reasonCodes" : [ "TERMINAL_OUTSIDE_APP_PACKAGE" ]
+      },
+      "locations" : [ {
+        "physicalLocation" : {
+          "artifactLocation" : {
+            "uri" : "<com.alibaba.fastjson.JSONPath: java.lang.Object getPropertyValue(java.lang.Object,java.lang.String,long)>"
+          }
+        }
+      } ],
+      "codeFlows" : [ {
+        "threadFlows" : [ {
+          "locations" : [ {
+            "location" : {
+              "message" : {
+                "text" : "<org.srm.iam.api.controller.v1.CompanyImportController: java.util.List userAccountImport(java.util.List)> idx=0 route=POST /v1/company-import/user-account (Source/representative)"
+              }
+            }
+          }, {
+            "location" : {
+              "message" : {
+                "text" : "<com.alibaba.fastjson.JSONPath: java.lang.Object getPropertyValue(java.lang.Object,java.lang.String,long)> @L3523 stmt#9 (Container)"
+              }
+            }
+          }, {
+            "location" : {
+              "message" : {
+                "text" : "<com.alibaba.fastjson.JSON: com.alibaba.fastjson.JSONObject parseObject(java.lang.String)> (Sink)"
+              }
+            }
+          } ]
+        } ]
+      } ]
+    }, {
+      "ruleId" : "Fastjson_Deserialization",
+      "level" : "error",
+      "message" : {
+        "text" : "[HIGH] Score: 8.5 | Fastjson_Deserialization flow from <org.srm.iam.api.controller.v1.CompanyImportController: java.util.List userAccountImport(java.util.List)> to <com.alibaba.fastjson.JSON: java.lang.Object parse(java.lang.String)>"
+      },
+      "properties" : {
+        "score" : 8.5,
+        "confidence" : 0.4675,
+        "riskLevel" : "HIGH",
+        "severityScore" : 8.5,
+        "rankScore" : 3.9737500000000003,
+        "sinkStrength" : "TERMINAL_SIDE_EFFECT",
+        "evidenceLevel" : "ENDPOINT_ONLY",
+        "sinkContainer" : "<com.alibaba.fastjson.serializer.SerializeFilterable: java.lang.Object processValue(com.alibaba.fastjson.serializer.JSONSerializer,com.alibaba.fastjson.serializer.BeanContext,java.lang.Object,java.lang.String,java.lang.Object,int)>",
+        "sinkStmtIndex" : 33,
+        "sinkIndex" : "0",
+        "sourceIndex" : "0",
+        "sourceCount" : 1,
+        "packageProvenance" : "OUTSIDE_FINDING_PACKAGES",
+        "reasonCodes" : [ "TERMINAL_OUTSIDE_APP_PACKAGE" ]
+      },
+      "locations" : [ {
+        "physicalLocation" : {
+          "artifactLocation" : {
+            "uri" : "<com.alibaba.fastjson.serializer.SerializeFilterable: java.lang.Object processValue(com.alibaba.fastjson.serializer.JSONSerializer,com.alibaba.fastjson.serializer.BeanContext,java.lang.Object,java.lang.String,java.lang.Object,int)>"
+          }
+        }
+      } ],
+      "codeFlows" : [ {
+        "threadFlows" : [ {
+          "locations" : [ {
+            "location" : {
+              "message" : {
+                "text" : "<org.srm.iam.api.controller.v1.CompanyImportController: java.util.List userAccountImport(java.util.List)> idx=0 route=POST /v1/company-import/user-account (Source/representative)"
+              }
+            }
+          }, {
+            "location" : {
+              "message" : {
+                "text" : "<com.alibaba.fastjson.serializer.SerializeFilterable: java.lang.Object processValue(com.alibaba.fastjson.serializer.JSONSerializer,com.alibaba.fastjson.serializer.BeanContext,java.lang.Object,java.lang.String,java.lang.Object,int)> @L229 stmt#33 (Container)"
+              }
+            }
+          }, {
+            "location" : {
+              "message" : {
+                "text" : "<com.alibaba.fastjson.JSON: java.lang.Object parse(java.lang.String)> (Sink)"
+              }
+            }
+          } ]
+        } ]
+      } ]
+    }, {
+      "ruleId" : "Fastjson_Deserialization",
+      "level" : "error",
+      "message" : {
+        "text" : "[HIGH] Score: 8.5 | Fastjson_Deserialization flow from <org.srm.iam.api.controller.v1.UserSynchronizeController: org.springframework.http.ResponseEntity createUser(java.lang.Long,org.srm.iam.api.dto.UserDTO)> to <com.alibaba.fastjson.JSON: java.lang.Object parse(java.lang.String)>"
+      },
+      "properties" : {
+        "score" : 8.5,
+        "confidence" : 0.4675,
+        "riskLevel" : "HIGH",
+        "severityScore" : 8.5,
+        "rankScore" : 3.9737500000000003,
+        "sinkStrength" : "TERMINAL_SIDE_EFFECT",
+        "evidenceLevel" : "ENDPOINT_ONLY",
+        "sinkContainer" : "<com.alibaba.fastjson.JSON: com.alibaba.fastjson.JSONObject parseObject(java.lang.String)>",
+        "sinkStmtIndex" : 1,
+        "sinkIndex" : "0",
+        "sourceIndex" : "1",
+        "sourceCount" : 1,
+        "packageProvenance" : "OUTSIDE_FINDING_PACKAGES",
+        "reasonCodes" : [ "TERMINAL_OUTSIDE_APP_PACKAGE" ]
+      },
+      "locations" : [ {
+        "physicalLocation" : {
+          "artifactLocation" : {
+            "uri" : "<com.alibaba.fastjson.JSON: com.alibaba.fastjson.JSONObject parseObject(java.lang.String)>"
+          }
+        }
+      } ],
+      "codeFlows" : [ {
+        "threadFlows" : [ {
+          "locations" : [ {
+            "location" : {
+              "message" : {
+                "text" : "<org.srm.iam.api.controller.v1.UserSynchronizeController: org.springframework.http.ResponseEntity createUser(java.lang.Long,org.srm.iam.api.dto.UserDTO)> idx=1 route=POST /v1/{organizationId}/user/synchronize (Source/representative)"
+              }
+            }
+          }, {
+            "location" : {
+              "message" : {
+                "text" : "<com.alibaba.fastjson.JSON: com.alibaba.fastjson.JSONObject parseObject(java.lang.String)> @L254 stmt#1 (Container)"
+              }
+            }
+          }, {
+            "location" : {
+              "message" : {
+                "text" : "<com.alibaba.fastjson.JSON: java.lang.Object parse(java.lang.String)> (Sink)"
+              }
+            }
+          } ]
+        } ]
+      } ]
+    }, {
+      "ruleId" : "Fastjson_Deserialization",
+      "level" : "error",
+      "message" : {
+        "text" : "[HIGH] Score: 8.5 | Fastjson_Deserialization flow from <org.srm.iam.api.controller.v1.UserSynchronizeController: org.springframework.http.ResponseEntity createUser(java.lang.Long,org.srm.iam.api.dto.UserDTO)> to <com.alibaba.fastjson.JSON: com.alibaba.fastjson.JSONObject parseObject(java.lang.String)>"
+      },
+      "properties" : {
+        "score" : 8.5,
+        "confidence" : 0.4675,
+        "riskLevel" : "HIGH",
+        "severityScore" : 8.5,
+        "rankScore" : 3.9737500000000003,
+        "sinkStrength" : "TERMINAL_SIDE_EFFECT",
+        "evidenceLevel" : "ENDPOINT_ONLY",
+        "sinkContainer" : "<com.alibaba.fastjson.JSONPath: java.lang.Object getPropertyValue(java.lang.Object,java.lang.String,long)>",
+        "sinkStmtIndex" : 9,
+        "sinkIndex" : "0",
+        "sourceIndex" : "1",
+        "sourceCount" : 1,
+        "packageProvenance" : "OUTSIDE_FINDING_PACKAGES",
+        "reasonCodes" : [ "TERMINAL_OUTSIDE_APP_PACKAGE" ]
+      },
+      "locations" : [ {
+        "physicalLocation" : {
+          "artifactLocation" : {
+            "uri" : "<com.alibaba.fastjson.JSONPath: java.lang.Object getPropertyValue(java.lang.Object,java.lang.String,long)>"
+          }
+        }
+      } ],
+      "codeFlows" : [ {
+        "threadFlows" : [ {
+          "locations" : [ {
+            "location" : {
+              "message" : {
+                "text" : "<org.srm.iam.api.controller.v1.UserSynchronizeController: org.springframework.http.ResponseEntity createUser(java.lang.Long,org.srm.iam.api.dto.UserDTO)> idx=1 route=POST /v1/{organizationId}/user/synchronize (Source/representative)"
+              }
+            }
+          }, {
+            "location" : {
+              "message" : {
+                "text" : "<com.alibaba.fastjson.JSONPath: java.lang.Object getPropertyValue(java.lang.Object,java.lang.String,long)> @L3523 stmt#9 (Container)"
+              }
+            }
+          }, {
+            "location" : {
+              "message" : {
+                "text" : "<com.alibaba.fastjson.JSON: com.alibaba.fastjson.JSONObject parseObject(java.lang.String)> (Sink)"
+              }
+            }
+          } ]
+        } ]
+      } ]
+    }, {
+      "ruleId" : "Fastjson_Deserialization",
+      "level" : "error",
+      "message" : {
+        "text" : "[HIGH] Score: 8.5 | Fastjson_Deserialization flow from <org.srm.iam.api.controller.v1.UserSynchronizeController: org.springframework.http.ResponseEntity createUser(java.lang.Long,org.srm.iam.api.dto.UserDTO)> to <com.alibaba.fastjson.JSON: java.lang.Object parse(java.lang.String)>"
+      },
+      "properties" : {
+        "score" : 8.5,
+        "confidence" : 0.4675,
+        "riskLevel" : "HIGH",
+        "severityScore" : 8.5,
+        "rankScore" : 3.9737500000000003,
+        "sinkStrength" : "TERMINAL_SIDE_EFFECT",
+        "evidenceLevel" : "ENDPOINT_ONLY",
+        "sinkContainer" : "<com.alibaba.fastjson.serializer.SerializeFilterable: java.lang.Object processValue(com.alibaba.fastjson.serializer.JSONSerializer,com.alibaba.fastjson.serializer.BeanContext,java.lang.Object,java.lang.String,java.lang.Object,int)>",
+        "sinkStmtIndex" : 33,
+        "sinkIndex" : "0",
+        "sourceIndex" : "1",
+        "sourceCount" : 1,
+        "packageProvenance" : "OUTSIDE_FINDING_PACKAGES",
+        "reasonCodes" : [ "TERMINAL_OUTSIDE_APP_PACKAGE" ]
+      },
+      "locations" : [ {
+        "physicalLocation" : {
+          "artifactLocation" : {
+            "uri" : "<com.alibaba.fastjson.serializer.SerializeFilterable: java.lang.Object processValue(com.alibaba.fastjson.serializer.JSONSerializer,com.alibaba.fastjson.serializer.BeanContext,java.lang.Object,java.lang.String,java.lang.Object,int)>"
+          }
+        }
+      } ],
+      "codeFlows" : [ {
+        "threadFlows" : [ {
+          "locations" : [ {
+            "location" : {
+              "message" : {
+                "text" : "<org.srm.iam.api.controller.v1.UserSynchronizeController: org.springframework.http.ResponseEntity createUser(java.lang.Long,org.srm.iam.api.dto.UserDTO)> idx=1 route=POST /v1/{organizationId}/user/synchronize (Source/representative)"
+              }
+            }
+          }, {
+            "location" : {
+              "message" : {
+                "text" : "<com.alibaba.fastjson.serializer.SerializeFilterable: java.lang.Object processValue(com.alibaba.fastjson.serializer.JSONSerializer,com.alibaba.fastjson.serializer.BeanContext,java.lang.Object,java.lang.String,java.lang.Object,int)> @L229 stmt#33 (Container)"
+              }
+            }
+          }, {
+            "location" : {
+              "message" : {
+                "text" : "<com.alibaba.fastjson.JSON: java.lang.Object parse(java.lang.String)> (Sink)"
+              }
+            }
+          } ]
+        } ]
+      } ]
+    }, {
+      "ruleId" : "Fastjson_Deserialization",
+      "level" : "warning",
+      "message" : {
+        "text" : "[MEDIUM] Score: 4.3 | Fastjson_Deserialization flow from <org.srm.iam.api.controller.v1.UserSynchronizeController: org.springframework.http.ResponseEntity userAuthority(java.lang.Long,org.srm.iam.api.dto.UserDTO)> to <com.alibaba.fastjson.JSON: java.lang.Object parse(java.lang.String)>"
+      },
+      "properties" : {
+        "score" : 4.25,
+        "confidence" : 0.4675,
+        "riskLevel" : "MEDIUM",
+        "severityScore" : 4.25,
+        "rankScore" : 1.9868750000000002,
+        "sinkStrength" : "TERMINAL_SIDE_EFFECT",
+        "evidenceLevel" : "ENDPOINT_ONLY",
+        "sinkContainer" : "<com.alibaba.fastjson.JSON: com.alibaba.fastjson.JSONObject parseObject(java.lang.String)>",
+        "sinkStmtIndex" : 1,
+        "sinkIndex" : "0",
+        "sourceIndex" : "1",
+        "sourceCount" : 1,
+        "packageProvenance" : "OUTSIDE_FINDING_PACKAGES",
+        "reasonCodes" : [ "TERMINAL_OUTSIDE_APP_PACKAGE" ]
+      },
+      "locations" : [ {
+        "physicalLocation" : {
+          "artifactLocation" : {
+            "uri" : "<com.alibaba.fastjson.JSON: com.alibaba.fastjson.JSONObject parseObject(java.lang.String)>"
+          }
+        }
+      } ],
+      "codeFlows" : [ {
+        "threadFlows" : [ {
+          "locations" : [ {
+            "location" : {
+              "message" : {
+                "text" : "<org.srm.iam.api.controller.v1.UserSynchronizeController: org.springframework.http.ResponseEntity userAuthority(java.lang.Long,org.srm.iam.api.dto.UserDTO)> idx=1 route=POST /v1/{organizationId}/user/synchronize/authority (Source/representative)"
+              }
+            }
+          }, {
+            "location" : {
+              "message" : {
+                "text" : "<com.alibaba.fastjson.JSON: com.alibaba.fastjson.JSONObject parseObject(java.lang.String)> @L254 stmt#1 (Container)"
+              }
+            }
+          }, {
+            "location" : {
+              "message" : {
+                "text" : "<com.alibaba.fastjson.JSON: java.lang.Object parse(java.lang.String)> (Sink)"
+              }
+            }
+          } ]
+        } ]
+      } ]
+    }, {
+      "ruleId" : "Fastjson_Deserialization",
+      "level" : "warning",
+      "message" : {
+        "text" : "[MEDIUM] Score: 4.3 | Fastjson_Deserialization flow from <org.srm.iam.api.controller.v1.UserSynchronizeController: org.springframework.http.ResponseEntity userAuthority(java.lang.Long,org.srm.iam.api.dto.UserDTO)> to <com.alibaba.fastjson.JSON: com.alibaba.fastjson.JSONObject parseObject(java.lang.String)>"
+      },
+      "properties" : {
+        "score" : 4.25,
+        "confidence" : 0.4675,
+        "riskLevel" : "MEDIUM",
+        "severityScore" : 4.25,
+        "rankScore" : 1.9868750000000002,
+        "sinkStrength" : "TERMINAL_SIDE_EFFECT",
+        "evidenceLevel" : "ENDPOINT_ONLY",
+        "sinkContainer" : "<com.alibaba.fastjson.JSONPath: java.lang.Object getPropertyValue(java.lang.Object,java.lang.String,long)>",
+        "sinkStmtIndex" : 9,
+        "sinkIndex" : "0",
+        "sourceIndex" : "1",
+        "sourceCount" : 1,
+        "packageProvenance" : "OUTSIDE_FINDING_PACKAGES",
+        "reasonCodes" : [ "TERMINAL_OUTSIDE_APP_PACKAGE" ]
+      },
+      "locations" : [ {
+        "physicalLocation" : {
+          "artifactLocation" : {
+            "uri" : "<com.alibaba.fastjson.JSONPath: java.lang.Object getPropertyValue(java.lang.Object,java.lang.String,long)>"
+          }
+        }
+      } ],
+      "codeFlows" : [ {
+        "threadFlows" : [ {
+          "locations" : [ {
+            "location" : {
+              "message" : {
+                "text" : "<org.srm.iam.api.controller.v1.UserSynchronizeController: org.springframework.http.ResponseEntity userAuthority(java.lang.Long,org.srm.iam.api.dto.UserDTO)> idx=1 route=POST /v1/{organizationId}/user/synchronize/authority (Source/representative)"
+              }
+            }
+          }, {
+            "location" : {
+              "message" : {
+                "text" : "<com.alibaba.fastjson.JSONPath: java.lang.Object getPropertyValue(java.lang.Object,java.lang.String,long)> @L3523 stmt#9 (Container)"
+              }
+            }
+          }, {
+            "location" : {
+              "message" : {
+                "text" : "<com.alibaba.fastjson.JSON: com.alibaba.fastjson.JSONObject parseObject(java.lang.String)> (Sink)"
+              }
+            }
+          } ]
+        } ]
+      } ]
+    }, {
+      "ruleId" : "Fastjson_Deserialization",
+      "level" : "warning",
+      "message" : {
+        "text" : "[MEDIUM] Score: 4.3 | Fastjson_Deserialization flow from <org.srm.iam.api.controller.v1.UserSynchronizeController: org.springframework.http.ResponseEntity userAuthority(java.lang.Long,org.srm.iam.api.dto.UserDTO)> to <com.alibaba.fastjson.JSON: java.lang.Object parse(java.lang.String)>"
+      },
+      "properties" : {
+        "score" : 4.25,
+        "confidence" : 0.4675,
+        "riskLevel" : "MEDIUM",
+        "severityScore" : 4.25,
+        "rankScore" : 1.9868750000000002,
+        "sinkStrength" : "TERMINAL_SIDE_EFFECT",
+        "evidenceLevel" : "ENDPOINT_ONLY",
+        "sinkContainer" : "<com.alibaba.fastjson.serializer.SerializeFilterable: java.lang.Object processValue(com.alibaba.fastjson.serializer.JSONSerializer,com.alibaba.fastjson.serializer.BeanContext,java.lang.Object,java.lang.String,java.lang.Object,int)>",
+        "sinkStmtIndex" : 33,
+        "sinkIndex" : "0",
+        "sourceIndex" : "1",
+        "sourceCount" : 1,
+        "packageProvenance" : "OUTSIDE_FINDING_PACKAGES",
+        "reasonCodes" : [ "TERMINAL_OUTSIDE_APP_PACKAGE" ]
+      },
+      "locations" : [ {
+        "physicalLocation" : {
+          "artifactLocation" : {
+            "uri" : "<com.alibaba.fastjson.serializer.SerializeFilterable: java.lang.Object processValue(com.alibaba.fastjson.serializer.JSONSerializer,com.alibaba.fastjson.serializer.BeanContext,java.lang.Object,java.lang.String,java.lang.Object,int)>"
+          }
+        }
+      } ],
+      "codeFlows" : [ {
+        "threadFlows" : [ {
+          "locations" : [ {
+            "location" : {
+              "message" : {
+                "text" : "<org.srm.iam.api.controller.v1.UserSynchronizeController: org.springframework.http.ResponseEntity userAuthority(java.lang.Long,org.srm.iam.api.dto.UserDTO)> idx=1 route=POST /v1/{organizationId}/user/synchronize/authority (Source/representative)"
+              }
+            }
+          }, {
+            "location" : {
+              "message" : {
+                "text" : "<com.alibaba.fastjson.serializer.SerializeFilterable: java.lang.Object processValue(com.alibaba.fastjson.serializer.JSONSerializer,com.alibaba.fastjson.serializer.BeanContext,java.lang.Object,java.lang.String,java.lang.Object,int)> @L229 stmt#33 (Container)"
+              }
+            }
+          }, {
+            "location" : {
+              "message" : {
+                "text" : "<com.alibaba.fastjson.JSON: java.lang.Object parse(java.lang.String)> (Sink)"
+              }
+            }
+          } ]
+        } ]
+      } ]
+    }, {
+      "ruleId" : "Fastjson_Deserialization",
+      "level" : "error",
+      "message" : {
+        "text" : "[HIGH] Score: 8.5 | Fastjson_Deserialization flow from <org.srm.mobile.config.api.controller.v1.ThirdPartyCallbackController: org.springframework.http.ResponseEntity dingTalk(java.lang.String,java.lang.String,java.lang.String,java.lang.String,java.lang.String,org.srm.mobile.config.api.dto.DingTalkResponse)> to <com.alibaba.fastjson.JSON: java.lang.Object parse(java.lang.String)>"
+      },
+      "properties" : {
+        "score" : 8.5,
+        "confidence" : 0.4675,
+        "riskLevel" : "HIGH",
+        "severityScore" : 8.5,
+        "rankScore" : 3.9737500000000003,
+        "sinkStrength" : "TERMINAL_SIDE_EFFECT",
+        "evidenceLevel" : "ENDPOINT_ONLY",
+        "sinkContainer" : "<com.alibaba.fastjson.JSON: com.alibaba.fastjson.JSONObject parseObject(java.lang.String)>",
+        "sinkStmtIndex" : 1,
+        "sinkIndex" : "0",
+        "sourceIndex" : "3",
+        "sourceCount" : 1,
+        "packageProvenance" : "OUTSIDE_FINDING_PACKAGES",
+        "reasonCodes" : [ "TERMINAL_OUTSIDE_APP_PACKAGE" ]
+      },
+      "locations" : [ {
+        "physicalLocation" : {
+          "artifactLocation" : {
+            "uri" : "<com.alibaba.fastjson.JSON: com.alibaba.fastjson.JSONObject parseObject(java.lang.String)>"
+          }
+        }
+      } ],
+      "codeFlows" : [ {
+        "threadFlows" : [ {
+          "locations" : [ {
+            "location" : {
+              "message" : {
+                "text" : "<org.srm.mobile.config.api.controller.v1.ThirdPartyCallbackController: org.springframework.http.ResponseEntity dingTalk(java.lang.String,java.lang.String,java.lang.String,java.lang.String,java.lang.String,org.srm.mobile.config.api.dto.DingTalkResponse)> idx=3 route=POST /v1/third-party-callback/ding-talk/{appClient} (Source/representative)"
+              }
+            }
+          }, {
+            "location" : {
+              "message" : {
+                "text" : "<com.alibaba.fastjson.JSON: com.alibaba.fastjson.JSONObject parseObject(java.lang.String)> @L254 stmt#1 (Container)"
+              }
+            }
+          }, {
+            "location" : {
+              "message" : {
+                "text" : "<com.alibaba.fastjson.JSON: java.lang.Object parse(java.lang.String)> (Sink)"
+              }
+            }
+          } ]
+        } ]
+      } ]
+    }, {
+      "ruleId" : "Fastjson_Deserialization",
+      "level" : "error",
+      "message" : {
+        "text" : "[HIGH] Score: 8.5 | Fastjson_Deserialization flow from <org.srm.mobile.config.api.controller.v1.ThirdPartyCallbackController: org.springframework.http.ResponseEntity dingTalk(java.lang.String,java.lang.String,java.lang.String,java.lang.String,java.lang.String,org.srm.mobile.config.api.dto.DingTalkResponse)> to <com.alibaba.fastjson.JSON: com.alibaba.fastjson.JSONObject parseObject(java.lang.String)>"
+      },
+      "properties" : {
+        "score" : 8.5,
+        "confidence" : 0.4675,
+        "riskLevel" : "HIGH",
+        "severityScore" : 8.5,
+        "rankScore" : 3.9737500000000003,
+        "sinkStrength" : "TERMINAL_SIDE_EFFECT",
+        "evidenceLevel" : "ENDPOINT_ONLY",
+        "sinkContainer" : "<com.alibaba.fastjson.JSONPath: java.lang.Object getPropertyValue(java.lang.Object,java.lang.String,long)>",
+        "sinkStmtIndex" : 9,
+        "sinkIndex" : "0",
+        "sourceIndex" : "3",
+        "sourceCount" : 1,
+        "packageProvenance" : "OUTSIDE_FINDING_PACKAGES",
+        "reasonCodes" : [ "TERMINAL_OUTSIDE_APP_PACKAGE" ]
+      },
+      "locations" : [ {
+        "physicalLocation" : {
+          "artifactLocation" : {
+            "uri" : "<com.alibaba.fastjson.JSONPath: java.lang.Object getPropertyValue(java.lang.Object,java.lang.String,long)>"
+          }
+        }
+      } ],
+      "codeFlows" : [ {
+        "threadFlows" : [ {
+          "locations" : [ {
+            "location" : {
+              "message" : {
+                "text" : "<org.srm.mobile.config.api.controller.v1.ThirdPartyCallbackController: org.springframework.http.ResponseEntity dingTalk(java.lang.String,java.lang.String,java.lang.String,java.lang.String,java.lang.String,org.srm.mobile.config.api.dto.DingTalkResponse)> idx=3 route=POST /v1/third-party-callback/ding-talk/{appClient} (Source/representative)"
+              }
+            }
+          }, {
+            "location" : {
+              "message" : {
+                "text" : "<com.alibaba.fastjson.JSONPath: java.lang.Object getPropertyValue(java.lang.Object,java.lang.String,long)> @L3523 stmt#9 (Container)"
+              }
+            }
+          }, {
+            "location" : {
+              "message" : {
+                "text" : "<com.alibaba.fastjson.JSON: com.alibaba.fastjson.JSONObject parseObject(java.lang.String)> (Sink)"
+              }
+            }
+          } ]
+        } ]
+      } ]
+    }, {
+      "ruleId" : "Fastjson_Deserialization",
+      "level" : "error",
+      "message" : {
+        "text" : "[HIGH] Score: 8.5 | Fastjson_Deserialization flow from <org.srm.mobile.config.api.controller.v1.ThirdPartyCallbackController: org.springframework.http.ResponseEntity dingTalk(java.lang.String,java.lang.String,java.lang.String,java.lang.String,java.lang.String,org.srm.mobile.config.api.dto.DingTalkResponse)> to <com.alibaba.fastjson.JSON: java.lang.Object parse(java.lang.String)>"
+      },
+      "properties" : {
+        "score" : 8.5,
+        "confidence" : 0.4675,
+        "riskLevel" : "HIGH",
+        "severityScore" : 8.5,
+        "rankScore" : 3.9737500000000003,
+        "sinkStrength" : "TERMINAL_SIDE_EFFECT",
+        "evidenceLevel" : "ENDPOINT_ONLY",
+        "sinkContainer" : "<com.alibaba.fastjson.serializer.SerializeFilterable: java.lang.Object processValue(com.alibaba.fastjson.serializer.JSONSerializer,com.alibaba.fastjson.serializer.BeanContext,java.lang.Object,java.lang.String,java.lang.Object,int)>",
+        "sinkStmtIndex" : 33,
+        "sinkIndex" : "0",
+        "sourceIndex" : "3",
+        "sourceCount" : 1,
+        "packageProvenance" : "OUTSIDE_FINDING_PACKAGES",
+        "reasonCodes" : [ "TERMINAL_OUTSIDE_APP_PACKAGE" ]
+      },
+      "locations" : [ {
+        "physicalLocation" : {
+          "artifactLocation" : {
+            "uri" : "<com.alibaba.fastjson.serializer.SerializeFilterable: java.lang.Object processValue(com.alibaba.fastjson.serializer.JSONSerializer,com.alibaba.fastjson.serializer.BeanContext,java.lang.Object,java.lang.String,java.lang.Object,int)>"
+          }
+        }
+      } ],
+      "codeFlows" : [ {
+        "threadFlows" : [ {
+          "locations" : [ {
+            "location" : {
+              "message" : {
+                "text" : "<org.srm.mobile.config.api.controller.v1.ThirdPartyCallbackController: org.springframework.http.ResponseEntity dingTalk(java.lang.String,java.lang.String,java.lang.String,java.lang.String,java.lang.String,org.srm.mobile.config.api.dto.DingTalkResponse)> idx=3 route=POST /v1/third-party-callback/ding-talk/{appClient} (Source/representative)"
+              }
+            }
+          }, {
+            "location" : {
+              "message" : {
+                "text" : "<com.alibaba.fastjson.serializer.SerializeFilterable: java.lang.Object processValue(com.alibaba.fastjson.serializer.JSONSerializer,com.alibaba.fastjson.serializer.BeanContext,java.lang.Object,java.lang.String,java.lang.Object,int)> @L229 stmt#33 (Container)"
+              }
+            }
+          }, {
+            "location" : {
+              "message" : {
+                "text" : "<com.alibaba.fastjson.JSON: java.lang.Object parse(java.lang.String)> (Sink)"
+              }
+            }
+          } ]
+        } ]
+      } ]
+    }, {
+      "ruleId" : "Fastjson_Deserialization",
+      "level" : "error",
+      "message" : {
+        "text" : "[HIGH] Score: 8.5 | Fastjson_Deserialization flow from <org.srm.mobile.config.api.controller.v1.ThirdPartyCallbackController: org.springframework.http.ResponseEntity dingTalk(java.lang.String,java.lang.String,java.lang.String,java.lang.String,java.lang.String,org.srm.mobile.config.api.dto.DingTalkResponse)> to <com.alibaba.fastjson.JSON: java.lang.Object parse(java.lang.String)>"
+      },
+      "properties" : {
+        "score" : 8.5,
+        "confidence" : 0.4675,
+        "riskLevel" : "HIGH",
+        "severityScore" : 8.5,
+        "rankScore" : 3.9737500000000003,
+        "sinkStrength" : "TERMINAL_SIDE_EFFECT",
+        "evidenceLevel" : "ENDPOINT_ONLY",
+        "sinkContainer" : "<com.alibaba.fastjson.JSON: com.alibaba.fastjson.JSONObject parseObject(java.lang.String)>",
+        "sinkStmtIndex" : 1,
+        "sinkIndex" : "0",
+        "sourceIndex" : "4",
+        "sourceCount" : 1,
+        "packageProvenance" : "OUTSIDE_FINDING_PACKAGES",
+        "reasonCodes" : [ "TERMINAL_OUTSIDE_APP_PACKAGE" ]
+      },
+      "locations" : [ {
+        "physicalLocation" : {
+          "artifactLocation" : {
+            "uri" : "<com.alibaba.fastjson.JSON: com.alibaba.fastjson.JSONObject parseObject(java.lang.String)>"
+          }
+        }
+      } ],
+      "codeFlows" : [ {
+        "threadFlows" : [ {
+          "locations" : [ {
+            "location" : {
+              "message" : {
+                "text" : "<org.srm.mobile.config.api.controller.v1.ThirdPartyCallbackController: org.springframework.http.ResponseEntity dingTalk(java.lang.String,java.lang.String,java.lang.String,java.lang.String,java.lang.String,org.srm.mobile.config.api.dto.DingTalkResponse)> idx=4 route=POST /v1/third-party-callback/ding-talk/{appClient} (Source/representative)"
+              }
+            }
+          }, {
+            "location" : {
+              "message" : {
+                "text" : "<com.alibaba.fastjson.JSON: com.alibaba.fastjson.JSONObject parseObject(java.lang.String)> @L254 stmt#1 (Container)"
+              }
+            }
+          }, {
+            "location" : {
+              "message" : {
+                "text" : "<com.alibaba.fastjson.JSON: java.lang.Object parse(java.lang.String)> (Sink)"
+              }
+            }
+          } ]
+        } ]
+      } ]
+    }, {
+      "ruleId" : "Fastjson_Deserialization",
+      "level" : "error",
+      "message" : {
+        "text" : "[HIGH] Score: 8.5 | Fastjson_Deserialization flow from <org.srm.mobile.config.api.controller.v1.ThirdPartyCallbackController: org.springframework.http.ResponseEntity dingTalk(java.lang.String,java.lang.String,java.lang.String,java.lang.String,java.lang.String,org.srm.mobile.config.api.dto.DingTalkResponse)> to <com.alibaba.fastjson.JSON: com.alibaba.fastjson.JSONObject parseObject(java.lang.String)>"
+      },
+      "properties" : {
+        "score" : 8.5,
+        "confidence" : 0.4675,
+        "riskLevel" : "HIGH",
+        "severityScore" : 8.5,
+        "rankScore" : 3.9737500000000003,
+        "sinkStrength" : "TERMINAL_SIDE_EFFECT",
+        "evidenceLevel" : "ENDPOINT_ONLY",
+        "sinkContainer" : "<com.alibaba.fastjson.JSONPath: java.lang.Object getPropertyValue(java.lang.Object,java.lang.String,long)>",
+        "sinkStmtIndex" : 9,
+        "sinkIndex" : "0",
+        "sourceIndex" : "4",
+        "sourceCount" : 1,
+        "packageProvenance" : "OUTSIDE_FINDING_PACKAGES",
+        "reasonCodes" : [ "TERMINAL_OUTSIDE_APP_PACKAGE" ]
+      },
+      "locations" : [ {
+        "physicalLocation" : {
+          "artifactLocation" : {
+            "uri" : "<com.alibaba.fastjson.JSONPath: java.lang.Object getPropertyValue(java.lang.Object,java.lang.String,long)>"
+          }
+        }
+      } ],
+      "codeFlows" : [ {
+        "threadFlows" : [ {
+          "locations" : [ {
+            "location" : {
+              "message" : {
+                "text" : "<org.srm.mobile.config.api.controller.v1.ThirdPartyCallbackController: org.springframework.http.ResponseEntity dingTalk(java.lang.String,java.lang.String,java.lang.String,java.lang.String,java.lang.String,org.srm.mobile.config.api.dto.DingTalkResponse)> idx=4 route=POST /v1/third-party-callback/ding-talk/{appClient} (Source/representative)"
+              }
+            }
+          }, {
+            "location" : {
+              "message" : {
+                "text" : "<com.alibaba.fastjson.JSONPath: java.lang.Object getPropertyValue(java.lang.Object,java.lang.String,long)> @L3523 stmt#9 (Container)"
+              }
+            }
+          }, {
+            "location" : {
+              "message" : {
+                "text" : "<com.alibaba.fastjson.JSON: com.alibaba.fastjson.JSONObject parseObject(java.lang.String)> (Sink)"
+              }
+            }
+          } ]
+        } ]
+      } ]
+    }, {
+      "ruleId" : "Fastjson_Deserialization",
+      "level" : "error",
+      "message" : {
+        "text" : "[HIGH] Score: 8.5 | Fastjson_Deserialization flow from <org.srm.mobile.config.api.controller.v1.ThirdPartyCallbackController: org.springframework.http.ResponseEntity dingTalk(java.lang.String,java.lang.String,java.lang.String,java.lang.String,java.lang.String,org.srm.mobile.config.api.dto.DingTalkResponse)> to <com.alibaba.fastjson.JSON: java.lang.Object parse(java.lang.String)>"
+      },
+      "properties" : {
+        "score" : 8.5,
+        "confidence" : 0.4675,
+        "riskLevel" : "HIGH",
+        "severityScore" : 8.5,
+        "rankScore" : 3.9737500000000003,
+        "sinkStrength" : "TERMINAL_SIDE_EFFECT",
+        "evidenceLevel" : "ENDPOINT_ONLY",
+        "sinkContainer" : "<com.alibaba.fastjson.serializer.SerializeFilterable: java.lang.Object processValue(com.alibaba.fastjson.serializer.JSONSerializer,com.alibaba.fastjson.serializer.BeanContext,java.lang.Object,java.lang.String,java.lang.Object,int)>",
+        "sinkStmtIndex" : 33,
+        "sinkIndex" : "0",
+        "sourceIndex" : "4",
+        "sourceCount" : 1,
+        "packageProvenance" : "OUTSIDE_FINDING_PACKAGES",
+        "reasonCodes" : [ "TERMINAL_OUTSIDE_APP_PACKAGE" ]
+      },
+      "locations" : [ {
+        "physicalLocation" : {
+          "artifactLocation" : {
+            "uri" : "<com.alibaba.fastjson.serializer.SerializeFilterable: java.lang.Object processValue(com.alibaba.fastjson.serializer.JSONSerializer,com.alibaba.fastjson.serializer.BeanContext,java.lang.Object,java.lang.String,java.lang.Object,int)>"
+          }
+        }
+      } ],
+      "codeFlows" : [ {
+        "threadFlows" : [ {
+          "locations" : [ {
+            "location" : {
+              "message" : {
+                "text" : "<org.srm.mobile.config.api.controller.v1.ThirdPartyCallbackController: org.springframework.http.ResponseEntity dingTalk(java.lang.String,java.lang.String,java.lang.String,java.lang.String,java.lang.String,org.srm.mobile.config.api.dto.DingTalkResponse)> idx=4 route=POST /v1/third-party-callback/ding-talk/{appClient} (Source/representative)"
+              }
+            }
+          }, {
+            "location" : {
+              "message" : {
+                "text" : "<com.alibaba.fastjson.serializer.SerializeFilterable: java.lang.Object processValue(com.alibaba.fastjson.serializer.JSONSerializer,com.alibaba.fastjson.serializer.BeanContext,java.lang.Object,java.lang.String,java.lang.Object,int)> @L229 stmt#33 (Container)"
+              }
+            }
+          }, {
+            "location" : {
+              "message" : {
+                "text" : "<com.alibaba.fastjson.JSON: java.lang.Object parse(java.lang.String)> (Sink)"
+              }
+            }
+          } ]
+        } ]
+      } ]
+    }, {
+      "ruleId" : "Fastjson_Deserialization",
+      "level" : "error",
+      "message" : {
+        "text" : "[HIGH] Score: 8.5 | Fastjson_Deserialization flow from <org.srm.mobile.config.api.controller.v1.ThirdPartyCallbackController: org.springframework.http.ResponseEntity dingTalk(java.lang.String,java.lang.String,java.lang.String,java.lang.String,java.lang.String,org.srm.mobile.config.api.dto.DingTalkResponse)> to <com.alibaba.fastjson.JSON: java.lang.Object parse(java.lang.String)>"
+      },
+      "properties" : {
+        "score" : 8.5,
+        "confidence" : 0.4675,
+        "riskLevel" : "HIGH",
+        "severityScore" : 8.5,
+        "rankScore" : 3.9737500000000003,
+        "sinkStrength" : "TERMINAL_SIDE_EFFECT",
+        "evidenceLevel" : "ENDPOINT_ONLY",
+        "sinkContainer" : "<com.alibaba.fastjson.JSON: com.alibaba.fastjson.JSONObject parseObject(java.lang.String)>",
+        "sinkStmtIndex" : 1,
+        "sinkIndex" : "0",
+        "sourceIndex" : "5",
+        "sourceCount" : 1,
+        "packageProvenance" : "OUTSIDE_FINDING_PACKAGES",
+        "reasonCodes" : [ "TERMINAL_OUTSIDE_APP_PACKAGE" ]
+      },
+      "locations" : [ {
+        "physicalLocation" : {
+          "artifactLocation" : {
+            "uri" : "<com.alibaba.fastjson.JSON: com.alibaba.fastjson.JSONObject parseObject(java.lang.String)>"
+          }
+        }
+      } ],
+      "codeFlows" : [ {
+        "threadFlows" : [ {
+          "locations" : [ {
+            "location" : {
+              "message" : {
+                "text" : "<org.srm.mobile.config.api.controller.v1.ThirdPartyCallbackController: org.springframework.http.ResponseEntity dingTalk(java.lang.String,java.lang.String,java.lang.String,java.lang.String,java.lang.String,org.srm.mobile.config.api.dto.DingTalkResponse)> idx=5 route=POST /v1/third-party-callback/ding-talk/{appClient} (Source/representative)"
+              }
+            }
+          }, {
+            "location" : {
+              "message" : {
+                "text" : "<com.alibaba.fastjson.JSON: com.alibaba.fastjson.JSONObject parseObject(java.lang.String)> @L254 stmt#1 (Container)"
+              }
+            }
+          }, {
+            "location" : {
+              "message" : {
+                "text" : "<com.alibaba.fastjson.JSON: java.lang.Object parse(java.lang.String)> (Sink)"
+              }
+            }
+          } ]
+        } ]
+      } ]
+    }, {
+      "ruleId" : "Fastjson_Deserialization",
+      "level" : "error",
+      "message" : {
+        "text" : "[HIGH] Score: 8.5 | Fastjson_Deserialization flow from <org.srm.mobile.config.api.controller.v1.ThirdPartyCallbackController: org.springframework.http.ResponseEntity dingTalk(java.lang.String,java.lang.String,java.lang.String,java.lang.String,java.lang.String,org.srm.mobile.config.api.dto.DingTalkResponse)> to <com.alibaba.fastjson.JSON: com.alibaba.fastjson.JSONObject parseObject(java.lang.String)>"
+      },
+      "properties" : {
+        "score" : 8.5,
+        "confidence" : 0.4675,
+        "riskLevel" : "HIGH",
+        "severityScore" : 8.5,
+        "rankScore" : 3.9737500000000003,
+        "sinkStrength" : "TERMINAL_SIDE_EFFECT",
+        "evidenceLevel" : "ENDPOINT_ONLY",
+        "sinkContainer" : "<com.alibaba.fastjson.JSONPath: java.lang.Object getPropertyValue(java.lang.Object,java.lang.String,long)>",
+        "sinkStmtIndex" : 9,
+        "sinkIndex" : "0",
+        "sourceIndex" : "5",
+        "sourceCount" : 1,
+        "packageProvenance" : "OUTSIDE_FINDING_PACKAGES",
+        "reasonCodes" : [ "TERMINAL_OUTSIDE_APP_PACKAGE" ]
+      },
+      "locations" : [ {
+        "physicalLocation" : {
+          "artifactLocation" : {
+            "uri" : "<com.alibaba.fastjson.JSONPath: java.lang.Object getPropertyValue(java.lang.Object,java.lang.String,long)>"
+          }
+        }
+      } ],
+      "codeFlows" : [ {
+        "threadFlows" : [ {
+          "locations" : [ {
+            "location" : {
+              "message" : {
+                "text" : "<org.srm.mobile.config.api.controller.v1.ThirdPartyCallbackController: org.springframework.http.ResponseEntity dingTalk(java.lang.String,java.lang.String,java.lang.String,java.lang.String,java.lang.String,org.srm.mobile.config.api.dto.DingTalkResponse)> idx=5 route=POST /v1/third-party-callback/ding-talk/{appClient} (Source/representative)"
+              }
+            }
+          }, {
+            "location" : {
+              "message" : {
+                "text" : "<com.alibaba.fastjson.JSONPath: java.lang.Object getPropertyValue(java.lang.Object,java.lang.String,long)> @L3523 stmt#9 (Container)"
+              }
+            }
+          }, {
+            "location" : {
+              "message" : {
+                "text" : "<com.alibaba.fastjson.JSON: com.alibaba.fastjson.JSONObject parseObject(java.lang.String)> (Sink)"
+              }
+            }
+          } ]
+        } ]
+      } ]
+    }, {
+      "ruleId" : "Fastjson_Deserialization",
+      "level" : "error",
+      "message" : {
+        "text" : "[HIGH] Score: 8.5 | Fastjson_Deserialization flow from <org.srm.mobile.config.api.controller.v1.ThirdPartyCallbackController: org.springframework.http.ResponseEntity dingTalk(java.lang.String,java.lang.String,java.lang.String,java.lang.String,java.lang.String,org.srm.mobile.config.api.dto.DingTalkResponse)> to <com.alibaba.fastjson.JSON: java.lang.Object parse(java.lang.String)>"
+      },
+      "properties" : {
+        "score" : 8.5,
+        "confidence" : 0.4675,
+        "riskLevel" : "HIGH",
+        "severityScore" : 8.5,
+        "rankScore" : 3.9737500000000003,
+        "sinkStrength" : "TERMINAL_SIDE_EFFECT",
+        "evidenceLevel" : "ENDPOINT_ONLY",
+        "sinkContainer" : "<com.alibaba.fastjson.serializer.SerializeFilterable: java.lang.Object processValue(com.alibaba.fastjson.serializer.JSONSerializer,com.alibaba.fastjson.serializer.BeanContext,java.lang.Object,java.lang.String,java.lang.Object,int)>",
+        "sinkStmtIndex" : 33,
+        "sinkIndex" : "0",
+        "sourceIndex" : "5",
+        "sourceCount" : 1,
+        "packageProvenance" : "OUTSIDE_FINDING_PACKAGES",
+        "reasonCodes" : [ "TERMINAL_OUTSIDE_APP_PACKAGE" ]
+      },
+      "locations" : [ {
+        "physicalLocation" : {
+          "artifactLocation" : {
+            "uri" : "<com.alibaba.fastjson.serializer.SerializeFilterable: java.lang.Object processValue(com.alibaba.fastjson.serializer.JSONSerializer,com.alibaba.fastjson.serializer.BeanContext,java.lang.Object,java.lang.String,java.lang.Object,int)>"
+          }
+        }
+      } ],
+      "codeFlows" : [ {
+        "threadFlows" : [ {
+          "locations" : [ {
+            "location" : {
+              "message" : {
+                "text" : "<org.srm.mobile.config.api.controller.v1.ThirdPartyCallbackController: org.springframework.http.ResponseEntity dingTalk(java.lang.String,java.lang.String,java.lang.String,java.lang.String,java.lang.String,org.srm.mobile.config.api.dto.DingTalkResponse)> idx=5 route=POST /v1/third-party-callback/ding-talk/{appClient} (Source/representative)"
+              }
+            }
+          }, {
+            "location" : {
+              "message" : {
+                "text" : "<com.alibaba.fastjson.serializer.SerializeFilterable: java.lang.Object processValue(com.alibaba.fastjson.serializer.JSONSerializer,com.alibaba.fastjson.serializer.BeanContext,java.lang.Object,java.lang.String,java.lang.Object,int)> @L229 stmt#33 (Container)"
+              }
+            }
+          }, {
+            "location" : {
+              "message" : {
+                "text" : "<com.alibaba.fastjson.JSON: java.lang.Object parse(java.lang.String)> (Sink)"
+              }
+            }
+          } ]
+        } ]
+      } ]
+    }, {
+      "ruleId" : "Fastjson_Deserialization",
+      "level" : "warning",
+      "message" : {
+        "text" : "[MEDIUM] Score: 4.3 | Fastjson_Deserialization flow from <org.srm.platform.api.controller.v1.CompanyCaAuthInfoController: org.springframework.http.ResponseEntity toPayNotify(java.lang.Long,javax.servlet.http.HttpServletRequest,org.srm.platform.domain.vo.ToPayResultVO)> to <com.alibaba.fastjson.JSON: java.lang.Object parse(java.lang.String)>"
+      },
+      "properties" : {
+        "score" : 4.25,
+        "confidence" : 0.4675,
+        "riskLevel" : "MEDIUM",
+        "severityScore" : 4.25,
+        "rankScore" : 1.9868750000000002,
+        "sinkStrength" : "TERMINAL_SIDE_EFFECT",
+        "evidenceLevel" : "ENDPOINT_ONLY",
+        "sinkContainer" : "<com.alibaba.fastjson.JSON: com.alibaba.fastjson.JSONObject parseObject(java.lang.String)>",
+        "sinkStmtIndex" : 1,
+        "sinkIndex" : "0",
+        "sourceIndex" : "2",
+        "sourceCount" : 1,
+        "packageProvenance" : "OUTSIDE_FINDING_PACKAGES",
+        "reasonCodes" : [ "TERMINAL_OUTSIDE_APP_PACKAGE" ]
+      },
+      "locations" : [ {
+        "physicalLocation" : {
+          "artifactLocation" : {
+            "uri" : "<com.alibaba.fastjson.JSON: com.alibaba.fastjson.JSONObject parseObject(java.lang.String)>"
+          }
+        }
+      } ],
+      "codeFlows" : [ {
+        "threadFlows" : [ {
+          "locations" : [ {
+            "location" : {
+              "message" : {
+                "text" : "<org.srm.platform.api.controller.v1.CompanyCaAuthInfoController: org.springframework.http.ResponseEntity toPayNotify(java.lang.Long,javax.servlet.http.HttpServletRequest,org.srm.platform.domain.vo.ToPayResultVO)> idx=2 route=POST /v1/{organizationId}/company-ca-auth-info/to_pay_notify (Source/representative)"
+              }
+            }
+          }, {
+            "location" : {
+              "message" : {
+                "text" : "<com.alibaba.fastjson.JSON: com.alibaba.fastjson.JSONObject parseObject(java.lang.String)> @L254 stmt#1 (Container)"
+              }
+            }
+          }, {
+            "location" : {
+              "message" : {
+                "text" : "<com.alibaba.fastjson.JSON: java.lang.Object parse(java.lang.String)> (Sink)"
+              }
+            }
+          } ]
+        } ]
+      } ]
+    }, {
+      "ruleId" : "Fastjson_Deserialization",
+      "level" : "warning",
+      "message" : {
+        "text" : "[MEDIUM] Score: 4.3 | Fastjson_Deserialization flow from <org.srm.platform.api.controller.v1.CompanyCaAuthInfoController: org.springframework.http.ResponseEntity toPayNotify(java.lang.Long,javax.servlet.http.HttpServletRequest,org.srm.platform.domain.vo.ToPayResultVO)> to <com.alibaba.fastjson.JSON: com.alibaba.fastjson.JSONObject parseObject(java.lang.String)>"
+      },
+      "properties" : {
+        "score" : 4.25,
+        "confidence" : 0.4675,
+        "riskLevel" : "MEDIUM",
+        "severityScore" : 4.25,
+        "rankScore" : 1.9868750000000002,
+        "sinkStrength" : "TERMINAL_SIDE_EFFECT",
+        "evidenceLevel" : "ENDPOINT_ONLY",
+        "sinkContainer" : "<com.alibaba.fastjson.JSONPath: java.lang.Object getPropertyValue(java.lang.Object,java.lang.String,long)>",
+        "sinkStmtIndex" : 9,
+        "sinkIndex" : "0",
+        "sourceIndex" : "2",
+        "sourceCount" : 1,
+        "packageProvenance" : "OUTSIDE_FINDING_PACKAGES",
+        "reasonCodes" : [ "TERMINAL_OUTSIDE_APP_PACKAGE" ]
+      },
+      "locations" : [ {
+        "physicalLocation" : {
+          "artifactLocation" : {
+            "uri" : "<com.alibaba.fastjson.JSONPath: java.lang.Object getPropertyValue(java.lang.Object,java.lang.String,long)>"
+          }
+        }
+      } ],
+      "codeFlows" : [ {
+        "threadFlows" : [ {
+          "locations" : [ {
+            "location" : {
+              "message" : {
+                "text" : "<org.srm.platform.api.controller.v1.CompanyCaAuthInfoController: org.springframework.http.ResponseEntity toPayNotify(java.lang.Long,javax.servlet.http.HttpServletRequest,org.srm.platform.domain.vo.ToPayResultVO)> idx=2 route=POST /v1/{organizationId}/company-ca-auth-info/to_pay_notify (Source/representative)"
+              }
+            }
+          }, {
+            "location" : {
+              "message" : {
+                "text" : "<com.alibaba.fastjson.JSONPath: java.lang.Object getPropertyValue(java.lang.Object,java.lang.String,long)> @L3523 stmt#9 (Container)"
+              }
+            }
+          }, {
+            "location" : {
+              "message" : {
+                "text" : "<com.alibaba.fastjson.JSON: com.alibaba.fastjson.JSONObject parseObject(java.lang.String)> (Sink)"
+              }
+            }
+          } ]
+        } ]
+      } ]
+    }, {
+      "ruleId" : "Fastjson_Deserialization",
+      "level" : "warning",
+      "message" : {
+        "text" : "[MEDIUM] Score: 4.3 | Fastjson_Deserialization flow from <org.srm.platform.api.controller.v1.CompanyCaAuthInfoController: org.springframework.http.ResponseEntity toPayNotify(java.lang.Long,javax.servlet.http.HttpServletRequest,org.srm.platform.domain.vo.ToPayResultVO)> to <com.alibaba.fastjson.JSON: java.lang.Object parse(java.lang.String)>"
+      },
+      "properties" : {
+        "score" : 4.25,
+        "confidence" : 0.4675,
+        "riskLevel" : "MEDIUM",
+        "severityScore" : 4.25,
+        "rankScore" : 1.9868750000000002,
+        "sinkStrength" : "TERMINAL_SIDE_EFFECT",
+        "evidenceLevel" : "ENDPOINT_ONLY",
+        "sinkContainer" : "<com.alibaba.fastjson.serializer.SerializeFilterable: java.lang.Object processValue(com.alibaba.fastjson.serializer.JSONSerializer,com.alibaba.fastjson.serializer.BeanContext,java.lang.Object,java.lang.String,java.lang.Object,int)>",
+        "sinkStmtIndex" : 33,
+        "sinkIndex" : "0",
+        "sourceIndex" : "2",
+        "sourceCount" : 1,
+        "packageProvenance" : "OUTSIDE_FINDING_PACKAGES",
+        "reasonCodes" : [ "TERMINAL_OUTSIDE_APP_PACKAGE" ]
+      },
+      "locations" : [ {
+        "physicalLocation" : {
+          "artifactLocation" : {
+            "uri" : "<com.alibaba.fastjson.serializer.SerializeFilterable: java.lang.Object processValue(com.alibaba.fastjson.serializer.JSONSerializer,com.alibaba.fastjson.serializer.BeanContext,java.lang.Object,java.lang.String,java.lang.Object,int)>"
+          }
+        }
+      } ],
+      "codeFlows" : [ {
+        "threadFlows" : [ {
+          "locations" : [ {
+            "location" : {
+              "message" : {
+                "text" : "<org.srm.platform.api.controller.v1.CompanyCaAuthInfoController: org.springframework.http.ResponseEntity toPayNotify(java.lang.Long,javax.servlet.http.HttpServletRequest,org.srm.platform.domain.vo.ToPayResultVO)> idx=2 route=POST /v1/{organizationId}/company-ca-auth-info/to_pay_notify (Source/representative)"
+              }
+            }
+          }, {
+            "location" : {
+              "message" : {
+                "text" : "<com.alibaba.fastjson.serializer.SerializeFilterable: java.lang.Object processValue(com.alibaba.fastjson.serializer.JSONSerializer,com.alibaba.fastjson.serializer.BeanContext,java.lang.Object,java.lang.String,java.lang.Object,int)> @L229 stmt#33 (Container)"
+              }
+            }
+          }, {
+            "location" : {
+              "message" : {
+                "text" : "<com.alibaba.fastjson.JSON: java.lang.Object parse(java.lang.String)> (Sink)"
+              }
+            }
+          } ]
+        } ]
+      } ]
+    }, {
+      "ruleId" : "Fastjson_Deserialization",
+      "level" : "error",
+      "message" : {
+        "text" : "[HIGH] Score: 8.5 | Fastjson_Deserialization flow from <org.srm.platform.api.controller.v1.DashboardClauseController: java.util.List QueryDashboardClause(java.lang.Long,java.lang.String)> to <com.alibaba.fastjson.JSON: java.lang.Object parse(java.lang.String)>"
+      },
+      "properties" : {
+        "score" : 8.5,
+        "confidence" : 0.4675,
+        "riskLevel" : "HIGH",
+        "severityScore" : 8.5,
+        "rankScore" : 3.9737500000000003,
+        "sinkStrength" : "TERMINAL_SIDE_EFFECT",
+        "evidenceLevel" : "ENDPOINT_ONLY",
+        "sinkContainer" : "<com.alibaba.fastjson.JSON: com.alibaba.fastjson.JSONObject parseObject(java.lang.String)>",
+        "sinkStmtIndex" : 1,
+        "sinkIndex" : "0",
+        "sourceIndex" : "1",
+        "sourceCount" : 1,
+        "packageProvenance" : "OUTSIDE_FINDING_PACKAGES",
+        "reasonCodes" : [ "TERMINAL_OUTSIDE_APP_PACKAGE" ]
+      },
+      "locations" : [ {
+        "physicalLocation" : {
+          "artifactLocation" : {
+            "uri" : "<com.alibaba.fastjson.JSON: com.alibaba.fastjson.JSONObject parseObject(java.lang.String)>"
+          }
+        }
+      } ],
+      "codeFlows" : [ {
+        "threadFlows" : [ {
+          "locations" : [ {
+            "location" : {
+              "message" : {
+                "text" : "<org.srm.platform.api.controller.v1.DashboardClauseController: java.util.List QueryDashboardClause(java.lang.Long,java.lang.String)> idx=1 route=GET /v1/{organizationId}/dashboard_clause/getClauseCount (Source/representative)"
+              }
+            }
+          }, {
+            "location" : {
+              "message" : {
+                "text" : "<com.alibaba.fastjson.JSON: com.alibaba.fastjson.JSONObject parseObject(java.lang.String)> @L254 stmt#1 (Container)"
+              }
+            }
+          }, {
+            "location" : {
+              "message" : {
+                "text" : "<com.alibaba.fastjson.JSON: java.lang.Object parse(java.lang.String)> (Sink)"
+              }
+            }
+          } ]
+        } ]
+      } ]
+    }, {
+      "ruleId" : "Fastjson_Deserialization",
+      "level" : "error",
+      "message" : {
+        "text" : "[HIGH] Score: 8.5 | Fastjson_Deserialization flow from <org.srm.platform.api.controller.v1.DashboardClauseController: java.util.List QueryDashboardClause(java.lang.Long,java.lang.String)> to <com.alibaba.fastjson.JSON: com.alibaba.fastjson.JSONObject parseObject(java.lang.String)>"
+      },
+      "properties" : {
+        "score" : 8.5,
+        "confidence" : 0.4675,
+        "riskLevel" : "HIGH",
+        "severityScore" : 8.5,
+        "rankScore" : 3.9737500000000003,
+        "sinkStrength" : "TERMINAL_SIDE_EFFECT",
+        "evidenceLevel" : "ENDPOINT_ONLY",
+        "sinkContainer" : "<com.alibaba.fastjson.JSONPath: java.lang.Object getPropertyValue(java.lang.Object,java.lang.String,long)>",
+        "sinkStmtIndex" : 9,
+        "sinkIndex" : "0",
+        "sourceIndex" : "1",
+        "sourceCount" : 1,
+        "packageProvenance" : "OUTSIDE_FINDING_PACKAGES",
+        "reasonCodes" : [ "TERMINAL_OUTSIDE_APP_PACKAGE" ]
+      },
+      "locations" : [ {
+        "physicalLocation" : {
+          "artifactLocation" : {
+            "uri" : "<com.alibaba.fastjson.JSONPath: java.lang.Object getPropertyValue(java.lang.Object,java.lang.String,long)>"
+          }
+        }
+      } ],
+      "codeFlows" : [ {
+        "threadFlows" : [ {
+          "locations" : [ {
+            "location" : {
+              "message" : {
+                "text" : "<org.srm.platform.api.controller.v1.DashboardClauseController: java.util.List QueryDashboardClause(java.lang.Long,java.lang.String)> idx=1 route=GET /v1/{organizationId}/dashboard_clause/getClauseCount (Source/representative)"
+              }
+            }
+          }, {
+            "location" : {
+              "message" : {
+                "text" : "<com.alibaba.fastjson.JSONPath: java.lang.Object getPropertyValue(java.lang.Object,java.lang.String,long)> @L3523 stmt#9 (Container)"
+              }
+            }
+          }, {
+            "location" : {
+              "message" : {
+                "text" : "<com.alibaba.fastjson.JSON: com.alibaba.fastjson.JSONObject parseObject(java.lang.String)> (Sink)"
+              }
+            }
+          } ]
+        } ]
+      } ]
+    }, {
+      "ruleId" : "Fastjson_Deserialization",
+      "level" : "error",
+      "message" : {
+        "text" : "[HIGH] Score: 8.5 | Fastjson_Deserialization flow from <org.srm.platform.api.controller.v1.DashboardClauseController: java.util.List QueryDashboardClause(java.lang.Long,java.lang.String)> to <com.alibaba.fastjson.JSON: java.lang.Object parse(java.lang.String)>"
+      },
+      "properties" : {
+        "score" : 8.5,
+        "confidence" : 0.4675,
+        "riskLevel" : "HIGH",
+        "severityScore" : 8.5,
+        "rankScore" : 3.9737500000000003,
+        "sinkStrength" : "TERMINAL_SIDE_EFFECT",
+        "evidenceLevel" : "ENDPOINT_ONLY",
+        "sinkContainer" : "<com.alibaba.fastjson.serializer.SerializeFilterable: java.lang.Object processValue(com.alibaba.fastjson.serializer.JSONSerializer,com.alibaba.fastjson.serializer.BeanContext,java.lang.Object,java.lang.String,java.lang.Object,int)>",
+        "sinkStmtIndex" : 33,
+        "sinkIndex" : "0",
+        "sourceIndex" : "1",
+        "sourceCount" : 1,
+        "packageProvenance" : "OUTSIDE_FINDING_PACKAGES",
+        "reasonCodes" : [ "TERMINAL_OUTSIDE_APP_PACKAGE" ]
+      },
+      "locations" : [ {
+        "physicalLocation" : {
+          "artifactLocation" : {
+            "uri" : "<com.alibaba.fastjson.serializer.SerializeFilterable: java.lang.Object processValue(com.alibaba.fastjson.serializer.JSONSerializer,com.alibaba.fastjson.serializer.BeanContext,java.lang.Object,java.lang.String,java.lang.Object,int)>"
+          }
+        }
+      } ],
+      "codeFlows" : [ {
+        "threadFlows" : [ {
+          "locations" : [ {
+            "location" : {
+              "message" : {
+                "text" : "<org.srm.platform.api.controller.v1.DashboardClauseController: java.util.List QueryDashboardClause(java.lang.Long,java.lang.String)> idx=1 route=GET /v1/{organizationId}/dashboard_clause/getClauseCount (Source/representative)"
+              }
+            }
+          }, {
+            "location" : {
+              "message" : {
+                "text" : "<com.alibaba.fastjson.serializer.SerializeFilterable: java.lang.Object processValue(com.alibaba.fastjson.serializer.JSONSerializer,com.alibaba.fastjson.serializer.BeanContext,java.lang.Object,java.lang.String,java.lang.Object,int)> @L229 stmt#33 (Container)"
+              }
+            }
+          }, {
+            "location" : {
+              "message" : {
+                "text" : "<com.alibaba.fastjson.JSON: java.lang.Object parse(java.lang.String)> (Sink)"
+              }
+            }
+          } ]
+        } ]
+      } ]
+    }, {
+      "ruleId" : "Fastjson_Deserialization",
+      "level" : "error",
+      "message" : {
+        "text" : "[HIGH] Score: 8.5 | Fastjson_Deserialization flow from <org.srm.platform.api.controller.v1.DashboardClauseController: java.util.List testfeignQueryDashboardClauseMap(java.lang.String)> to <com.alibaba.fastjson.JSON: java.lang.Object parse(java.lang.String)>"
+      },
+      "properties" : {
+        "score" : 8.5,
+        "confidence" : 0.4675,
+        "riskLevel" : "HIGH",
+        "severityScore" : 8.5,
+        "rankScore" : 3.9737500000000003,
+        "sinkStrength" : "TERMINAL_SIDE_EFFECT",
+        "evidenceLevel" : "ENDPOINT_ONLY",
+        "sinkContainer" : "<com.alibaba.fastjson.JSON: com.alibaba.fastjson.JSONObject parseObject(java.lang.String)>",
+        "sinkStmtIndex" : 1,
+        "sinkIndex" : "0",
+        "sourceIndex" : "0",
+        "sourceCount" : 1,
+        "packageProvenance" : "OUTSIDE_FINDING_PACKAGES",
+        "reasonCodes" : [ "TERMINAL_OUTSIDE_APP_PACKAGE" ]
+      },
+      "locations" : [ {
+        "physicalLocation" : {
+          "artifactLocation" : {
+            "uri" : "<com.alibaba.fastjson.JSON: com.alibaba.fastjson.JSONObject parseObject(java.lang.String)>"
+          }
+        }
+      } ],
+      "codeFlows" : [ {
+        "threadFlows" : [ {
+          "locations" : [ {
+            "location" : {
+              "message" : {
+                "text" : "<org.srm.platform.api.controller.v1.DashboardClauseController: java.util.List testfeignQueryDashboardClauseMap(java.lang.String)> idx=0 route=GET /v1/{organizationId}/dashboard_clause/test (Source/representative)"
+              }
+            }
+          }, {
+            "location" : {
+              "message" : {
+                "text" : "<com.alibaba.fastjson.JSON: com.alibaba.fastjson.JSONObject parseObject(java.lang.String)> @L254 stmt#1 (Container)"
+              }
+            }
+          }, {
+            "location" : {
+              "message" : {
+                "text" : "<com.alibaba.fastjson.JSON: java.lang.Object parse(java.lang.String)> (Sink)"
+              }
+            }
+          } ]
+        } ]
+      } ]
+    }, {
+      "ruleId" : "Fastjson_Deserialization",
+      "level" : "error",
+      "message" : {
+        "text" : "[HIGH] Score: 8.5 | Fastjson_Deserialization flow from <org.srm.platform.api.controller.v1.DashboardClauseController: java.util.List testfeignQueryDashboardClauseMap(java.lang.String)> to <com.alibaba.fastjson.JSON: com.alibaba.fastjson.JSONObject parseObject(java.lang.String)>"
+      },
+      "properties" : {
+        "score" : 8.5,
+        "confidence" : 0.4675,
+        "riskLevel" : "HIGH",
+        "severityScore" : 8.5,
+        "rankScore" : 3.9737500000000003,
+        "sinkStrength" : "TERMINAL_SIDE_EFFECT",
+        "evidenceLevel" : "ENDPOINT_ONLY",
+        "sinkContainer" : "<com.alibaba.fastjson.JSONPath: java.lang.Object getPropertyValue(java.lang.Object,java.lang.String,long)>",
+        "sinkStmtIndex" : 9,
+        "sinkIndex" : "0",
+        "sourceIndex" : "0",
+        "sourceCount" : 1,
+        "packageProvenance" : "OUTSIDE_FINDING_PACKAGES",
+        "reasonCodes" : [ "TERMINAL_OUTSIDE_APP_PACKAGE" ]
+      },
+      "locations" : [ {
+        "physicalLocation" : {
+          "artifactLocation" : {
+            "uri" : "<com.alibaba.fastjson.JSONPath: java.lang.Object getPropertyValue(java.lang.Object,java.lang.String,long)>"
+          }
+        }
+      } ],
+      "codeFlows" : [ {
+        "threadFlows" : [ {
+          "locations" : [ {
+            "location" : {
+              "message" : {
+                "text" : "<org.srm.platform.api.controller.v1.DashboardClauseController: java.util.List testfeignQueryDashboardClauseMap(java.lang.String)> idx=0 route=GET /v1/{organizationId}/dashboard_clause/test (Source/representative)"
+              }
+            }
+          }, {
+            "location" : {
+              "message" : {
+                "text" : "<com.alibaba.fastjson.JSONPath: java.lang.Object getPropertyValue(java.lang.Object,java.lang.String,long)> @L3523 stmt#9 (Container)"
+              }
+            }
+          }, {
+            "location" : {
+              "message" : {
+                "text" : "<com.alibaba.fastjson.JSON: com.alibaba.fastjson.JSONObject parseObject(java.lang.String)> (Sink)"
+              }
+            }
+          } ]
+        } ]
+      } ]
+    }, {
+      "ruleId" : "Fastjson_Deserialization",
+      "level" : "error",
+      "message" : {
+        "text" : "[HIGH] Score: 8.5 | Fastjson_Deserialization flow from <org.srm.platform.api.controller.v1.DashboardClauseController: java.util.List testfeignQueryDashboardClauseMap(java.lang.String)> to <com.alibaba.fastjson.JSON: java.lang.Object parse(java.lang.String)>"
+      },
+      "properties" : {
+        "score" : 8.5,
+        "confidence" : 0.4675,
+        "riskLevel" : "HIGH",
+        "severityScore" : 8.5,
+        "rankScore" : 3.9737500000000003,
+        "sinkStrength" : "TERMINAL_SIDE_EFFECT",
+        "evidenceLevel" : "ENDPOINT_ONLY",
+        "sinkContainer" : "<com.alibaba.fastjson.serializer.SerializeFilterable: java.lang.Object processValue(com.alibaba.fastjson.serializer.JSONSerializer,com.alibaba.fastjson.serializer.BeanContext,java.lang.Object,java.lang.String,java.lang.Object,int)>",
+        "sinkStmtIndex" : 33,
+        "sinkIndex" : "0",
+        "sourceIndex" : "0",
+        "sourceCount" : 1,
+        "packageProvenance" : "OUTSIDE_FINDING_PACKAGES",
+        "reasonCodes" : [ "TERMINAL_OUTSIDE_APP_PACKAGE" ]
+      },
+      "locations" : [ {
+        "physicalLocation" : {
+          "artifactLocation" : {
+            "uri" : "<com.alibaba.fastjson.serializer.SerializeFilterable: java.lang.Object processValue(com.alibaba.fastjson.serializer.JSONSerializer,com.alibaba.fastjson.serializer.BeanContext,java.lang.Object,java.lang.String,java.lang.Object,int)>"
+          }
+        }
+      } ],
+      "codeFlows" : [ {
+        "threadFlows" : [ {
+          "locations" : [ {
+            "location" : {
+              "message" : {
+                "text" : "<org.srm.platform.api.controller.v1.DashboardClauseController: java.util.List testfeignQueryDashboardClauseMap(java.lang.String)> idx=0 route=GET /v1/{organizationId}/dashboard_clause/test (Source/representative)"
+              }
+            }
+          }, {
+            "location" : {
+              "message" : {
+                "text" : "<com.alibaba.fastjson.serializer.SerializeFilterable: java.lang.Object processValue(com.alibaba.fastjson.serializer.JSONSerializer,com.alibaba.fastjson.serializer.BeanContext,java.lang.Object,java.lang.String,java.lang.Object,int)> @L229 stmt#33 (Container)"
+              }
+            }
+          }, {
+            "location" : {
+              "message" : {
+                "text" : "<com.alibaba.fastjson.JSON: java.lang.Object parse(java.lang.String)> (Sink)"
+              }
+            }
+          } ]
+        } ]
+      } ]
+    }, {
+      "ruleId" : "Fastjson_Deserialization",
+      "level" : "error",
+      "message" : {
+        "text" : "[HIGH] Score: 8.5 | Fastjson_Deserialization flow from <org.srm.platform.api.controller.v1.DocDeliverRecordController: org.springframework.http.ResponseEntity deliverTo(java.lang.Long,java.lang.String,org.srm.platform.domain.entity.DocDeliverRecord)> to <com.alibaba.fastjson.JSON: java.lang.Object parse(java.lang.String)>"
+      },
+      "properties" : {
+        "score" : 8.5,
+        "confidence" : 0.4675,
+        "riskLevel" : "HIGH",
+        "severityScore" : 8.5,
+        "rankScore" : 3.9737500000000003,
+        "sinkStrength" : "TERMINAL_SIDE_EFFECT",
+        "evidenceLevel" : "ENDPOINT_ONLY",
+        "sinkContainer" : "<com.alibaba.fastjson.JSON: com.alibaba.fastjson.JSONObject parseObject(java.lang.String)>",
+        "sinkStmtIndex" : 1,
+        "sinkIndex" : "0",
+        "sourceIndex" : "2",
+        "sourceCount" : 1,
+        "packageProvenance" : "OUTSIDE_FINDING_PACKAGES",
+        "reasonCodes" : [ "TERMINAL_OUTSIDE_APP_PACKAGE" ]
+      },
+      "locations" : [ {
+        "physicalLocation" : {
+          "artifactLocation" : {
+            "uri" : "<com.alibaba.fastjson.JSON: com.alibaba.fastjson.JSONObject parseObject(java.lang.String)>"
+          }
+        }
+      } ],
+      "codeFlows" : [ {
+        "threadFlows" : [ {
+          "locations" : [ {
+            "location" : {
+              "message" : {
+                "text" : "<org.srm.platform.api.controller.v1.DocDeliverRecordController: org.springframework.http.ResponseEntity deliverTo(java.lang.Long,java.lang.String,org.srm.platform.domain.entity.DocDeliverRecord)> idx=2 route=POST /v1/{organizationId}/doc-deliver-records/deliver-to (Source/representative)"
+              }
+            }
+          }, {
+            "location" : {
+              "message" : {
+                "text" : "<com.alibaba.fastjson.JSON: com.alibaba.fastjson.JSONObject parseObject(java.lang.String)> @L254 stmt#1 (Container)"
+              }
+            }
+          }, {
+            "location" : {
+              "message" : {
+                "text" : "<com.alibaba.fastjson.JSON: java.lang.Object parse(java.lang.String)> (Sink)"
+              }
+            }
+          } ]
+        } ]
+      } ]
+    }, {
+      "ruleId" : "Fastjson_Deserialization",
+      "level" : "error",
+      "message" : {
+        "text" : "[HIGH] Score: 8.5 | Fastjson_Deserialization flow from <org.srm.platform.api.controller.v1.DocDeliverRecordController: org.springframework.http.ResponseEntity deliverTo(java.lang.Long,java.lang.String,org.srm.platform.domain.entity.DocDeliverRecord)> to <com.alibaba.fastjson.JSON: com.alibaba.fastjson.JSONObject parseObject(java.lang.String)>"
+      },
+      "properties" : {
+        "score" : 8.5,
+        "confidence" : 0.4675,
+        "riskLevel" : "HIGH",
+        "severityScore" : 8.5,
+        "rankScore" : 3.9737500000000003,
+        "sinkStrength" : "TERMINAL_SIDE_EFFECT",
+        "evidenceLevel" : "ENDPOINT_ONLY",
+        "sinkContainer" : "<com.alibaba.fastjson.JSONPath: java.lang.Object getPropertyValue(java.lang.Object,java.lang.String,long)>",
+        "sinkStmtIndex" : 9,
+        "sinkIndex" : "0",
+        "sourceIndex" : "2",
+        "sourceCount" : 1,
+        "packageProvenance" : "OUTSIDE_FINDING_PACKAGES",
+        "reasonCodes" : [ "TERMINAL_OUTSIDE_APP_PACKAGE" ]
+      },
+      "locations" : [ {
+        "physicalLocation" : {
+          "artifactLocation" : {
+            "uri" : "<com.alibaba.fastjson.JSONPath: java.lang.Object getPropertyValue(java.lang.Object,java.lang.String,long)>"
+          }
+        }
+      } ],
+      "codeFlows" : [ {
+        "threadFlows" : [ {
+          "locations" : [ {
+            "location" : {
+              "message" : {
+                "text" : "<org.srm.platform.api.controller.v1.DocDeliverRecordController: org.springframework.http.ResponseEntity deliverTo(java.lang.Long,java.lang.String,org.srm.platform.domain.entity.DocDeliverRecord)> idx=2 route=POST /v1/{organizationId}/doc-deliver-records/deliver-to (Source/representative)"
+              }
+            }
+          }, {
+            "location" : {
+              "message" : {
+                "text" : "<com.alibaba.fastjson.JSONPath: java.lang.Object getPropertyValue(java.lang.Object,java.lang.String,long)> @L3523 stmt#9 (Container)"
+              }
+            }
+          }, {
+            "location" : {
+              "message" : {
+                "text" : "<com.alibaba.fastjson.JSON: com.alibaba.fastjson.JSONObject parseObject(java.lang.String)> (Sink)"
+              }
+            }
+          } ]
+        } ]
+      } ]
+    }, {
+      "ruleId" : "Fastjson_Deserialization",
+      "level" : "error",
+      "message" : {
+        "text" : "[HIGH] Score: 8.5 | Fastjson_Deserialization flow from <org.srm.platform.api.controller.v1.DocDeliverRecordController: org.springframework.http.ResponseEntity deliverTo(java.lang.Long,java.lang.String,org.srm.platform.domain.entity.DocDeliverRecord)> to <com.alibaba.fastjson.JSON: java.lang.Object parse(java.lang.String)>"
+      },
+      "properties" : {
+        "score" : 8.5,
+        "confidence" : 0.4675,
+        "riskLevel" : "HIGH",
+        "severityScore" : 8.5,
+        "rankScore" : 3.9737500000000003,
+        "sinkStrength" : "TERMINAL_SIDE_EFFECT",
+        "evidenceLevel" : "ENDPOINT_ONLY",
+        "sinkContainer" : "<com.alibaba.fastjson.serializer.SerializeFilterable: java.lang.Object processValue(com.alibaba.fastjson.serializer.JSONSerializer,com.alibaba.fastjson.serializer.BeanContext,java.lang.Object,java.lang.String,java.lang.Object,int)>",
+        "sinkStmtIndex" : 33,
+        "sinkIndex" : "0",
+        "sourceIndex" : "2",
+        "sourceCount" : 1,
+        "packageProvenance" : "OUTSIDE_FINDING_PACKAGES",
+        "reasonCodes" : [ "TERMINAL_OUTSIDE_APP_PACKAGE" ]
+      },
+      "locations" : [ {
+        "physicalLocation" : {
+          "artifactLocation" : {
+            "uri" : "<com.alibaba.fastjson.serializer.SerializeFilterable: java.lang.Object processValue(com.alibaba.fastjson.serializer.JSONSerializer,com.alibaba.fastjson.serializer.BeanContext,java.lang.Object,java.lang.String,java.lang.Object,int)>"
+          }
+        }
+      } ],
+      "codeFlows" : [ {
+        "threadFlows" : [ {
+          "locations" : [ {
+            "location" : {
+              "message" : {
+                "text" : "<org.srm.platform.api.controller.v1.DocDeliverRecordController: org.springframework.http.ResponseEntity deliverTo(java.lang.Long,java.lang.String,org.srm.platform.domain.entity.DocDeliverRecord)> idx=2 route=POST /v1/{organizationId}/doc-deliver-records/deliver-to (Source/representative)"
+              }
+            }
+          }, {
+            "location" : {
+              "message" : {
+                "text" : "<com.alibaba.fastjson.serializer.SerializeFilterable: java.lang.Object processValue(com.alibaba.fastjson.serializer.JSONSerializer,com.alibaba.fastjson.serializer.BeanContext,java.lang.Object,java.lang.String,java.lang.Object,int)> @L229 stmt#33 (Container)"
+              }
+            }
+          }, {
+            "location" : {
+              "message" : {
+                "text" : "<com.alibaba.fastjson.JSON: java.lang.Object parse(java.lang.String)> (Sink)"
+              }
+            }
+          } ]
+        } ]
+      } ]
+    }, {
+      "ruleId" : "Fastjson_Deserialization",
+      "level" : "error",
+      "message" : {
+        "text" : "[HIGH] Score: 8.5 | Fastjson_Deserialization flow from <org.srm.platform.api.controller.v1.EventMessageOrgController: boolean reSend(org.srm.platform.domain.entity.EventMessage,java.lang.Long)> to <com.alibaba.fastjson.JSON: java.lang.Object parse(java.lang.String)>"
+      },
+      "properties" : {
+        "score" : 8.5,
+        "confidence" : 0.4675,
+        "riskLevel" : "HIGH",
+        "severityScore" : 8.5,
+        "rankScore" : 3.9737500000000003,
+        "sinkStrength" : "TERMINAL_SIDE_EFFECT",
+        "evidenceLevel" : "ENDPOINT_ONLY",
+        "sinkContainer" : "<com.alibaba.fastjson.JSON: com.alibaba.fastjson.JSONObject parseObject(java.lang.String)>",
+        "sinkStmtIndex" : 1,
+        "sinkIndex" : "0",
+        "sourceIndex" : "0",
+        "sourceCount" : 1,
+        "packageProvenance" : "OUTSIDE_FINDING_PACKAGES",
+        "reasonCodes" : [ "TERMINAL_OUTSIDE_APP_PACKAGE" ]
+      },
+      "locations" : [ {
+        "physicalLocation" : {
+          "artifactLocation" : {
+            "uri" : "<com.alibaba.fastjson.JSON: com.alibaba.fastjson.JSONObject parseObject(java.lang.String)>"
+          }
+        }
+      } ],
+      "codeFlows" : [ {
+        "threadFlows" : [ {
+          "locations" : [ {
+            "location" : {
+              "message" : {
+                "text" : "<org.srm.platform.api.controller.v1.EventMessageOrgController: boolean reSend(org.srm.platform.domain.entity.EventMessage,java.lang.Long)> idx=0 route=PUT /v1/{organizationId}/event-messages (Source/representative)"
+              }
+            }
+          }, {
+            "location" : {
+              "message" : {
+                "text" : "<com.alibaba.fastjson.JSON: com.alibaba.fastjson.JSONObject parseObject(java.lang.String)> @L254 stmt#1 (Container)"
+              }
+            }
+          }, {
+            "location" : {
+              "message" : {
+                "text" : "<com.alibaba.fastjson.JSON: java.lang.Object parse(java.lang.String)> (Sink)"
+              }
+            }
+          } ]
+        } ]
+      } ]
+    }, {
+      "ruleId" : "Fastjson_Deserialization",
+      "level" : "error",
+      "message" : {
+        "text" : "[HIGH] Score: 8.5 | Fastjson_Deserialization flow from <org.srm.platform.api.controller.v1.EventMessageOrgController: boolean reSend(org.srm.platform.domain.entity.EventMessage,java.lang.Long)> to <com.alibaba.fastjson.JSON: com.alibaba.fastjson.JSONObject parseObject(java.lang.String)>"
+      },
+      "properties" : {
+        "score" : 8.5,
+        "confidence" : 0.4675,
+        "riskLevel" : "HIGH",
+        "severityScore" : 8.5,
+        "rankScore" : 3.9737500000000003,
+        "sinkStrength" : "TERMINAL_SIDE_EFFECT",
+        "evidenceLevel" : "ENDPOINT_ONLY",
+        "sinkContainer" : "<com.alibaba.fastjson.JSONPath: java.lang.Object getPropertyValue(java.lang.Object,java.lang.String,long)>",
+        "sinkStmtIndex" : 9,
+        "sinkIndex" : "0",
+        "sourceIndex" : "0",
+        "sourceCount" : 1,
+        "packageProvenance" : "OUTSIDE_FINDING_PACKAGES",
+        "reasonCodes" : [ "TERMINAL_OUTSIDE_APP_PACKAGE" ]
+      },
+      "locations" : [ {
+        "physicalLocation" : {
+          "artifactLocation" : {
+            "uri" : "<com.alibaba.fastjson.JSONPath: java.lang.Object getPropertyValue(java.lang.Object,java.lang.String,long)>"
+          }
+        }
+      } ],
+      "codeFlows" : [ {
+        "threadFlows" : [ {
+          "locations" : [ {
+            "location" : {
+              "message" : {
+                "text" : "<org.srm.platform.api.controller.v1.EventMessageOrgController: boolean reSend(org.srm.platform.domain.entity.EventMessage,java.lang.Long)> idx=0 route=PUT /v1/{organizationId}/event-messages (Source/representative)"
+              }
+            }
+          }, {
+            "location" : {
+              "message" : {
+                "text" : "<com.alibaba.fastjson.JSONPath: java.lang.Object getPropertyValue(java.lang.Object,java.lang.String,long)> @L3523 stmt#9 (Container)"
+              }
+            }
+          }, {
+            "location" : {
+              "message" : {
+                "text" : "<com.alibaba.fastjson.JSON: com.alibaba.fastjson.JSONObject parseObject(java.lang.String)> (Sink)"
+              }
+            }
+          } ]
+        } ]
+      } ]
+    }, {
+      "ruleId" : "Fastjson_Deserialization",
+      "level" : "error",
+      "message" : {
+        "text" : "[HIGH] Score: 8.5 | Fastjson_Deserialization flow from <org.srm.platform.api.controller.v1.EventMessageOrgController: boolean reSend(org.srm.platform.domain.entity.EventMessage,java.lang.Long)> to <com.alibaba.fastjson.JSON: java.lang.Object parse(java.lang.String)>"
+      },
+      "properties" : {
+        "score" : 8.5,
+        "confidence" : 0.4675,
+        "riskLevel" : "HIGH",
+        "severityScore" : 8.5,
+        "rankScore" : 3.9737500000000003,
+        "sinkStrength" : "TERMINAL_SIDE_EFFECT",
+        "evidenceLevel" : "ENDPOINT_ONLY",
+        "sinkContainer" : "<com.alibaba.fastjson.serializer.SerializeFilterable: java.lang.Object processValue(com.alibaba.fastjson.serializer.JSONSerializer,com.alibaba.fastjson.serializer.BeanContext,java.lang.Object,java.lang.String,java.lang.Object,int)>",
+        "sinkStmtIndex" : 33,
+        "sinkIndex" : "0",
+        "sourceIndex" : "0",
+        "sourceCount" : 1,
+        "packageProvenance" : "OUTSIDE_FINDING_PACKAGES",
+        "reasonCodes" : [ "TERMINAL_OUTSIDE_APP_PACKAGE" ]
+      },
+      "locations" : [ {
+        "physicalLocation" : {
+          "artifactLocation" : {
+            "uri" : "<com.alibaba.fastjson.serializer.SerializeFilterable: java.lang.Object processValue(com.alibaba.fastjson.serializer.JSONSerializer,com.alibaba.fastjson.serializer.BeanContext,java.lang.Object,java.lang.String,java.lang.Object,int)>"
+          }
+        }
+      } ],
+      "codeFlows" : [ {
+        "threadFlows" : [ {
+          "locations" : [ {
+            "location" : {
+              "message" : {
+                "text" : "<org.srm.platform.api.controller.v1.EventMessageOrgController: boolean reSend(org.srm.platform.domain.entity.EventMessage,java.lang.Long)> idx=0 route=PUT /v1/{organizationId}/event-messages (Source/representative)"
+              }
+            }
+          }, {
+            "location" : {
+              "message" : {
+                "text" : "<com.alibaba.fastjson.serializer.SerializeFilterable: java.lang.Object processValue(com.alibaba.fastjson.serializer.JSONSerializer,com.alibaba.fastjson.serializer.BeanContext,java.lang.Object,java.lang.String,java.lang.Object,int)> @L229 stmt#33 (Container)"
+              }
+            }
+          }, {
+            "location" : {
+              "message" : {
+                "text" : "<com.alibaba.fastjson.JSON: java.lang.Object parse(java.lang.String)> (Sink)"
+              }
+            }
+          } ]
+        } ]
+      } ]
+    }, {
+      "ruleId" : "Fastjson_Deserialization",
+      "level" : "error",
+      "message" : {
+        "text" : "[HIGH] Score: 8.5 | Fastjson_Deserialization flow from <org.srm.platform.api.controller.v1.EventMessageSiteController: boolean reSend(org.srm.platform.domain.entity.EventMessage)> to <com.alibaba.fastjson.JSON: java.lang.Object parse(java.lang.String)>"
+      },
+      "properties" : {
+        "score" : 8.5,
+        "confidence" : 0.4675,
+        "riskLevel" : "HIGH",
+        "severityScore" : 8.5,
+        "rankScore" : 3.9737500000000003,
+        "sinkStrength" : "TERMINAL_SIDE_EFFECT",
+        "evidenceLevel" : "ENDPOINT_ONLY",
+        "sinkContainer" : "<com.alibaba.fastjson.JSON: com.alibaba.fastjson.JSONObject parseObject(java.lang.String)>",
+        "sinkStmtIndex" : 1,
+        "sinkIndex" : "0",
+        "sourceIndex" : "0",
+        "sourceCount" : 1,
+        "packageProvenance" : "OUTSIDE_FINDING_PACKAGES",
+        "reasonCodes" : [ "TERMINAL_OUTSIDE_APP_PACKAGE" ]
+      },
+      "locations" : [ {
+        "physicalLocation" : {
+          "artifactLocation" : {
+            "uri" : "<com.alibaba.fastjson.JSON: com.alibaba.fastjson.JSONObject parseObject(java.lang.String)>"
+          }
+        }
+      } ],
+      "codeFlows" : [ {
+        "threadFlows" : [ {
+          "locations" : [ {
+            "location" : {
+              "message" : {
+                "text" : "<org.srm.platform.api.controller.v1.EventMessageSiteController: boolean reSend(org.srm.platform.domain.entity.EventMessage)> idx=0 route=PUT /v1/event-messages (Source/representative)"
+              }
+            }
+          }, {
+            "location" : {
+              "message" : {
+                "text" : "<com.alibaba.fastjson.JSON: com.alibaba.fastjson.JSONObject parseObject(java.lang.String)> @L254 stmt#1 (Container)"
+              }
+            }
+          }, {
+            "location" : {
+              "message" : {
+                "text" : "<com.alibaba.fastjson.JSON: java.lang.Object parse(java.lang.String)> (Sink)"
+              }
+            }
+          } ]
+        } ]
+      } ]
+    }, {
+      "ruleId" : "Fastjson_Deserialization",
+      "level" : "error",
+      "message" : {
+        "text" : "[HIGH] Score: 8.5 | Fastjson_Deserialization flow from <org.srm.platform.api.controller.v1.EventMessageSiteController: boolean reSend(org.srm.platform.domain.entity.EventMessage)> to <com.alibaba.fastjson.JSON: com.alibaba.fastjson.JSONObject parseObject(java.lang.String)>"
+      },
+      "properties" : {
+        "score" : 8.5,
+        "confidence" : 0.4675,
+        "riskLevel" : "HIGH",
+        "severityScore" : 8.5,
+        "rankScore" : 3.9737500000000003,
+        "sinkStrength" : "TERMINAL_SIDE_EFFECT",
+        "evidenceLevel" : "ENDPOINT_ONLY",
+        "sinkContainer" : "<com.alibaba.fastjson.JSONPath: java.lang.Object getPropertyValue(java.lang.Object,java.lang.String,long)>",
+        "sinkStmtIndex" : 9,
+        "sinkIndex" : "0",
+        "sourceIndex" : "0",
+        "sourceCount" : 1,
+        "packageProvenance" : "OUTSIDE_FINDING_PACKAGES",
+        "reasonCodes" : [ "TERMINAL_OUTSIDE_APP_PACKAGE" ]
+      },
+      "locations" : [ {
+        "physicalLocation" : {
+          "artifactLocation" : {
+            "uri" : "<com.alibaba.fastjson.JSONPath: java.lang.Object getPropertyValue(java.lang.Object,java.lang.String,long)>"
+          }
+        }
+      } ],
+      "codeFlows" : [ {
+        "threadFlows" : [ {
+          "locations" : [ {
+            "location" : {
+              "message" : {
+                "text" : "<org.srm.platform.api.controller.v1.EventMessageSiteController: boolean reSend(org.srm.platform.domain.entity.EventMessage)> idx=0 route=PUT /v1/event-messages (Source/representative)"
+              }
+            }
+          }, {
+            "location" : {
+              "message" : {
+                "text" : "<com.alibaba.fastjson.JSONPath: java.lang.Object getPropertyValue(java.lang.Object,java.lang.String,long)> @L3523 stmt#9 (Container)"
+              }
+            }
+          }, {
+            "location" : {
+              "message" : {
+                "text" : "<com.alibaba.fastjson.JSON: com.alibaba.fastjson.JSONObject parseObject(java.lang.String)> (Sink)"
+              }
+            }
+          } ]
+        } ]
+      } ]
+    }, {
+      "ruleId" : "Fastjson_Deserialization",
+      "level" : "error",
+      "message" : {
+        "text" : "[HIGH] Score: 8.5 | Fastjson_Deserialization flow from <org.srm.platform.api.controller.v1.EventMessageSiteController: boolean reSend(org.srm.platform.domain.entity.EventMessage)> to <com.alibaba.fastjson.JSON: java.lang.Object parse(java.lang.String)>"
+      },
+      "properties" : {
+        "score" : 8.5,
+        "confidence" : 0.4675,
+        "riskLevel" : "HIGH",
+        "severityScore" : 8.5,
+        "rankScore" : 3.9737500000000003,
+        "sinkStrength" : "TERMINAL_SIDE_EFFECT",
+        "evidenceLevel" : "ENDPOINT_ONLY",
+        "sinkContainer" : "<com.alibaba.fastjson.serializer.SerializeFilterable: java.lang.Object processValue(com.alibaba.fastjson.serializer.JSONSerializer,com.alibaba.fastjson.serializer.BeanContext,java.lang.Object,java.lang.String,java.lang.Object,int)>",
+        "sinkStmtIndex" : 33,
+        "sinkIndex" : "0",
+        "sourceIndex" : "0",
+        "sourceCount" : 1,
+        "packageProvenance" : "OUTSIDE_FINDING_PACKAGES",
+        "reasonCodes" : [ "TERMINAL_OUTSIDE_APP_PACKAGE" ]
+      },
+      "locations" : [ {
+        "physicalLocation" : {
+          "artifactLocation" : {
+            "uri" : "<com.alibaba.fastjson.serializer.SerializeFilterable: java.lang.Object processValue(com.alibaba.fastjson.serializer.JSONSerializer,com.alibaba.fastjson.serializer.BeanContext,java.lang.Object,java.lang.String,java.lang.Object,int)>"
+          }
+        }
+      } ],
+      "codeFlows" : [ {
+        "threadFlows" : [ {
+          "locations" : [ {
+            "location" : {
+              "message" : {
+                "text" : "<org.srm.platform.api.controller.v1.EventMessageSiteController: boolean reSend(org.srm.platform.domain.entity.EventMessage)> idx=0 route=PUT /v1/event-messages (Source/representative)"
+              }
+            }
+          }, {
+            "location" : {
+              "message" : {
+                "text" : "<com.alibaba.fastjson.serializer.SerializeFilterable: java.lang.Object processValue(com.alibaba.fastjson.serializer.JSONSerializer,com.alibaba.fastjson.serializer.BeanContext,java.lang.Object,java.lang.String,java.lang.Object,int)> @L229 stmt#33 (Container)"
+              }
+            }
+          }, {
+            "location" : {
+              "message" : {
+                "text" : "<com.alibaba.fastjson.JSON: java.lang.Object parse(java.lang.String)> (Sink)"
+              }
+            }
+          } ]
+        } ]
+      } ]
+    }, {
+      "ruleId" : "Fastjson_Deserialization",
+      "level" : "error",
+      "message" : {
+        "text" : "[HIGH] Score: 8.5 | Fastjson_Deserialization flow from <org.srm.platform.api.controller.v1.HrController: org.springframework.http.ResponseEntity batchCreateOrUpdateEmployee(java.lang.Long,java.util.List)> to <com.alibaba.fastjson.JSON: java.lang.Object parse(java.lang.String)>"
+      },
+      "properties" : {
+        "score" : 8.5,
+        "confidence" : 0.4675,
+        "riskLevel" : "HIGH",
+        "severityScore" : 8.5,
+        "rankScore" : 3.9737500000000003,
+        "sinkStrength" : "TERMINAL_SIDE_EFFECT",
+        "evidenceLevel" : "ENDPOINT_ONLY",
+        "sinkContainer" : "<com.alibaba.fastjson.JSON: com.alibaba.fastjson.JSONObject parseObject(java.lang.String)>",
+        "sinkStmtIndex" : 1,
+        "sinkIndex" : "0",
+        "sourceIndex" : "1",
+        "sourceCount" : 1,
+        "packageProvenance" : "OUTSIDE_FINDING_PACKAGES",
+        "reasonCodes" : [ "TERMINAL_OUTSIDE_APP_PACKAGE" ]
+      },
+      "locations" : [ {
+        "physicalLocation" : {
+          "artifactLocation" : {
+            "uri" : "<com.alibaba.fastjson.JSON: com.alibaba.fastjson.JSONObject parseObject(java.lang.String)>"
+          }
+        }
+      } ],
+      "codeFlows" : [ {
+        "threadFlows" : [ {
+          "locations" : [ {
+            "location" : {
+              "message" : {
+                "text" : "<org.srm.platform.api.controller.v1.HrController: org.springframework.http.ResponseEntity batchCreateOrUpdateEmployee(java.lang.Long,java.util.List)> idx=1 route=POST /v1/{organizationId}/hr/employees (Source/representative)"
+              }
+            }
+          }, {
+            "location" : {
+              "message" : {
+                "text" : "<com.alibaba.fastjson.JSON: com.alibaba.fastjson.JSONObject parseObject(java.lang.String)> @L254 stmt#1 (Container)"
+              }
+            }
+          }, {
+            "location" : {
+              "message" : {
+                "text" : "<com.alibaba.fastjson.JSON: java.lang.Object parse(java.lang.String)> (Sink)"
+              }
+            }
+          } ]
+        } ]
+      } ]
+    }, {
+      "ruleId" : "Fastjson_Deserialization",
+      "level" : "error",
+      "message" : {
+        "text" : "[HIGH] Score: 8.5 | Fastjson_Deserialization flow from <org.srm.platform.api.controller.v1.HrController: org.springframework.http.ResponseEntity batchCreateOrUpdateEmployee(java.lang.Long,java.util.List)> to <com.alibaba.fastjson.JSON: com.alibaba.fastjson.JSONObject parseObject(java.lang.String)>"
+      },
+      "properties" : {
+        "score" : 8.5,
+        "confidence" : 0.4675,
+        "riskLevel" : "HIGH",
+        "severityScore" : 8.5,
+        "rankScore" : 3.9737500000000003,
+        "sinkStrength" : "TERMINAL_SIDE_EFFECT",
+        "evidenceLevel" : "ENDPOINT_ONLY",
+        "sinkContainer" : "<com.alibaba.fastjson.JSONPath: java.lang.Object getPropertyValue(java.lang.Object,java.lang.String,long)>",
+        "sinkStmtIndex" : 9,
+        "sinkIndex" : "0",
+        "sourceIndex" : "1",
+        "sourceCount" : 1,
+        "packageProvenance" : "OUTSIDE_FINDING_PACKAGES",
+        "reasonCodes" : [ "TERMINAL_OUTSIDE_APP_PACKAGE" ]
+      },
+      "locations" : [ {
+        "physicalLocation" : {
+          "artifactLocation" : {
+            "uri" : "<com.alibaba.fastjson.JSONPath: java.lang.Object getPropertyValue(java.lang.Object,java.lang.String,long)>"
+          }
+        }
+      } ],
+      "codeFlows" : [ {
+        "threadFlows" : [ {
+          "locations" : [ {
+            "location" : {
+              "message" : {
+                "text" : "<org.srm.platform.api.controller.v1.HrController: org.springframework.http.ResponseEntity batchCreateOrUpdateEmployee(java.lang.Long,java.util.List)> idx=1 route=POST /v1/{organizationId}/hr/employees (Source/representative)"
+              }
+            }
+          }, {
+            "location" : {
+              "message" : {
+                "text" : "<com.alibaba.fastjson.JSONPath: java.lang.Object getPropertyValue(java.lang.Object,java.lang.String,long)> @L3523 stmt#9 (Container)"
+              }
+            }
+          }, {
+            "location" : {
+              "message" : {
+                "text" : "<com.alibaba.fastjson.JSON: com.alibaba.fastjson.JSONObject parseObject(java.lang.String)> (Sink)"
+              }
+            }
+          } ]
+        } ]
+      } ]
+    }, {
+      "ruleId" : "Fastjson_Deserialization",
+      "level" : "error",
+      "message" : {
+        "text" : "[HIGH] Score: 8.5 | Fastjson_Deserialization flow from <org.srm.platform.api.controller.v1.HrController: org.springframework.http.ResponseEntity batchCreateOrUpdateEmployee(java.lang.Long,java.util.List)> to <com.alibaba.fastjson.JSON: java.lang.Object parse(java.lang.String)>"
+      },
+      "properties" : {
+        "score" : 8.5,
+        "confidence" : 0.4675,
+        "riskLevel" : "HIGH",
+        "severityScore" : 8.5,
+        "rankScore" : 3.9737500000000003,
+        "sinkStrength" : "TERMINAL_SIDE_EFFECT",
+        "evidenceLevel" : "ENDPOINT_ONLY",
+        "sinkContainer" : "<com.alibaba.fastjson.serializer.SerializeFilterable: java.lang.Object processValue(com.alibaba.fastjson.serializer.JSONSerializer,com.alibaba.fastjson.serializer.BeanContext,java.lang.Object,java.lang.String,java.lang.Object,int)>",
+        "sinkStmtIndex" : 33,
+        "sinkIndex" : "0",
+        "sourceIndex" : "1",
+        "sourceCount" : 1,
+        "packageProvenance" : "OUTSIDE_FINDING_PACKAGES",
+        "reasonCodes" : [ "TERMINAL_OUTSIDE_APP_PACKAGE" ]
+      },
+      "locations" : [ {
+        "physicalLocation" : {
+          "artifactLocation" : {
+            "uri" : "<com.alibaba.fastjson.serializer.SerializeFilterable: java.lang.Object processValue(com.alibaba.fastjson.serializer.JSONSerializer,com.alibaba.fastjson.serializer.BeanContext,java.lang.Object,java.lang.String,java.lang.Object,int)>"
+          }
+        }
+      } ],
+      "codeFlows" : [ {
+        "threadFlows" : [ {
+          "locations" : [ {
+            "location" : {
+              "message" : {
+                "text" : "<org.srm.platform.api.controller.v1.HrController: org.springframework.http.ResponseEntity batchCreateOrUpdateEmployee(java.lang.Long,java.util.List)> idx=1 route=POST /v1/{organizationId}/hr/employees (Source/representative)"
+              }
+            }
+          }, {
+            "location" : {
+              "message" : {
+                "text" : "<com.alibaba.fastjson.serializer.SerializeFilterable: java.lang.Object processValue(com.alibaba.fastjson.serializer.JSONSerializer,com.alibaba.fastjson.serializer.BeanContext,java.lang.Object,java.lang.String,java.lang.Object,int)> @L229 stmt#33 (Container)"
+              }
+            }
+          }, {
+            "location" : {
+              "message" : {
+                "text" : "<com.alibaba.fastjson.JSON: java.lang.Object parse(java.lang.String)> (Sink)"
+              }
+            }
+          } ]
+        } ]
+      } ]
+    }, {
+      "ruleId" : "Fastjson_Deserialization",
+      "level" : "error",
+      "message" : {
+        "text" : "[HIGH] Score: 8.5 | Fastjson_Deserialization flow from <org.srm.platform.api.controller.v1.HrController: org.springframework.http.ResponseEntity batchCreateOrUpdatePosition(java.lang.Long,java.util.List)> to <com.alibaba.fastjson.JSON: java.lang.Object parse(java.lang.String)>"
+      },
+      "properties" : {
+        "score" : 8.5,
+        "confidence" : 0.4675,
+        "riskLevel" : "HIGH",
+        "severityScore" : 8.5,
+        "rankScore" : 3.9737500000000003,
+        "sinkStrength" : "TERMINAL_SIDE_EFFECT",
+        "evidenceLevel" : "ENDPOINT_ONLY",
+        "sinkContainer" : "<com.alibaba.fastjson.JSON: com.alibaba.fastjson.JSONObject parseObject(java.lang.String)>",
+        "sinkStmtIndex" : 1,
+        "sinkIndex" : "0",
+        "sourceIndex" : "1",
+        "sourceCount" : 1,
+        "packageProvenance" : "OUTSIDE_FINDING_PACKAGES",
+        "reasonCodes" : [ "TERMINAL_OUTSIDE_APP_PACKAGE" ]
+      },
+      "locations" : [ {
+        "physicalLocation" : {
+          "artifactLocation" : {
+            "uri" : "<com.alibaba.fastjson.JSON: com.alibaba.fastjson.JSONObject parseObject(java.lang.String)>"
+          }
+        }
+      } ],
+      "codeFlows" : [ {
+        "threadFlows" : [ {
+          "locations" : [ {
+            "location" : {
+              "message" : {
+                "text" : "<org.srm.platform.api.controller.v1.HrController: org.springframework.http.ResponseEntity batchCreateOrUpdatePosition(java.lang.Long,java.util.List)> idx=1 route=POST /v1/{organizationId}/hr/positions (Source/representative)"
+              }
+            }
+          }, {
+            "location" : {
+              "message" : {
+                "text" : "<com.alibaba.fastjson.JSON: com.alibaba.fastjson.JSONObject parseObject(java.lang.String)> @L254 stmt#1 (Container)"
+              }
+            }
+          }, {
+            "location" : {
+              "message" : {
+                "text" : "<com.alibaba.fastjson.JSON: java.lang.Object parse(java.lang.String)> (Sink)"
+              }
+            }
+          } ]
+        } ]
+      } ]
+    }, {
+      "ruleId" : "Fastjson_Deserialization",
+      "level" : "error",
+      "message" : {
+        "text" : "[HIGH] Score: 8.5 | Fastjson_Deserialization flow from <org.srm.platform.api.controller.v1.HrController: org.springframework.http.ResponseEntity batchCreateOrUpdatePosition(java.lang.Long,java.util.List)> to <com.alibaba.fastjson.JSON: com.alibaba.fastjson.JSONObject parseObject(java.lang.String)>"
+      },
+      "properties" : {
+        "score" : 8.5,
+        "confidence" : 0.4675,
+        "riskLevel" : "HIGH",
+        "severityScore" : 8.5,
+        "rankScore" : 3.9737500000000003,
+        "sinkStrength" : "TERMINAL_SIDE_EFFECT",
+        "evidenceLevel" : "ENDPOINT_ONLY",
+        "sinkContainer" : "<com.alibaba.fastjson.JSONPath: java.lang.Object getPropertyValue(java.lang.Object,java.lang.String,long)>",
+        "sinkStmtIndex" : 9,
+        "sinkIndex" : "0",
+        "sourceIndex" : "1",
+        "sourceCount" : 1,
+        "packageProvenance" : "OUTSIDE_FINDING_PACKAGES",
+        "reasonCodes" : [ "TERMINAL_OUTSIDE_APP_PACKAGE" ]
+      },
+      "locations" : [ {
+        "physicalLocation" : {
+          "artifactLocation" : {
+            "uri" : "<com.alibaba.fastjson.JSONPath: java.lang.Object getPropertyValue(java.lang.Object,java.lang.String,long)>"
+          }
+        }
+      } ],
+      "codeFlows" : [ {
+        "threadFlows" : [ {
+          "locations" : [ {
+            "location" : {
+              "message" : {
+                "text" : "<org.srm.platform.api.controller.v1.HrController: org.springframework.http.ResponseEntity batchCreateOrUpdatePosition(java.lang.Long,java.util.List)> idx=1 route=POST /v1/{organizationId}/hr/positions (Source/representative)"
+              }
+            }
+          }, {
+            "location" : {
+              "message" : {
+                "text" : "<com.alibaba.fastjson.JSONPath: java.lang.Object getPropertyValue(java.lang.Object,java.lang.String,long)> @L3523 stmt#9 (Container)"
+              }
+            }
+          }, {
+            "location" : {
+              "message" : {
+                "text" : "<com.alibaba.fastjson.JSON: com.alibaba.fastjson.JSONObject parseObject(java.lang.String)> (Sink)"
+              }
+            }
+          } ]
+        } ]
+      } ]
+    }, {
+      "ruleId" : "Fastjson_Deserialization",
+      "level" : "error",
+      "message" : {
+        "text" : "[HIGH] Score: 8.5 | Fastjson_Deserialization flow from <org.srm.platform.api.controller.v1.HrController: org.springframework.http.ResponseEntity batchCreateOrUpdatePosition(java.lang.Long,java.util.List)> to <com.alibaba.fastjson.JSON: java.lang.Object parse(java.lang.String)>"
+      },
+      "properties" : {
+        "score" : 8.5,
+        "confidence" : 0.4675,
+        "riskLevel" : "HIGH",
+        "severityScore" : 8.5,
+        "rankScore" : 3.9737500000000003,
+        "sinkStrength" : "TERMINAL_SIDE_EFFECT",
+        "evidenceLevel" : "ENDPOINT_ONLY",
+        "sinkContainer" : "<com.alibaba.fastjson.serializer.SerializeFilterable: java.lang.Object processValue(com.alibaba.fastjson.serializer.JSONSerializer,com.alibaba.fastjson.serializer.BeanContext,java.lang.Object,java.lang.String,java.lang.Object,int)>",
+        "sinkStmtIndex" : 33,
+        "sinkIndex" : "0",
+        "sourceIndex" : "1",
+        "sourceCount" : 1,
+        "packageProvenance" : "OUTSIDE_FINDING_PACKAGES",
+        "reasonCodes" : [ "TERMINAL_OUTSIDE_APP_PACKAGE" ]
+      },
+      "locations" : [ {
+        "physicalLocation" : {
+          "artifactLocation" : {
+            "uri" : "<com.alibaba.fastjson.serializer.SerializeFilterable: java.lang.Object processValue(com.alibaba.fastjson.serializer.JSONSerializer,com.alibaba.fastjson.serializer.BeanContext,java.lang.Object,java.lang.String,java.lang.Object,int)>"
+          }
+        }
+      } ],
+      "codeFlows" : [ {
+        "threadFlows" : [ {
+          "locations" : [ {
+            "location" : {
+              "message" : {
+                "text" : "<org.srm.platform.api.controller.v1.HrController: org.springframework.http.ResponseEntity batchCreateOrUpdatePosition(java.lang.Long,java.util.List)> idx=1 route=POST /v1/{organizationId}/hr/positions (Source/representative)"
+              }
+            }
+          }, {
+            "location" : {
+              "message" : {
+                "text" : "<com.alibaba.fastjson.serializer.SerializeFilterable: java.lang.Object processValue(com.alibaba.fastjson.serializer.JSONSerializer,com.alibaba.fastjson.serializer.BeanContext,java.lang.Object,java.lang.String,java.lang.Object,int)> @L229 stmt#33 (Container)"
+              }
+            }
+          }, {
+            "location" : {
+              "message" : {
+                "text" : "<com.alibaba.fastjson.JSON: java.lang.Object parse(java.lang.String)> (Sink)"
+              }
+            }
+          } ]
+        } ]
+      } ]
+    } ]
+  } ]
+}

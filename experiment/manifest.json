@@ -1,0 +1,92 @@
+{
+  "experimentId": "srm-groovy-ab-20261026",
+  "createdAt": "2026-10-26T17:29:00+08:00",
+  "scanner": {
+    "jar": "D:\\workspace\\javaspace\\JByteScanner\\target\\JByteScanner-1.5.0-shaded.jar",
+    "sha256": "C55AADB89CE078A792F91C5B2E94CF856263137720B4E7F66F3EDD25B27271CA",
+    "gitCommit": "5199a905f0fe7d3910e3e0c3ba427dc7b15cf0a6",
+    "version": "1.5.0"
+  },
+  "runtime": {
+    "java": "17.0.12",
+    "javaHome": "D:\\Program Files\\jdks\\jdk-17.0.12",
+    "os": "Windows 10/11 (win32)",
+    "cpuMemoryGB": 31.7
+  },
+  "target": {
+    "deployment": "E:\\code\\汉得SRM",
+    "decompiledSource": "E:\\code\\汉得SRM_src",
+    "deploymentFileCount": 25,
+    "deploymentJarCount": 20,
+    "decompiledModuleCount": 20,
+    "sha256": "see target-sha256.json"
+  },
+  "scan": {
+    "config": "D:\\workspace\\javaspace\\JByteScanner\\experiment\\config\\rules.yaml",
+    "configSha256": "D30773AEC7246D8ECA5CB8C466F7FA408DA1D57DE782480B1B20B539A67D2247",
+    "scanPackages": ["org.hzero", "org.srm"],
+    "maxHeapMb": 8192,
+    "timeoutMinutes": 120,
+    "workspace": "E:\\code\\汉得SRM\\.jbytescanner",
+    "apiModeStartedAt": "2026-10-26T17:29:05+08:00",
+    "apiModeFinishedAt": "2026-10-26T17:33:24+08:00",
+    "scanModeStartedAt": "2026-10-26T17:33:52+08:00",
+    "scanModeFinishedAt": "2026-10-26T17:34:48+08:00",
+    "workerStatus": "SUCCESS",
+    "apiRouteCount": 1590,
+    "targetAppJarCount": 60,
+    "libJarCount": 1012,
+    "rawTaintFlows": 371,
+    "mainFindings": 74,
+    "lowConfidenceFindings": 2,
+    "suppressedFindings": 294
+  },
+  "model": {
+    "id": "opencode/deepseek-v4.1-flash",
+    "note": "Both groups use the same orchestrator model; each group runs in a fresh subagent session."
+  },
+  "budget": {
+    "timeLimitMinutesPerRun": 30,
+    "repetitions": 1,
+    "order": ["A", "B"]
+  },
+  "groups": {
+    "A": "Search baseline: rg / file reads / jar / javap only; no JByteScanner artifacts.",
+    "B": "Search plus JByteScanner CLI query/diagnose on the pre-scanned workspace; no direct sidecar/SARIF reads."
+  },
+  "runs": {
+    "A": {
+      "session": "ses_e886d3dbeffe9Cq1kqD1CxpaYo",
+      "startedAt": "2026-10-27T08:28:00+08:00",
+      "finishedAt": "2026-10-27T09:00:04+08:00",
+      "wallClockMinutes": 32.1,
+      "result": "runs/A/srm-groovy-01.json",
+      "findingCount": 4,
+      "cliCommands": 0
+    },
+    "B": {
+      "session": "ses_e851fb624ffeHC19nnwkaYVsFy",
+      "startedAt": "2026-10-27T09:01:25+08:00",
+      "finishedAt": "2026-10-27T09:06:41+08:00",
+      "wallClockMinutes": 5.3,
+      "result": "runs/B/srm-groovy-01.json",
+      "diagnosis": "runs/B/diagnosis-latest.json",
+      "findingCount": 3,
+      "cliCommands": 5,
+      "diagnoseRuns": 1,
+      "diagnoseWorkerStatus": "NOT_RUN",
+      "workspaceCopy": "views/B/.jbytescanner"
+    }
+  },
+  "adjudication": {
+    "file": "adjudication/verdicts.json",
+    "report": "REPORT.md",
+    "verifiedExploitableRootCauses": 4,
+    "groupAVerified": 3,
+    "groupBVerified": 2,
+    "falsePositivesA": 0,
+    "falsePositivesB": 0
+  },
+  "taskFile": "tasks.jsonl",
+  "taskId": "srm-groovy-01"
+}

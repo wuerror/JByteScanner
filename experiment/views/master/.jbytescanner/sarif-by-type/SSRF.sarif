@@ -1,0 +1,71 @@
+{
+  "version" : "2.1.0",
+  "$schema" : "https://schemastore.azurewebsites.net/schemas/json/sarif-2.1.0-rtm.5.json",
+  "runs" : [ {
+    "tool" : {
+      "driver" : {
+        "name" : "JByteScanner",
+        "version" : "1.0"
+      }
+    },
+    "results" : [ {
+      "ruleId" : "SSRF",
+      "level" : "error",
+      "message" : {
+        "text" : "[HIGH] Score: 7.5 | SSRF flow from <org.srm.mobile.config.api.controller.v1.mall.MallCodeController: org.springframework.http.ResponseEntity getPictureBase64(java.lang.String)> to <java.net.URL: void <init>(java.lang.String)>"
+      },
+      "properties" : {
+        "score" : 7.5,
+        "confidence" : 1.0,
+        "riskLevel" : "HIGH",
+        "severityScore" : 7.5,
+        "rankScore" : 7.5,
+        "sinkStrength" : "TERMINAL_SIDE_EFFECT",
+        "evidenceLevel" : "LOCAL_SIDE_EFFECT",
+        "sinkContainer" : "<org.srm.mobile.config.app.service.mall.impl.MallCodeServiceImpl: java.lang.String getPictureBase64(java.lang.String)>",
+        "sinkStmtIndex" : 2,
+        "sinkIndex" : "0",
+        "sourceIndex" : "0",
+        "sourceCount" : 1,
+        "packageProvenance" : "IN_FINDING_PACKAGES",
+        "reasonCodes" : [ "LOCAL_SIDE_EFFECT" ]
+      },
+      "locations" : [ {
+        "physicalLocation" : {
+          "artifactLocation" : {
+            "uri" : "<org.srm.mobile.config.app.service.mall.impl.MallCodeServiceImpl: java.lang.String getPictureBase64(java.lang.String)>"
+          }
+        }
+      } ],
+      "codeFlows" : [ {
+        "threadFlows" : [ {
+          "locations" : [ {
+            "location" : {
+              "message" : {
+                "text" : "<org.srm.mobile.config.api.controller.v1.mall.MallCodeController: org.springframework.http.ResponseEntity getPictureBase64(java.lang.String)> idx=0 route=GET /v1/get-picture/base64 (Source/representative)"
+              }
+            }
+          }, {
+            "location" : {
+              "message" : {
+                "text" : "<org.srm.mobile.config.app.service.mall.impl.MallCodeServiceImpl: java.lang.String getPictureBase64(java.lang.String)> @L218 stmt#2 (Container)"
+              }
+            }
+          }, {
+            "location" : {
+              "message" : {
+                "text" : "localSideEffects=[openStream]"
+              }
+            }
+          }, {
+            "location" : {
+              "message" : {
+                "text" : "<java.net.URL: void <init>(java.lang.String)> (Sink)"
+              }
+            }
+          } ]
+        } ]
+      } ]
+    } ]
+  } ]
+}

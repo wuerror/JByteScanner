@@ -1,0 +1,94 @@
+{
+  "task_id": "srm-groovy-01",
+  "group": "A",
+  "findings": [
+    {
+      "entry": "POST /v1/{organizationId}/application-insts/param-template（ApplicationInstController.testParamReflect）；POST /v1/application-insts/param-template（ApplicationInstSiteController.testParamReflect）",
+      "source": "@RequestBody TemplateDTO.template（String，JSON 字段 template，完全可控）",
+      "sink": "FreeMarkerHelper.invokeTemplate(template, \"mockRequestPayloadDTO\"/\"mockResponsePayloadDTO\") -> new GroovyClassLoader().parseClass(template) -> newInstance() -> invokeMethod()",
+      "verdict": "likely_exploitable",
+      "reason": "控制器把请求体 TemplateDTO.template 原样传给 ApplicationInstService.testParamReflect，再原样传入 FreeMarkerHelper.invokeTemplate；该方法无白名单、无关键字过滤、无 Groovy sandbox，直接 GroovyClassLoader.parseClass(template)。提交形如 class X { static { 'cmd /c ...'.execute() }; def mockRequestPayloadDTO(){null}; def responseDataConverter(){null} } 的模板时，newInstance() 会触发静态/实例初始化，从而在 interface 服务进程执行命令；即使方法名不存在，初始化代码也已执行。利用条件是持有一个可访问该 ORGANIZATION 级接口的有效登录态（SITE 级变体需 SITE 权限）；接口通过网关对外暴露，未要求 permissionWithin。",
+      "evidence": [
+        "E:\\code\\汉得SRM_src\\srm-basic-interface-op_src\\BOOT-INF\\lib\\hzero-interface-saas-1.9.6.RELEASE_src\\org\\hzero\\interfaces\\api\\controller\\v1\\ApplicationInstController.java:36 @RequestMapping(\"/v1/{organizationId}/application-insts\")",
+        "同文件:105-111 @PostMapping(\"/param-template\")，取 template.getTemplate() 调 service.testParamReflect",
+        "E:\\code\\汉得SRM_src\\srm-basic-interface-op_src\\BOOT-INF\\lib\\hzero-interface-saas-1.9.6.RELEASE_src\\org\\hzero\\interfaces\\api\\controller\\v1\\ApplicationInstSiteController.java:37 @RequestMapping(\"/v1/application-insts\")，:98-102 同类端点",
+        "E:\\code\\汉得SRM_src\\srm-basic-interface-op_src\\BOOT-INF\\lib\\hzero-interface-saas-1.9.6.RELEASE_src\\org\\hzero\\interfaces\\app\\service\\impl\\ApplicationInstServiceImpl.java:199-222 testParamReflect 直接调用 FreeMarkerHelper.invokeTemplate(template,...)",
+        "E:\\code\\汉得SRM_src\\srm-basic-interface-op_src\\BOOT-INF\\lib\\hzero-boot-interface-1.9.6.RELEASE_src\\org\\hzero\\boot\\interfaces\\helper\\FreeMarkerHelper.java:69-81 invokeTemplate 内 GroovyClassLoader.parseClass(template)+newInstance()+invokeMethod，无 SandboxTransformer",
+        "E:\\code\\汉得SRM_src\\srm-basic-interface-op_src\\BOOT-INF\\lib\\hzero-interface-saas-1.9.6.RELEASE_src\\org\\hzero\\autoconfigure\\interfaces\\InterfaceAutoConfiguration.java:13-15 @ComponentScan 包含 org.hzero.interfaces.api/app",
+        "srm-basic-interface-op.jar 内 BOOT-INF/lib/hzero-interface-saas-1.9.6.RELEASE.jar 含 ApplicationInstController.class，BOOT-INF/lib/hzero-boot-interface-1.9.6.RELEASE.jar 含 FreeMarkerHelper.class（本地嵌套 JAR 列表核对）"
+      ],
+      "missing_evidence": [
+        "未实际发送请求验证命令执行（禁止启动服务）",
+        "未核对网关权限表中该 URL 是否已注册以及最小所需角色；ORGANIZATION 级注解表明至少需要有效组织登录态"
+      ]
+    },
+    {
+      "entry": "POST /v1/{organizationId}/interfaces/param-template（InterfaceController.debugParamTemplate）；POST /v1/interfaces/param-template（InterfaceSiteController.debugParamTemplate）",
+      "source": "@RequestBody TemplateDTO.template（String，JSON 字段 template，完全可控）",
+      "sink": "InterfaceServiceImpl.debugParamTemplate(template, interfaceId) -> FreeMarkerHelper.invokeTemplate(template.getTemplate(), \"mockRequestPayloadDTO\"/\"mockResponsePayloadDTO\") -> GroovyClassLoader.parseClass(template)",
+      "verdict": "likely_exploitable",
+      "reason": "与 application-insts 端点同构：debugParamTemplate 在 interfaceId 为空时仍先执行模板，请求体 template 直接进入 GroovyClassLoader.parseClass；无参数校验、无脚本白名单、无 sandbox，newInstance() 时执行任意 Groovy 初始化代码。利用条件仅为有效登录态且具备对应 ORGANIZATION（或 SITE）级接口管理权限。",
+      "evidence": [
+        "E:\\code\\汉得SRM_src\\srm-basic-interface-op_src\\BOOT-INF\\lib\\hzero-interface-saas-1.9.6.RELEASE_src\\org\\hzero\\interfaces\\api\\controller\\v1\\InterfaceController.java:72 @RequestMapping(\"/v1/{organizationId}/interfaces\")，:239-246 @PostMapping(\"/param-template\")",
+        "E:\\code\\汉得SRM_src\\srm-basic-interface-op_src\\BOOT-INF\\lib\\hzero-interface-saas-1.9.6.RELEASE_src\\org\\hzero\\interfaces\\api\\controller\\v1\\InterfaceSiteController.java:70 @RequestMapping(\"/v1/interfaces\")，:199-204 同类端点",
+        "E:\\code\\汉得SRM_src\\srm-basic-interface-op_src\\BOOT-INF\\lib\\hzero-interface-saas-1.9.6.RELEASE_src\\org\\hzero\\interfaces\\app\\service\\impl\\InterfaceServiceImpl.java:1219-1255 debugParamTemplate 先 invokeTemplate(template.getTemplate(),...) 再做 interfaceId 判断，无净化",
+        "E:\\code\\汉得SRM_src\\srm-basic-interface-op_src\\BOOT-INF\\lib\\hzero-boot-interface-1.9.6.RELEASE_src\\org\\hzero\\boot\\interfaces\\helper\\FreeMarkerHelper.java:74-81 parseClass+newInstance+invokeMethod"
+      ],
+      "missing_evidence": [
+        "未实际发送请求验证命令执行（禁止启动服务）",
+        "未确认网关权限映射对普通组织用户的最小授权范围"
+      ]
+    },
+    {
+      "entry": "POST /v1/{organizationId}/interfaces/{interfaceServerId}（InterfaceController.batchSave/save）或 /batch-save，随后通过接口调用/门户测试触发（如 /v1/{organizationId}/interfaces/{interfaceId}/portal-testing）",
+      "source": "请求体 Interface.mappingClass（String，保存时无格式校验）",
+      "sink": "AbstractInterfaceInvokeTemplate 调用 HttpRequestGroovyInjector/HttpResponseGroovyInjector -> FreeMarkerHelper.invokeTemplate(mappingClass, \"beforeThirdPartyRequest\"/\"rearrangeRequestBuilder\"/\"afterThirdPartyResponse\", ...) -> GroovyClassLoader.parseClass",
+      "verdict": "likely_exploitable",
+      "reason": "mappingClass 在新建/更新接口时被持久化（saveInterface 的 updateOptional 字段列表包含 mappingClass），Interface 实体该字段无 @Pattern/@Size 等约束；实际调用接口时将其作为 Groovy 源码交给 FreeMarkerHelper.parseClass。具备接口编辑权限的已认证用户可写入恶意 Groovy，之后任何触发该接口调用的业务或测试动作都会执行，形成持久的存储型 Groovy 注入。",
+      "evidence": [
+        "E:\\code\\汉得SRM_src\\srm-basic-interface-op_src\\BOOT-INF\\lib\\hzero-interface-saas-1.9.6.RELEASE_src\\org\\hzero\\interfaces\\api\\controller\\v1\\InterfaceController.java:97-105 @PostMapping(\"/{interfaceServerId}\") -> saveInterface；:110-123 batch-save",
+        "E:\\code\\汉得SRM_src\\srm-basic-interface-op_src\\BOOT-INF\\lib\\hzero-interface-saas-1.9.6.RELEASE_src\\org\\hzero\\interfaces\\app\\service\\impl\\InterfaceServiceImpl.java:941-949 与 :1078-1084 updateOptional 白名单包含 mappingClass",
+        "E:\\code\\汉得SRM_src\\srm-basic-interface-op_src\\BOOT-INF\\lib\\hzero-interface-saas-1.9.6.RELEASE_src\\org\\hzero\\interfaces\\domain\\entity\\Interface.java:119-123 mappingClass 无校验注解",
+        "E:\\code\\汉得SRM_src\\srm-basic-interface-op_src\\BOOT-INF\\lib\\hzero-boot-interface-1.9.6.RELEASE_src\\org\\hzero\\integration\\sdk\\template\\AbstractInterfaceInvokeTemplate.java:120-126 读取 InvokeConfiguration.mappingClass 并构造 Groovy Injector",
+        "E:\\code\\汉得SRM_src\\srm-basic-interface-op_src\\BOOT-INF\\lib\\hzero-boot-interface-1.9.6.RELEASE_src\\org\\hzero\\integration\\sdk\\template\\injector\\HttpRequestGroovyInjector.java:24 FreeMarkerHelper.invokeTemplate(this.script,...)"
+      ],
+      "missing_evidence": [
+        "未逐条跟踪 portal-testing 等触发端点是否使用同一 InvokeConfiguration.mappingClass",
+        "未验证保存接口时 itf.validate 对 mappingClass 的额外业务校验（实体层未见约束）"
+      ]
+    },
+    {
+      "entry": "POST /v1/rule-engine/run-script（RuleEngineController.runGroovyScript，注册于各服务的 hzero-boot-platform）",
+      "source": "@RequestBody RuleEngine.script（String，请求体直接可控）",
+      "sink": "RuleEngineServiceImpl.runGroovyScript -> GroovyShell.parse(content)/script.run()，配 SandboxTransformer 及 NoSystemExitSandbox/NoRunTimeSandbox",
+      "verdict": "uncertain",
+      "reason": "脚本内容确实来自请求体，但该控制器标注 @Permission(permissionWithin = true)，网关 GetPermissionFilter 对 within 接口返回 PERMISSION_WITH_IN 并拒绝外部访问，因此正常经网关不可达。若攻击者能直连服务端口、经内网/SSRF 访问或绕过网关，则存在 RCE：现有拦截器只阻断 Runtime 静态调用和 System.exit，未阻断 ProcessBuilder、String.execute()、Groovy 方法调用等，sandbox 不完整。是否可利用取决于部署网络暴露面。",
+      "evidence": [
+        "E:\\code\\汉得SRM_src\\srm-script-container-op_src\\BOOT-INF\\lib\\hzero-boot-platform-1.9.6.RELEASE_src\\org\\hzero\\boot\\platform\\rule\\controller\\RuleEngineController.java:19-30 @RequestMapping(\"/v1/rule-engine\")、@Permission(permissionWithin = true)、@PostMapping(\"/run-script\")",
+        "E:\\code\\汉得SRM_src\\srm-script-container-op_src\\BOOT-INF\\lib\\hzero-boot-platform-1.9.6.RELEASE_src\\org\\hzero\\boot\\platform\\rule\\service\\impl\\RuleEngineServiceImpl.java:74-87 GroovyShell+SandboxTransformer+parse+run",
+        "同文件:104-121 两个 GroovyInterceptor 仅覆盖 onStaticCall 的 Runtime/System.exit",
+        "E:\\code\\汉得SRM_src\\srm-gateway-op_src\\BOOT-INF\\lib\\hzero-gateway-helper-default-1.9.5.RELEASE_src\\org\\hzero\\gateway\\helper\\filter\\GetPermissionFilter.java:52-56 permission.getWithin() 时直接拒绝"
+      ],
+      "missing_evidence": [
+        "未确认各服务端口是否可从外部直连、是否存在绕过网关的内网入口",
+        "未实测 String.execute()/ProcessBuilder 在 SandboxTransformer 下是否被拦截"
+      ]
+    }
+  ],
+  "checked_scope": [
+    "E:\\code\\汉得SRM 部署包清单与 srm-basic-interface-op.jar、srm-script-container-op.jar 内嵌依赖（hzero-interface-saas、hzero-boot-interface、hzero-boot-platform 等）",
+    "全量源码中检索 GroovyShell/GroovyClassLoader/groovy.lang/parseClass/ScriptEngine，定位到 hzero-boot-platform RuleEngineServiceImpl、hzero-boot-interface FreeMarkerHelper、interface-authorization GroovyHelper",
+    "srm-basic-interface-op 的 ApplicationInstController/ApplicationInstSiteController/InterfaceController/InterfaceSiteController 及其 service 调用链",
+    "hzero-interface-saas 的 InterfaceAutoConfiguration/EnableHZeroInterface 组件扫描与 srm-basic-interface-op 的 SrmInterfaceOPAutoConfiguration @EnableHZeroInterface",
+    "hzero-boot-platform RuleEngineController/RuleEngineServiceImpl 及网关 GetPermissionFilter 的 permissionWithin 处理",
+    "srm-gateway-op、srm-script-container-op、srm-platform-op、srm-adaptor-op 等模块中的 Groovy/Script 相关入口初筛（adaptor MarmotScript 为 JS/Graal 沙箱，未纳入 Groovy）"
+  ],
+  "limitations": [
+    "30 分钟盲测预算，未逐模块审计全部 20 个服务的所有 HTTP 入口，重点检查了接口管理、规则引擎、脚本容器和适配器",
+    "未运行服务或发送真实请求，命令执行仅为静态调用链与 Groovy 语义推断；未验证网关权限表中相关 URL 的实际授权配置",
+    "interface-authorization 的 GroovyHelper 使用 CommonTemplate 内容（groovyTemplateCode），未确认是否存在可外部写入公共模板的 HTTP 入口，故未列为独立 finding",
+    "反编译源码可能丢失资源文件与部分 AOP/网关配置；以 JAR 内类存在性与注解交叉核对，未做动态插桩"
+  ],
+  "started_at": "2026-10-27T08:28:00+08:00",
+  "finished_at": "2026-10-27T09:00:04+08:00"
+}

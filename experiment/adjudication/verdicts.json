@@ -1,0 +1,151 @@
+{
+  "experimentId": "srm-groovy-ab-20261026",
+  "taskId": "srm-groovy-01",
+  "adjudicatedAt": "2026-10-27T10:15:00+08:00",
+  "method": "Adjudicator re-read the decompiled sources, confirmed packaged classes inside srm-basic-interface-op.jar, and checked the generated taint config and diagnosis record. No live request was sent.",
+  "groundTruthBoundary": "No pre-established complete ground truth. The four root causes below were established during adjudication; they are not a full-project recall baseline.",
+  "findings": [
+    {
+      "id": "V1",
+      "title": "ApplicationInst param-template Groovy code execution",
+      "entry": "POST /v1/{organizationId}/application-insts/param-template and POST /v1/application-insts/param-template",
+      "source": "RequestBody TemplateDTO.template (String)",
+      "sink": "FreeMarkerHelper.invokeTemplate -> GroovyClassLoader.parseClass -> newInstance -> invokeMethod",
+      "groupA": "reported likely_exploitable",
+      "groupB": "reported likely_exploitable",
+      "verdict": "verified_likely_exploitable",
+      "exploitability": "Authenticated ORGANIZATION or SITE API permission required. Static path is complete; no live request executed.",
+      "confidence": "high",
+      "evidence": [
+        "srm-basic-interface-op_src/BOOT-INF/lib/hzero-interface-saas-1.9.6.RELEASE_src/org/hzero/interfaces/api/controller/v1/ApplicationInstController.java:105-111",
+        "srm-basic-interface-op_src/BOOT-INF/lib/hzero-interface-saas-1.9.6.RELEASE_src/org/hzero/interfaces/api/controller/v1/ApplicationInstSiteController.java:98-102",
+        "srm-basic-interface-op_src/BOOT-INF/lib/hzero-interface-saas-1.9.6.RELEASE_src/org/hzero/interfaces/app/service/impl/ApplicationInstServiceImpl.java:199-222",
+        "srm-basic-interface-op_src/BOOT-INF/lib/hzero-boot-interface-1.9.6.RELEASE_src/org/hzero/boot/interfaces/helper/FreeMarkerHelper.java:69-104",
+        "Nested jars confirmed in srm-basic-interface-op.jar: hzero-interface-saas-1.9.6.RELEASE.jar, hzero-boot-interface-1.9.6.RELEASE.jar, groovy-3.0.6.jar"
+      ]
+    },
+    {
+      "id": "V2",
+      "title": "Interface param-template Groovy code execution",
+      "entry": "POST /v1/{organizationId}/interfaces/param-template and POST /v1/interfaces/param-template",
+      "source": "RequestBody TemplateDTO.template (String); interfaceId is optional and does not gate template execution",
+      "sink": "FreeMarkerHelper.invokeTemplate -> GroovyClassLoader.parseClass -> newInstance -> invokeMethod",
+      "groupA": "reported likely_exploitable",
+      "groupB": "reported likely_exploitable",
+      "verdict": "verified_likely_exploitable",
+      "exploitability": "Authenticated ORGANIZATION or SITE API permission required. Static path is complete; no live request executed.",
+      "confidence": "high",
+      "evidence": [
+        "srm-basic-interface-op_src/BOOT-INF/lib/hzero-interface-saas-1.9.6.RELEASE_src/org/hzero/interfaces/api/controller/v1/InterfaceController.java:238-247",
+        "srm-basic-interface-op_src/BOOT-INF/lib/hzero-interface-saas-1.9.6.RELEASE_src/org/hzero/interfaces/api/controller/v1/InterfaceSiteController.java:198-205",
+        "srm-basic-interface-op_src/BOOT-INF/lib/hzero-interface-saas-1.9.6.RELEASE_src/org/hzero/interfaces/app/service/impl/InterfaceServiceImpl.java:1219-1264",
+        "srm-basic-interface-op_src/BOOT-INF/lib/hzero-boot-interface-1.9.6.RELEASE_src/org/hzero/boot/interfaces/helper/FreeMarkerHelper.java:69-104"
+      ]
+    },
+    {
+      "id": "V3",
+      "title": "Stored Groovy in Interface.mappingClass",
+      "entry": "POST /v1/{organizationId}/interfaces/{interfaceServerId} or /{interfaceServerId}/batch-save, then invoke the interface (for example portal-testing)",
+      "source": "RequestBody Interface.mappingClass (String), persisted by saveInterface/updateOptional",
+      "sink": "AbstractInterfaceInvokeTemplate reads InvokeConfiguration.mappingClass -> HttpRequestGroovyInjector/HttpResponseGroovyInjector -> FreeMarkerHelper.invokeTemplate -> GroovyClassLoader.parseClass",
+      "groupA": "reported likely_exploitable",
+      "groupB": "not reported",
+      "verdict": "verified_root_cause_exploitability_conditional",
+      "exploitability": "Interface edit permission is required to store the payload. An interface invocation trigger is required; portal-testing is a plausible trigger but the exact publish/invoke path was not fully proven.",
+      "confidence": "medium-high",
+      "evidence": [
+        "srm-basic-interface-op_src/BOOT-INF/lib/hzero-interface-saas-1.9.6.RELEASE_src/org/hzero/interfaces/app/service/impl/InterfaceServiceImpl.java:941-949 and 1077-1087 (mappingClass persisted in updateOptional)",
+        "srm-basic-interface-op_src/BOOT-INF/lib/hzero-interface-saas-1.9.6.RELEASE_src/org/hzero/interfaces/domain/entity/Interface.java:122-123 (no validation annotation)",
+        "srm-basic-interface-op_src/BOOT-INF/lib/hzero-boot-interface-1.9.6.RELEASE_src/org/hzero/integration/sdk/template/AbstractInterfaceInvokeTemplate.java:120-126",
+        "srm-basic-interface-op_src/BOOT-INF/lib/hzero-boot-interface-1.9.6.RELEASE_src/org/hzero/integration/sdk/template/injector/HttpRequestGroovyInjector.java:24"
+      ]
+    },
+    {
+      "id": "V4",
+      "title": "Stored Groovy in ApplicationInst.mappingClass (missed by both groups)",
+      "entry": "POST /v1/{organizationId}/application-insts/{applicationId} or site equivalent, then invoke the composite interface",
+      "source": "RequestBody ApplicationInst.mappingClass (String), persisted by saveApplication/updateOptional",
+      "sink": "CompositeInterfaceInvoker -> FreeMarkerHelper.invokeTemplate(mappingClass, requestDataConverter/responseDataConverter) -> GroovyClassLoader.parseClass",
+      "groupA": "not reported",
+      "groupB": "not reported",
+      "verdict": "verified_root_cause_exploitability_conditional",
+      "exploitability": "Application-instance edit permission is required. The interface must be a composite interface and must be invoked.",
+      "confidence": "medium-high",
+      "evidence": [
+        "srm-basic-interface-op_src/BOOT-INF/lib/hzero-interface-saas-1.9.6.RELEASE_src/org/hzero/interfaces/api/controller/v1/ApplicationInstController.java:70-80",
+        "srm-basic-interface-op_src/BOOT-INF/lib/hzero-interface-saas-1.9.6.RELEASE_src/org/hzero/interfaces/app/service/impl/ApplicationInstServiceImpl.java:138-170",
+        "srm-basic-interface-op_src/BOOT-INF/lib/hzero-boot-interface-1.9.6.RELEASE_src/org/hzero/boot/interfaces/sdk/invoke/category/impl/CompositeInterfaceInvoker.java:131-136 and 182-186"
+      ]
+    },
+    {
+      "id": "V5",
+      "title": "RuleEngine run-script Groovy execution",
+      "entry": "POST /v1/rule-engine/run-script",
+      "source": "RequestBody RuleEngine.script (String)",
+      "sink": "GroovyShell.parse and Script.run with SandboxTransformer plus two GroovyInterceptors",
+      "groupA": "reported uncertain",
+      "groupB": "reported likely_not_exploitable",
+      "verdict": "not_externally_exploitable_via_gateway",
+      "exploitability": "The controller is annotated @Permission(permissionWithin = true) and the gateway rejects within-only permissions with PERMISSION_WITH_IN. Direct service-port or internal SSRF access could still reach the endpoint; the sandbox only blocks Runtime static calls and System.exit, so internal access remains dangerous.",
+      "confidence": "high",
+      "evidence": [
+        "srm-script-container-op_src/BOOT-INF/lib/hzero-boot-platform-1.9.6.RELEASE_src/org/hzero/boot/platform/rule/controller/RuleEngineController.java:22-30",
+        "srm-script-container-op_src/BOOT-INF/lib/hzero-boot-platform-1.9.6.RELEASE_src/org/hzero/boot/platform/rule/service/impl/RuleEngineServiceImpl.java:74-121",
+        "srm-gateway-op_src/BOOT-INF/lib/hzero-gateway-helper-default-1.9.5.RELEASE_src/org/hzero/gateway/helper/filter/GetPermissionFilter.java:48-56"
+      ]
+    },
+    {
+      "id": "V6",
+      "title": "interface-authorization GroovyHelper stored common template",
+      "entry": "Not traced to an external writer in this run",
+      "source": "CommonTemplate groovyTemplateCode",
+      "sink": "GroovyHelper/CommonTemplate execution",
+      "groupA": "mentioned as unconfirmed, not reported",
+      "groupB": "mentioned as unconfirmed, not reported",
+      "verdict": "unknown",
+      "exploitability": "No confirmed external HTTP write path in the budget.",
+      "confidence": "low",
+      "evidence": [
+        "srm-basic-interface-op_src/BOOT-INF/lib/interface-authorization-1.9.5.RELEASE_src GroovyHelper / GroovyScriptAuthAssembler inspected by both groups"
+      ]
+    }
+  ],
+  "metrics": {
+    "adjudicatorEstablishedExploitableRootCauses": 4,
+    "groupA": {
+      "verifiedRootCauses": 3,
+      "directFullyProven": 2,
+      "storedConditional": 1,
+      "falsePositives": 0,
+      "uncertainNotCounted": 1,
+      "recallAgainstAdjudicatorSet": 0.75,
+      "wallClockMinutes": 32.1,
+      "cliCommands": 0
+    },
+    "groupB": {
+      "verifiedRootCauses": 2,
+      "directFullyProven": 2,
+      "storedConditional": 0,
+      "falsePositives": 0,
+      "correctNegativeJudgments": 1,
+      "recallAgainstAdjudicatorSet": 0.5,
+      "wallClockMinutes": 5.3,
+      "cliCommands": 5,
+      "diagnoseRuns": 1,
+      "diagnoseWorkerStatus": "NOT_RUN"
+    },
+    "prescan": {
+      "apiAndScanMinutes": 5.7,
+      "rawTaintFlows": 371,
+      "mainFindings": 74,
+      "lowConfidence": 2,
+      "suppressed": 294,
+      "groovyFindings": 0,
+      "mainFindingBreakdown": {
+        "Jackson_Deserialization": 31,
+        "Fastjson_Deserialization": 42,
+        "SSRF": 1
+      }
+    }
+  }
+}

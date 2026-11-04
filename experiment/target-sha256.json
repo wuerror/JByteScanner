@@ -1,0 +1,127 @@
+﻿[
+    {
+        "name":  "enableall.sh",
+        "size":  877,
+        "sha256":  "ABF212B5A40DE2C91F0605A9A86BEE844C9CC7DC26C08B5926943A2CB59FD694"
+    },
+    {
+        "name":  "restartall.sh",
+        "size":  917,
+        "sha256":  "7C61D5882CE5AE2CDE9340DF69CD62728CFFA7ACDFE568709E38EB6386CAC7E5"
+    },
+    {
+        "name":  "srm-adaptor-op.jar",
+        "size":  149636831,
+        "sha256":  "431DC435A827B4BFFC61B9E24D80B373F2A9974048D03DF52D87BE6DA18EBB13"
+    },
+    {
+        "name":  "srm-admin-op.jar",
+        "size":  137005816,
+        "sha256":  "1FE5D5327D2BD97EE854E93445052F6406A16F8E2C21164D6EA3EF6ED504E640"
+    },
+    {
+        "name":  "srm-advancedsearch-op.jar",
+        "size":  215988475,
+        "sha256":  "2C02A5381D48D9217F7EB532929A7F46C2C33BE02DB03EC5645B359CE9C4B268"
+    },
+    {
+        "name":  "srm-basic-interface-op.jar",
+        "size":  338937357,
+        "sha256":  "60F8B4A177039D4BD064D8FABBC43003538FE94BF9BFA39D7CB6737ED56F6D40"
+    },
+    {
+        "name":  "srm-basic-platform-op.jar",
+        "size":  248299822,
+        "sha256":  "6C61E40E4BA81CBA71F6A5A485F8DCC985DEAD2EC152BED24A7A8D9491109F07"
+    },
+    {
+        "name":  "srm-file-op.jar",
+        "size":  311391548,
+        "sha256":  "7DA7CABE48E3C29929ECA5128DFD85F984C8C68C46BF51AC7873BC645FE5A919"
+    },
+    {
+        "name":  "srm-gateway-op.jar",
+        "size":  121977218,
+        "sha256":  "93933F5C9769925133216991B8A5135888B995028DD97C2186F11916EF440619"
+    },
+    {
+        "name":  "srm-iam-op.jar",
+        "size":  281578247,
+        "sha256":  "30ED2EDF46609AC645FAA0771960829E9BC3E22CDB8286D0380291CFB38FA284"
+    },
+    {
+        "name":  "srm-import-op.jar",
+        "size":  144232736,
+        "sha256":  "C44B3E9FB0D27616DD8F8F950F82999DD90F71CB00278C9D440221F57967E569"
+    },
+    {
+        "name":  "srm-message-op.jar",
+        "size":  225413667,
+        "sha256":  "841732956BF9B1216C0F3A4FBFA648A755210FC01CFDA0E4E1DABF05119CE8D8"
+    },
+    {
+        "name":  "srm-mobile-config-op.jar",
+        "size":  170229811,
+        "sha256":  "DE2A05B6F3C7FCCEA31597C60A7FB7DBD1C352CD974CF4694E3C271B5D14A78C"
+    },
+    {
+        "name":  "srm-modeler-op.jar",
+        "size":  351706018,
+        "sha256":  "85A8664BF544C02647EF6DFD3EE25440087CAF0C2EA3215E8A7D737FB65EBD66"
+    },
+    {
+        "name":  "srm-monitor-op.jar",
+        "size":  137919993,
+        "sha256":  "ADD1FBA3C08D3CCD9F51FE990BEA2DA0147A87FD8653C447DD3C8E68CEBA3E30"
+    },
+    {
+        "name":  "srm-oauth-op.jar",
+        "size":  189019745,
+        "sha256":  "55790FAF8E10BD1D2D8CDFFD3BAA00D608BE1BA0A900BA225AF334B56E86C308"
+    },
+    {
+        "name":  "srm-platform-op.jar",
+        "size":  465838131,
+        "sha256":  "6FA4C792800283F566A551E3E26693CC7C8163BC572DBEF57625515ABD80592F"
+    },
+    {
+        "name":  "srm-register-op.jar",
+        "size":  48267525,
+        "sha256":  "59E912FF02913CA0A00F67914472E5DD3A2E6EF92253CCC88BD76C91DC3B52F1"
+    },
+    {
+        "name":  "srm-report-op.jar",
+        "size":  375100160,
+        "sha256":  "405A5800EB6FEF622FAF96AC722C88B9C54507D4EC6053C54CF4EF481916B1B0"
+    },
+    {
+        "name":  "srm-saga-op.jar",
+        "size":  116160913,
+        "sha256":  "7E4006618207FF7B4171B5BED65D2E042CA0E182DBA98D31F5B1C3D7611CBCA6"
+    },
+    {
+        "name":  "srm-scheduler-op.jar",
+        "size":  139425031,
+        "sha256":  "9D005C82D8364F6EE4E636A124877ABC235744FF77BDD9C9BAF010FF54473617"
+    },
+    {
+        "name":  "srm-script-container-op.jar",
+        "size":  202490186,
+        "sha256":  "C2933BD42D1BD511E0CB191129A938FA72A2D3BA7BB21DF30DE3279E185CC635"
+    },
+    {
+        "name":  "start.sh",
+        "size":  2421,
+        "sha256":  "8B23E09003C1C774C6E1F5770EE4240892A5C29C281BBDF252E7F5F3F308C0FA"
+    },
+    {
+        "name":  "startall.sh",
+        "size":  877,
+        "sha256":  "D354C2533AA992BA56C7D6DEF2117CDFBC4D881C21B1C21DA09055292BA2FC16"
+    },
+    {
+        "name":  "stopall.sh",
+        "size":  822,
+        "sha256":  "ACAADFE8DCD410B5B94A4479C19D0D87D8A164A1D4EEA2B307E5BCF001370279"
+    }
+]

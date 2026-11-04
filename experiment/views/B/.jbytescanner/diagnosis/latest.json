@@ -1,0 +1,112 @@
+{
+  "schemaVersion" : "jbs-diagnosis/v1",
+  "generatedAt" : "2026-10-27T01:04:38.183324900Z",
+  "command" : "diagnose",
+  "target" : {
+    "path" : "E:\\code\\汉得SRM",
+    "workspace" : "E:\\code\\汉得SRM\\.jbytescanner",
+    "sinkSignature" : "<groovy.lang.GroovyClassLoader: java.lang.Class parseClass(java.lang.String)>"
+  },
+  "scanIdentity" : {
+    "artifactCount" : 1072,
+    "targetAppJarCount" : 60,
+    "classPathJarCount" : 1012,
+    "taintConfigPath" : "E:\\code\\汉得SRM\\.jbytescanner\\taint-config.yml"
+  },
+  "worker" : {
+    "requested" : true,
+    "status" : "NOT_RUN"
+  },
+  "stages" : [ {
+    "yes" : false,
+    "id" : "invocation",
+    "state" : "no",
+    "summary" : "No exact invoke with matching owner, name, descriptor, and return type was found in target/dependency application bytecode.",
+    "evidenceLevel" : "bytecode",
+    "evidence" : [ ],
+    "details" : {
+      "targetInvokeKey" : "groovy/lang/GroovyClassLoader.parseClass(Ljava/lang/String;)Ljava/lang/Class;",
+      "artifactsScanned" : 60,
+      "totalMatches" : 0,
+      "truncated" : false,
+      "errors" : [ ]
+    }
+  }, {
+    "yes" : false,
+    "id" : "rule",
+    "state" : "no",
+    "summary" : "The sink is configured but was not emitted; it may not be referenced in application bytecode or may be inactive.",
+    "evidenceLevel" : "configuration",
+    "evidence" : [ ],
+    "details" : {
+      "vulnType" : "Groovy_Injection",
+      "category" : "code-exec",
+      "configuredIndexes" : [ "0" ],
+      "emittedIndexes" : [ ],
+      "taintConfigPath" : "E:\\code\\汉得SRM\\.jbytescanner\\taint-config.yml",
+      "callSiteMode" : "true"
+    }
+  }, {
+    "yes" : true,
+    "id" : "source",
+    "state" : "yes",
+    "summary" : "At least one configured source was emitted into the Tai-e config.",
+    "evidenceLevel" : "configuration",
+    "evidence" : [ ],
+    "details" : {
+      "entrySignatureCount" : 1590,
+      "sourceCount" : 3417
+    }
+  }, {
+    "yes" : false,
+    "id" : "entry",
+    "state" : "unknown",
+    "summary" : "Entry injection was not evaluated because rule/source prerequisites failed.",
+    "evidenceLevel" : "entry",
+    "evidence" : [ ],
+    "details" : { }
+  }, {
+    "yes" : false,
+    "id" : "reachability",
+    "state" : "unknown",
+    "summary" : "Reachability was not evaluated because targeted analysis did not run.",
+    "evidenceLevel" : "reachability",
+    "evidence" : [ ],
+    "details" : { }
+  }, {
+    "yes" : false,
+    "id" : "raw_flow",
+    "state" : "unknown",
+    "summary" : "Raw flow was not evaluated because targeted analysis did not run.",
+    "evidenceLevel" : "taint",
+    "evidence" : [ ],
+    "details" : { }
+  }, {
+    "yes" : false,
+    "id" : "finding_disposition",
+    "state" : "unknown",
+    "summary" : "Finding disposition is unknown without a raw flow.",
+    "evidenceLevel" : "finding_disposition",
+    "evidence" : [ ],
+    "details" : { }
+  }, {
+    "yes" : false,
+    "id" : "propagation_frontier",
+    "state" : "unknown",
+    "summary" : "Propagation frontier is unknown without a completed targeted analysis.",
+    "evidenceLevel" : "inference",
+    "evidence" : [ ],
+    "details" : { }
+  } ],
+  "matchedFlows" : [ ],
+  "findingDispositions" : [ ],
+  "limits" : {
+    "ruleOk" : false,
+    "sourceOk" : true
+  },
+  "suggestedNextChecks" : [ "Verify the exact sink owner, return type, method name, and parameter types: <groovy.lang.GroovyClassLoader: java.lang.Class parseClass(java.lang.String)>", "Confirm the caller artifact is in the application/dependency classpath used for this deployment.", "Add or fix the exact sink signature/index in rules.yaml, then retry.", "If the sink is not referenced in app bytecode, confirm the invocation artifact is loaded as target/dependency application code.", "Inspect the PTA call graph and entry injection counts; an invoke in bytecode does not prove reachability.", "A missing SARIF finding is not proof that no exploitable flow exists." ],
+  "vulnerabilityConclusion" : "unknown",
+  "zeroFindingsDoesNotProveAbsence" : true,
+  "summary" : "Targeted analysis was not launched because a prerequisite stage failed.",
+  "diagnosisRecordPath" : "E:\\code\\汉得SRM\\.jbytescanner\\diagnosis\\not-run-c964a3963dfaa057\\diagnosis.json"
+}

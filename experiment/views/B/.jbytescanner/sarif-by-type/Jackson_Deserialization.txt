@@ -1,0 +1,149 @@
+Sink: <com.fasterxml.jackson.databind.ObjectMapper: java.lang.Object readValue(java.lang.String,java.lang.Class)>
+Total chains: 31
+================================================================================
+
+Chain #1:
+<com.fasterxml.jackson.databind.ObjectMapper: java.lang.Object readValue(java.lang.String,java.lang.Class)>
+    <org.srm.boot.adaptor.client.util.JsonUtil: java.lang.Object jsonToObj(java.lang.String,java.lang.Class)> @L63 stmt#5
+        <org.srm.adaptor.api.controller.v1.AdaptorAutoFillFormController: org.springframework.http.ResponseEntity fillForm(java.lang.Long,java.lang.String,java.util.Map)> idx=2 route=POST /v1/{organizationId}/auto-fill-form
+
+Chain #2:
+<com.fasterxml.jackson.databind.ObjectMapper: java.lang.Object readValue(java.lang.String,java.lang.Class)>
+    <org.srm.adaptor.infra.util.JsonUtil: java.lang.Object jsonToObj(java.lang.String,java.lang.Class)> @L41 stmt#5
+        <org.srm.adaptor.api.controller.v1.AdaptorEntityStructureController: org.springframework.http.ResponseEntity importAdaptorEntityStructure(java.lang.String)> idx=0 route=POST /v1/adaptor-entity-structures/import
+
+Chain #3:
+<com.fasterxml.jackson.databind.ObjectMapper: java.lang.Object readValue(java.lang.String,java.lang.Class)>
+    <org.srm.boot.adaptor.client.util.JsonUtil: java.lang.Object jsonToObj(java.lang.String,java.lang.Class)> @L63 stmt#5
+        <org.srm.adaptor.api.controller.v1.AdaptorTestCaseController: org.springframework.http.ResponseEntity adapterTest(java.lang.Long,java.lang.String,java.lang.String,java.util.Map)> idx=3 route=POST /v1/adaptor-test-case/adapterTest
+
+Chain #4:
+<com.fasterxml.jackson.databind.ObjectMapper: java.lang.Object readValue(java.lang.String,java.lang.Class)>
+    <org.srm.adaptor.api.controller.v1.JsExecuteController: org.springframework.http.ResponseEntity jsTest(java.lang.String,java.lang.String)> idx=0 route=POST /v1/js-execute/js-test
+
+Chain #5:
+<com.fasterxml.jackson.databind.ObjectMapper: java.lang.Object readValue(java.lang.String,java.lang.Class)>
+    <org.srm.boot.marmotscript.faketx.operation.DbOperationWithoutBaseMapperHandle: java.lang.String handle(java.lang.String,org.apache.ibatis.session.SqlSession)> @L52 stmt#9
+        <org.srm.boot.marmotscript.faketx.controller.FakeTxFastController: org.springframework.http.ResponseEntity dbOperation(java.lang.String,java.lang.String)> idx=1 route=POST /v1/fake-tx-callback/db-operation
+
+Chain #6:
+<com.fasterxml.jackson.databind.ObjectMapper: java.lang.Object readValue(java.lang.String,java.lang.Class)>
+    <org.srm.boot.marmotscript.faketx.controller.FakeTxFastController: org.springframework.http.ResponseEntity lovQuery(java.lang.String,java.lang.String)> idx=1 route=POST /v1/fake-tx-callback/lov-query
+
+Chain #7:
+<com.fasterxml.jackson.databind.ObjectMapper: java.lang.Object readValue(java.lang.String,java.lang.Class)>
+    <org.srm.boot.marmotscript.faketx.controller.FakeTxFastController: org.springframework.http.ResponseEntity queryBlock(java.lang.String,java.lang.String)> idx=1 route=POST /v1/fake-tx-callback/query-block
+
+Chain #8:
+<com.fasterxml.jackson.databind.ObjectMapper: java.lang.Object readValue(java.lang.String,java.lang.Class)>
+    <org.srm.boot.marmotscript.faketx.controller.FakeTxUniversalController: org.springframework.http.ResponseEntity callback(org.srm.boot.marmotscript.iface.vo.FakeTxCallBackRequestVO)> idx=0 route=POST /v1/script-fake-tx-callback/{functionName}
+
+Chain #9:
+<com.fasterxml.jackson.databind.ObjectMapper: java.lang.Object readValue(java.lang.String,java.lang.Class)>
+    <org.srm.boot.marmotscript.faketx.controller.FakeTxUniversalController: org.springframework.http.ResponseEntity callback(org.srm.boot.marmotscript.iface.vo.FakeTxCallBackRequestVO)> idx=0 route=POST /v1/script-fake-tx-callback/{functionName}
+
+Chain #10:
+<com.fasterxml.jackson.databind.ObjectMapper: java.lang.Object readValue(java.lang.String,java.lang.Class)>
+    <org.srm.boot.marmotscript.faketx.controller.FakeTxUniversalController: org.springframework.http.ResponseEntity callback(org.srm.boot.marmotscript.iface.vo.FakeTxCallBackRequestVO)> idx=0 route=POST /v1/script-fake-tx-callback/{functionName}
+
+Chain #11:
+<com.fasterxml.jackson.databind.ObjectMapper: java.lang.Object readValue(java.lang.String,java.lang.Class)>
+    <org.srm.boot.marmotscript.faketx.operation.DbOperationWithoutBaseMapperHandle: java.lang.String handle(java.lang.String,org.apache.ibatis.session.SqlSession)> @L52 stmt#9
+        <org.srm.boot.marmotscript.faketx.controller.FakeTxUniversalController: org.springframework.http.ResponseEntity callback(org.srm.boot.marmotscript.iface.vo.FakeTxCallBackRequestVO)> idx=0 route=POST /v1/script-fake-tx-callback/{functionName}
+
+Chain #12:
+<com.fasterxml.jackson.databind.ObjectMapper: java.lang.Object readValue(java.lang.String,java.lang.Class)>
+    <org.srm.boot.marmotscript.faketx.controller.ScriptDebugController: org.springframework.http.ResponseEntity debugMarmotScriptApi(java.lang.String,java.lang.String)> idx=0 route=POST /v1/script-debug/run
+
+Chain #13:
+<com.fasterxml.jackson.databind.ObjectMapper: java.lang.Object readValue(java.lang.String,java.lang.Class)>
+    <org.srm.boot.marmotscript.faketx.controller.ScriptDebugOrgController: org.springframework.http.ResponseEntity debugMarmotScriptApi(java.lang.String,java.lang.String)> idx=0 route=POST /v1/{organizationId}/script-debug/run
+
+Chain #14:
+<com.fasterxml.jackson.databind.ObjectMapper: java.lang.Object readValue(java.lang.String,java.lang.Class)>
+    <org.srm.container.api.controller.v1.MarmotScriptController: java.lang.String executeMarmotScript(java.lang.String,javax.servlet.http.HttpServletRequest)> idx=0 route=POST /v1/marmotScript/execute-marmot-script
+
+Chain #15:
+<com.fasterxml.jackson.databind.ObjectMapper: java.lang.Object readValue(java.lang.String,java.lang.Class)>
+    <org.srm.container.api.controller.v1.MarmotScriptController: org.springframework.http.ResponseEntity executeWithContentAndLog(java.lang.String)> idx=0 route=POST /v1/marmotScript/execute-with-content-and-log
+
+Chain #16:
+<com.fasterxml.jackson.databind.ObjectMapper: java.lang.Object readValue(java.lang.String,java.lang.Class)>
+    <org.srm.boot.adaptor.client.util.JsonUtil: java.lang.Object jsonToObj(java.lang.String,java.lang.Class)> @L63 stmt#5
+        <org.srm.container.api.controller.v1.ScriptController: org.springframework.http.ResponseEntity executeWithContent(org.srm.container.api.dto.ScriptAndParamDTO)> idx=0 route=POST /v1/script/execute-with-content
+
+Chain #17:
+<com.fasterxml.jackson.databind.ObjectMapper: java.lang.Object readValue(java.lang.String,java.lang.Class)>
+    <org.srm.boot.adaptor.client.util.JsonUtil: java.lang.Object jsonToObj(java.lang.String,java.lang.Class)> @L63 stmt#5
+        <org.srm.container.api.controller.v1.ScriptController: org.springframework.http.ResponseEntity executeWithContentAndLog(org.srm.container.api.dto.ScriptAndParamDTO)> idx=0 route=POST /v1/script/execute-with-content-and-log
+
+Chain #18:
+<com.fasterxml.jackson.databind.ObjectMapper: java.lang.Object readValue(java.lang.String,java.lang.Class)>
+    <org.srm.boot.adaptor.client.util.JsonUtil: java.lang.Object jsonToObj(java.lang.String,java.lang.Class)> @L63 stmt#5
+        <org.srm.marmot.controller.MarmotReportController: void print(java.lang.String,java.lang.Long,java.util.HashMap,javax.servlet.http.HttpServletResponse)> idx=2 route=POST /v1/{organizationId}/marmot-report/print/{templateCode}
+
+Chain #19:
+<com.fasterxml.jackson.databind.ObjectMapper: java.lang.Object readValue(java.lang.String,java.lang.Class)>
+    <org.srm.boot.adaptor.client.util.JsonUtil: java.lang.Object jsonToObj(java.lang.String,java.lang.Class)> @L63 stmt#5
+        <org.srm.mobile.config.api.controller.v1.ThirdPartyRelationOrgController: org.springframework.http.ResponseEntity autoBuildThirdPartyRelation(java.lang.Long,java.lang.String,java.lang.Long,java.util.Map)> idx=3 route=POST /v1/{organizationId}/third-party-relations/auto-bind
+
+Chain #20:
+<com.fasterxml.jackson.databind.ObjectMapper: java.lang.Object readValue(java.lang.String,java.lang.Class)>
+    <org.srm.platform.infra.utils.cnf.vo.ConditionHeaderVO: org.srm.platform.infra.utils.cnf.vo.ConditionHeaderVO buildFromJson(java.lang.String)> @L200 stmt#4
+        <org.srm.platform.api.controller.v1.CnfActionController: org.springframework.http.ResponseEntity create(java.lang.Long,org.srm.platform.domain.entity.CnfAction)> idx=1 route=POST /v1/{organizationId}/cnf-actions
+
+Chain #21:
+<com.fasterxml.jackson.databind.ObjectMapper: java.lang.Object readValue(java.lang.String,java.lang.Class)>
+    <org.srm.platform.infra.utils.cnf.vo.ConditionHeaderVO: org.srm.platform.infra.utils.cnf.vo.ConditionHeaderVO buildFromJson(java.lang.String)> @L200 stmt#4
+        <org.srm.platform.api.controller.v1.CnfActionController: org.springframework.http.ResponseEntity update(java.lang.Long,org.srm.platform.domain.entity.CnfAction)> idx=1 route=PUT /v1/{organizationId}/cnf-actions
+
+Chain #22:
+<com.fasterxml.jackson.databind.ObjectMapper: java.lang.Object readValue(java.lang.String,java.lang.Class)>
+    <org.srm.boot.adaptor.client.util.JsonUtil: java.lang.Object jsonToObj(java.lang.String,java.lang.Class)> @L63 stmt#5
+        <org.srm.platform.api.controller.v1.CompanyActionController: org.springframework.http.ResponseEntity querySubmitedCompanyActionTenant(org.srm.platform.api.dto.CompanyActionDTO,io.choerodon.mybatis.pagehelper.domain.PageRequest,java.lang.Long)> idx=0 route=GET /v1/company-actions/{organizationId}/submited-for-tenant
+
+Chain #23:
+<com.fasterxml.jackson.databind.ObjectMapper: java.lang.Object readValue(java.lang.String,java.lang.Class)>
+    <org.srm.platform.infra.utils.cnf.vo.ConditionHeaderVO: org.srm.platform.infra.utils.cnf.vo.ConditionHeaderVO buildFromJson(java.lang.String)> @L200 stmt#4
+        <org.srm.platform.api.controller.v1.DocDeliverRecordController: org.springframework.http.ResponseEntity deliverTo(java.lang.Long,java.lang.String,org.srm.platform.domain.entity.DocDeliverRecord)> idx=2 route=POST /v1/{organizationId}/doc-deliver-records/deliver-to
+
+Chain #24:
+<com.fasterxml.jackson.databind.ObjectMapper: java.lang.Object readValue(java.lang.String,java.lang.Class)>
+    <org.srm.platform.infra.utils.JacksonUtil: java.lang.Object parseObject(java.lang.String,java.lang.Class)> @L94 stmt#2
+        <org.srm.platform.api.controller.v1.FddEventNotifyController: org.springframework.http.ResponseEntity commonNotify(org.springframework.http.HttpHeaders,java.lang.String)> idx=1 route=POST /v1/fdd/event/notify
+
+Chain #25:
+<com.fasterxml.jackson.databind.ObjectMapper: java.lang.Object readValue(java.lang.String,java.lang.Class)>
+    <org.srm.boot.adaptor.client.util.JsonUtil: java.lang.Object jsonToObj(java.lang.String,java.lang.Class)> @L63 stmt#5
+        <org.srm.platform.api.controller.v1.PartnerInviteController: org.springframework.http.ResponseEntity list(java.lang.Long,org.srm.platform.api.dto.PartnerInviteParamDTO,io.choerodon.mybatis.pagehelper.domain.PageRequest)> idx=1 route=POST /v1/{organizationId}/invites
+
+Chain #26:
+<com.fasterxml.jackson.databind.ObjectMapper: java.lang.Object readValue(java.lang.String,java.lang.Class)>
+    <org.srm.boot.adaptor.client.util.JsonUtil: java.lang.Object jsonToObj(java.lang.String,java.lang.Class)> @L63 stmt#5
+        <org.srm.platform.api.controller.v1.PartnerInviteController: org.springframework.http.ResponseEntity listExport(java.lang.Long,org.srm.platform.api.dto.PartnerInviteParamDTO,org.hzero.export.vo.ExportParam,javax.servlet.http.HttpServletResponse,io.choerodon.mybatis.pagehelper.domain.PageRequest)> idx=1 route=GET /v1/{organizationId}/invites/export
+
+Chain #27:
+<com.fasterxml.jackson.databind.ObjectMapper: java.lang.Object readValue(java.lang.String,java.lang.Class)>
+    <org.srm.boot.adaptor.client.util.JsonUtil: java.lang.Object jsonToObj(java.lang.String,java.lang.Class)> @L63 stmt#5
+        <org.srm.platform.api.controller.v1.PartnerInviteController: org.springframework.http.ResponseEntity supplierInvite(java.lang.Long,org.srm.platform.api.dto.PartnerInviteDTO)> idx=1 route=POST /v1/{organizationId}/supplier-invite
+
+Chain #28:
+<com.fasterxml.jackson.databind.ObjectMapper: java.lang.Object readValue(java.lang.String,java.lang.Class)>
+    <org.srm.boot.adaptor.client.util.JsonUtil: java.lang.Object jsonToObj(java.lang.String,java.lang.Class)> @L63 stmt#5
+        <org.srm.platform.api.controller.v1.SupplierInviteRegistrationController: org.springframework.http.ResponseEntity create(java.lang.Long,org.srm.platform.api.dto.SupplierInviteRegDTO)> idx=1 route=POST /v1/{organizationId}/supplier-invite-register
+
+Chain #29:
+<com.fasterxml.jackson.databind.ObjectMapper: java.lang.Object readValue(java.lang.String,java.lang.Class)>
+    <org.srm.boot.adaptor.client.util.JsonUtil: java.lang.Object jsonToObj(java.lang.String,java.lang.Class)> @L63 stmt#5
+        <org.srm.platform.api.controller.v1.WideAreaSourcingController: org.springframework.http.ResponseEntity invite(java.lang.Long,org.srm.amkt.client.api.dto.SourceInviteTrackingDTO)> idx=1 route=POST /v1/{organizationId}/wide-area-sourcing/invite
+
+Chain #30:
+<com.fasterxml.jackson.databind.ObjectMapper: java.lang.Object readValue(java.lang.String,java.lang.Class)>
+    <org.srm.boot.adaptor.client.util.JsonUtil: java.lang.Object jsonToObj(java.lang.String,java.lang.Class)> @L63 stmt#5
+        <org.srm.platform.api.controller.v1.WideAreaSourcingController: org.springframework.http.ResponseEntity queryGoods(java.lang.Long,org.srm.amkt.client.api.dto.bw.BwKeywordSearchDTO)> idx=1 route=GET /v1/{organizationId}/wide-area-sourcing/goods
+
+Chain #31:
+<com.fasterxml.jackson.databind.ObjectMapper: java.lang.Object readValue(java.lang.String,java.lang.Class)>
+    <org.srm.boot.adaptor.client.util.JsonUtil: java.lang.Object jsonToObj(java.lang.String,java.lang.Class)> @L63 stmt#5
+        <org.srm.platform.api.controller.v1.WideAreaSourcingController: org.springframework.http.ResponseEntity querySupplier(java.lang.Long,org.srm.amkt.client.api.dto.bw.BwQuerySupplierNameDTO)> idx=1 route=POST /v1/{organizationId}/wide-area-sourcing/supplier
+

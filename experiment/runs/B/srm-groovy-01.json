@@ -1,0 +1,94 @@
+{
+  "task_id": "srm-groovy-01",
+  "group": "B",
+  "findings": [
+    {
+      "entry": "POST /v1/{organizationId}/application-insts/param-template (ApplicationInstController#testParamReflect); POST /v1/application-insts/param-template (ApplicationInstSiteController#testParamReflect)",
+      "source": "RequestBody TemplateDTO.template, arbitrary JSON string. No @Valid, whitelist, pattern, length check or escaping. The optional applicationInstId does not gate template evaluation.",
+      "sink": "<org.hzero.boot.interfaces.helper.FreeMarkerHelper: java.lang.Object invokeTemplate(java.lang.String,java.lang.String,java.lang.Object[])> -> <groovy.lang.GroovyClassLoader: java.lang.Class parseClass(java.lang.String)> -> Class.newInstance() -> GroovyObject.invokeMethod(String,Object). Method names invoked include mockRequestPayloadDTO, mockResponsePayloadDTO, requestDataConverter and responseDataConverter. No CompilerConfiguration/SandboxTransformer.",
+      "verdict": "likely_exploitable",
+      "reason": "The controller passes template.getTemplate() directly to ApplicationInstServiceImpl.testParamReflect, which calls FreeMarkerHelper.invokeTemplate(template, ...) before any use of the optional ID. FreeMarkerHelper compiles the same string with GroovyClassLoader.parseClass, instantiates the class, and invokes attacker-selected-by-code method names. The endpoint is an organization-level (and a duplicate site-level) API, not permissionWithin. Therefore an authenticated caller with the required tenant/site API permission can submit a Groovy class/script defining a called method and execute arbitrary Groovy/Java. Groovy 3.0.6 is packaged in srm-basic-interface-op.jar. The outer catch only converts exceptions to a failure DTO; it does not prevent side effects already executed.",
+      "evidence": [
+        "srm-basic-interface-op_src/BOOT-INF/lib/hzero-interface-saas-1.9.6.RELEASE_src/org/hzero/interfaces/api/controller/v1/ApplicationInstController.java:96-112",
+        "srm-basic-interface-op_src/BOOT-INF/lib/hzero-interface-saas-1.9.6.RELEASE_src/org/hzero/interfaces/api/controller/v1/ApplicationInstSiteController.java:89-103",
+        "srm-basic-interface-op_src/BOOT-INF/lib/hzero-interface-saas-1.9.6.RELEASE_src/org/hzero/interfaces/app/service/impl/ApplicationInstServiceImpl.java:198-229",
+        "srm-basic-interface-op_src/BOOT-INF/lib/hzero-boot-interface-1.9.6.RELEASE_src/org/hzero/boot/interfaces/helper/FreeMarkerHelper.java:69-104",
+        "srm-basic-interface-op_src/BOOT-INF/lib/hzero-interface-saas-1.9.6.RELEASE_src/org/hzero/interfaces/api/dto/TemplateDTO.java:3-20",
+        "jar tf E:\\code\\汉得SRM\\srm-basic-interface-op.jar: BOOT-INF/lib/hzero-interface-saas-1.9.6.RELEASE.jar, hzero-boot-interface-1.9.6.RELEASE.jar and groovy-3.0.6.jar are present",
+        "javap -p -c on ApplicationInstServiceImpl.class: bytecode 139 and 154 call FreeMarkerHelper.invokeTemplate(String,String,Object[]) and bytecode 233 calls debugTemplateInvoke with the same request string",
+        "javap -p -c on FreeMarkerHelper.class: bytecode 22 parseClass(String), 29 Class.newInstance, 41 GroovyObject.invokeMethod"
+      ],
+      "missing_evidence": [
+        "A live deployment was not tested, so the gateway route registration and the caller's actual menu/API permission grant are not confirmed.",
+        "The external gateway prefix for the hzero-interface service (for example /hitf) was not confirmed from route data; the paths above are the controller paths.",
+        "No WAF/request-size control or runtime Groovy classloading restriction was exercised."
+      ]
+    },
+    {
+      "entry": "POST /v1/{organizationId}/interfaces/param-template (InterfaceController#debugParamTemplate); POST /v1/interfaces/param-template (InterfaceSiteController#debugParamTemplate)",
+      "source": "RequestBody TemplateDTO.template, arbitrary JSON string. interfaceId is optional and is not required before the template is compiled and invoked.",
+      "sink": "<org.hzero.boot.interfaces.helper.FreeMarkerHelper: java.lang.Object invokeTemplate(java.lang.String,java.lang.String,java.lang.Object[])> -> <groovy.lang.GroovyClassLoader: java.lang.Class parseClass(java.lang.String)> -> Class.newInstance() -> GroovyObject.invokeMethod(String,Object), followed by debugTemplateInvoke with requestDataConverter/responseDataConverter.",
+      "verdict": "likely_exploitable",
+      "reason": "InterfaceController.debugParamTemplate and InterfaceSiteController.debugParamTemplate accept the template string from the HTTP body and pass it to InterfaceServiceImpl.debugParamTemplate. That method calls FreeMarkerHelper.invokeTemplate(template.getTemplate(), ...) and then debugTemplateInvoke, all without a validation, whitelist or sandbox. As with the application-instance endpoint, the first Groovy class compilation/instantiation is reached before any database lookup result is needed. Any authenticated organization-level or site-level user able to reach this interface-management API can execute Groovy code in the service JVM.",
+      "evidence": [
+        "srm-basic-interface-op_src/BOOT-INF/lib/hzero-interface-saas-1.9.6.RELEASE_src/org/hzero/interfaces/api/controller/v1/InterfaceController.java:238-247",
+        "srm-basic-interface-op_src/BOOT-INF/lib/hzero-interface-saas-1.9.6.RELEASE_src/org/hzero/interfaces/api/controller/v1/InterfaceSiteController.java:198-205",
+        "srm-basic-interface-op_src/BOOT-INF/lib/hzero-interface-saas-1.9.6.RELEASE_src/org/hzero/interfaces/app/service/impl/InterfaceServiceImpl.java:1219-1264",
+        "srm-basic-interface-op_src/BOOT-INF/lib/hzero-boot-interface-1.9.6.RELEASE_src/org/hzero/boot/interfaces/helper/FreeMarkerHelper.java:55-104",
+        "javap -p -c on InterfaceServiceImpl.class: bytecode 145 and 164 call FreeMarkerHelper.invokeTemplate(String,String,Object[]); bytecode 260 calls debugTemplateInvoke",
+        "javap -p -c on FreeMarkerHelper.class: bytecode 22 parseClass(String), 29 newInstance, 41 invokeMethod"
+      ],
+      "missing_evidence": [
+        "Live route registration and the actual organization/site role permission were not verified.",
+        "Gateway prefix and any upstream request filtering were not verified.",
+        "No runtime exploit was executed, so a payload with the exact expected method signature was not demonstrated end-to-end."
+      ]
+    },
+    {
+      "entry": "POST /v1/rule-engine/run-script (RuleEngineController#runGroovyScript; present in multiple service JARs including srm-gateway-op)",
+      "source": "RequestBody RuleEngine.script (String) and RuleEngine.params (Map), both JSON-controlled if the service endpoint is directly reachable.",
+      "sink": "<groovy.lang.GroovyShell: groovy.lang.Script parse(java.lang.String)> at RuleEngineServiceImpl:86, followed by Script.run() at line 87.",
+      "verdict": "likely_not_exploitable",
+      "reason": "The method does compile attacker-controlled script with GroovyShell and only installs two GroovyInterceptors: NoSystemExitSandbox blocks System.exit and NoRunTimeSandbox blocks static calls on Runtime. That sandbox is incomplete and would likely allow other execution primitives such as ProcessBuilder if the endpoint were reachable. However the controller is annotated @Permission(permissionWithin = true); the gateway GetPermissionFilter explicitly rejects any permission whose within flag is true with PERMISSION_WITH_IN before forwarding. Therefore this is not an external gateway route. It may still be exploitable by an attacker with direct access to a service port or an internal SSRF primitive, but that is outside the confirmed external HTTP entry path.",
+      "evidence": [
+        "srm-gateway-op_src/BOOT-INF/lib/hzero-boot-platform-1.9.6.RELEASE_src/org/hzero/boot/platform/rule/controller/RuleEngineController.java:18-31",
+        "srm-gateway-op_src/BOOT-INF/lib/hzero-boot-platform-1.9.6.RELEASE_src/org/hzero/boot/platform/rule/service/impl/RuleEngineServiceImpl.java:74-102",
+        "srm-gateway-op_src/BOOT-INF/lib/hzero-boot-platform-1.9.6.RELEASE_src/org/hzero/boot/platform/rule/service/impl/RuleEngineServiceImpl.java:104-121",
+        "srm-gateway-op_src/BOOT-INF/lib/hzero-gateway-helper-default-1.9.5.RELEASE_src/org/hzero/gateway/helper/filter/GetPermissionFilter.java:48-55",
+        "srm-gateway-op_src/BOOT-INF/lib/hzero-gateway-helper-default-1.9.5.RELEASE_src/org/hzero/gateway/helper/filter/PermissionDisableOrSkipFilter.java:24-42"
+      ],
+      "missing_evidence": [
+        "Whether any service port exposing /v1/rule-engine/run-script is reachable from an attacker-controlled network position was not verified.",
+        "Whether another external endpoint can be used as an SSRF pivot to this within-only endpoint was not established.",
+        "The gateway helper version and route data in the live deployment may differ from the extracted JAR."
+      ]
+    }
+  ],
+  "checked_scope": [
+    "All 20 module source trees under E:\\code\\汉得SRM_src were content-searched for GroovyShell, GroovyClassLoader, groovy.lang, parseClass, ScriptEngine, invokeTemplate, GroovyHelper and groovy.",
+    "srm-basic-interface-op: ApplicationInstController, ApplicationInstSiteController, InterfaceController, InterfaceSiteController, ApplicationInstServiceImpl, InterfaceServiceImpl, FreeMarkerHelper, TemplateDTO; source and JAR bytecode checked.",
+    "srm-basic-interface-op JAR inventory: hzero-interface-saas, hzero-boot-interface and groovy-3.0.6 are packaged.",
+    "srm-script-container-op: ScriptController, MarmotScriptController, MarmotScriptUniversalController, old2 ScriptEngine; the script endpoints use Graal JS plus a sandbox, not Groovy.",
+    "srm-gateway-op and repeated hzero-boot-platform copies in other modules: RuleEngineController, RuleEngineServiceImpl, RuleScriptHelper; gateway permissionWithin/within handling checked in GetPermissionFilter and PermissionDisableOrSkipFilter.",
+    "srm-platform-op, srm-modeler-op and srm-basic-interface-op copies of interface-authorization: GroovyHelper, GroovyScriptAuthAssembler, SoapRequestAuthAssembler; these consume stored common-template content rather than a direct request-body script.",
+    "srm-basic-platform-op: RuleScriptController and RuleScriptSiteController create/update/test paths and RuleScriptServiceImpl blacklist use were inspected for an indirect stored-Groovy path.",
+    "All deployment JAR names and the basic-interface JAR contents were listed; no target files were modified."
+  ],
+  "limitations": [
+    "No live application, account, token or gateway route table was available, so exploitability is based on code and packaged-bytecode evidence; the gateway prefix and actual role/menu grant remain unverified.",
+    "The controller paths are reported without a confirmed gateway prefix; deployments commonly prefix service routes, so the full external URL may differ.",
+    "JByteScanner's configured Groovy sink is inside hzero-boot-interface, which its diagnosis classified as a dependency/library rather than target application bytecode; therefore the CLI could not emit a finding even though the caller in hzero-interface-saas is packaged in the service JAR.",
+    "No payload was executed against the target; method-name matching, runtime classloading, WAF behavior and request-size limits were not dynamically tested.",
+    "Stored-template paths in interface authorization and rule-script configuration were not fully traced to every external trigger within the time budget.",
+    "The scanner's zero Groovy result and the diagnose 'unknown' result are not treated as proof of absence."
+  ],
+  "cli_usage": [
+    "query E:\\code\\汉得SRM\\.jbytescanner scan-status --json -> worker SUCCESS, 371 taint flows, 370 findings after dedupe, no Groovy conclusion.",
+    "query E:\\code\\汉得SRM\\.jbytescanner findings --limit 500 --json -> observed rules were SSRF, Path_Traversal, Jackson_Deserialization and Fastjson_Deserialization; no Groovy rule result.",
+    "query E:\\code\\汉得SRM\\.jbytescanner finding --sink '<groovy.lang.GroovyClassLoader: java.lang.Class parseClass(java.lang.String)>' --json -> matched 0, evidenceState=no, requiresTargetedDiagnosis=true.",
+    "query E:\\code\\汉得SRM\\.jbytescanner finding --sink '<groovy.lang.GroovyShell: groovy.lang.Script parse(java.lang.String)>' --json -> matched 0.",
+    "diagnose E:\\code\\汉得SRM --sink '<groovy.lang.GroovyClassLoader: java.lang.Class parseClass(java.lang.String)>' --json --timeout-minutes 4 -> invocation stage no (0 exact invokes in 60 target application JARs), rule not emitted, worker NOT_RUN; the sink exists in the dependency hzero-boot-interface library, so this is an evidence boundary rather than a safety proof."
+  ],
+  "started_at": "2026-10-27T09:01:25+08:00",
+  "finished_at": "2026-10-27T09:06:41+08:00"
+}

